@@ -137,7 +137,7 @@ body {
 }
 
 /* Wrapper neutre sur desktop ; sur mobile, devient la zone flexible qui
-   ancre la grille en bas de l'écran. */
+   accueille la grille sous le registre. */
 .board-zone {
   display: contents;
 }
@@ -690,7 +690,7 @@ body.debug {
 
 @media (max-width: 860px) {
   /* Page verrouillée à la hauteur du viewport : le scroll éventuel est
-     reporté sur la liste des mots, la grille reste ancrée en bas.
+     reporté sur la liste des mots, la grille reste entièrement visible.
      dvh (et non vh) : suit la barre d'outils du navigateur mobile. */
   .page {
     min-height: 0;
@@ -736,14 +736,12 @@ body.debug {
   /* La zone réclame la hauteur d'une grille pleine largeur et passe en
      dernier (order). En cas de manque de place, la liste des mots cède
      d'abord (flex-shrink énorme), puis la grille rétrécit via 100cqh.
-     L'espace libre est réparti entre consigne, registre et grille par les
-     marges auto (ici et sur .ledger-head) : effet space-between. */
+     Flux naturel : marges fixes, l'espace libre éventuel reste en bas. */
   .board-zone {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: center;
     order: 1;
-    margin-top: auto;
     flex: 0 1 min(100vw - 32px, 500px);
     min-height: 0;
     container-type: size;
@@ -784,9 +782,6 @@ body.debug {
   .ledger {
     display: contents;
   }
-  .ledger-head {
-    margin-top: auto; /* seconde marge du space-between (voir .board-zone) */
-  }
   .ledger-label {
     font-size: 12px;
     letter-spacing: 2px;
@@ -796,9 +791,8 @@ body.debug {
   }
 
   .word-list {
-    /* 14px : même marge fixe que sous la consigne, pour des interstices
-       égaux de part et d'autre du registre (marges auto identiques). */
-    margin: 6px 0 14px;
+    /* 24px : respiration un peu plus marquée entre le registre et la grille */
+    margin: 6px 0 24px;
     /* Sans ce pixel, la bordure basse de la dernière ligne tombe pile sur
        le bord de la zone de scroll et se fait rogner par l'arrondi. */
     padding-bottom: 1px;
