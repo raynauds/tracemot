@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tracemot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <div class="header-left">
+          <h1 class="title">Tracemot</h1>
+        </div>
+        <div class="header-right">
+          <span class="chrono-label">CHRONO</span>
+          <span class="chrono" id="chrono">00:00</span>
+        </div>
+      </header>
+
+      <nav class="modes" aria-label="Mode de jeu">
+        <span class="modes-label">MODE</span>
+        <button type="button" class="mode-btn" data-mode="classique">
+          CLASSIQUE
+        </button>
+        <button type="button" class="mode-btn" data-mode="chevauchement">
+          5×5 CHEVAUCHEMENT
+        </button>
+        <button type="button" class="mode-btn" data-mode="pavage">
+          5×5 PAVAGE PARFAIT
+        </button>
+      </nav>
+
+      <main class="main">
+        <div class="board" id="board">
+          <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
+
+          <div class="grid" id="grid" hidden>
+            <svg class="trace" id="trace" aria-hidden="true">
+              <polyline
+                id="trace-line"
+                fill="none"
+                stroke-linecap="butt"
+                stroke-linejoin="miter"
+                points=""
+              ></polyline>
+            </svg>
+            <!-- cases générées par js/render.js -->
+          </div>
+
+          <div class="win" id="win" hidden>
+            <span class="confetti c1"></span>
+            <span class="confetti c2 cream"></span>
+            <span class="confetti c3"></span>
+            <span class="confetti c4 cream"></span>
+            <span class="confetti c5"></span>
+            <span class="confetti c6"></span>
+            <div class="win-title">Gagné<span class="dot">.</span></div>
+            <div class="win-sub" id="win-sub"></div>
+            <button type="button" class="win-replay" id="replay">
+              REJOUER
+            </button>
+          </div>
+        </div>
+
+        <section class="ledger">
+          <div class="ledger-head">
+            <span class="ledger-label">MOTS TROUVÉS</span>
+            <span class="counter" id="counter"></span>
+          </div>
+          <ol class="word-list" id="word-list"></ol>
+          <p class="rule-text" id="rule-text"></p>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
