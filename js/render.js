@@ -157,6 +157,15 @@ export function buildBoard() {
 
 // --- Registre des mots ----------------------------------------------------
 
+// Sur mobile la liste est compressée et scrolle : on garde la ligne active
+// en vue. Sans effet quand la liste tient en entier (desktop).
+/** @param {HTMLElement} row */
+function keepRowVisible(row) {
+  if (wordListEl.scrollHeight > wordListEl.clientHeight) {
+    row.scrollIntoView({ block: "nearest" });
+  }
+}
+
 /** @param {HTMLElement} row */
 function resetListRow(row) {
   row.className = "word-row empty";
@@ -186,6 +195,7 @@ export function renderPendingWord() {
   const isWord = wordRejectReason(word) === null;
   content.className = isWord ? "word-text pending valid" : "word-text pending";
   content.textContent = word;
+  keepRowVisible(row);
 }
 
 // Mot refusé : lettres en rouge, motif du refus à droite, puis la ligne
@@ -223,6 +233,7 @@ export function fillListRow(index, word, animate) {
   const content = row.children[1];
   content.className = animate ? "word-text stamp" : "word-text";
   content.textContent = word;
+  keepRowVisible(row);
 }
 
 export function renderCounter() {

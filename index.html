@@ -2,7 +2,10 @@
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Tracemot</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -38,34 +41,36 @@
       </nav>
 
       <main class="main">
-        <div class="board" id="board">
-          <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
+        <div class="board-zone">
+          <div class="board" id="board">
+            <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
 
-          <div class="grid" id="grid" hidden>
-            <svg class="trace" id="trace" aria-hidden="true">
-              <polyline
-                id="trace-line"
-                fill="none"
-                stroke-linecap="butt"
-                stroke-linejoin="miter"
-                points=""
-              ></polyline>
-            </svg>
-            <!-- cases générées par js/render.js -->
-          </div>
+            <div class="grid" id="grid" hidden>
+              <svg class="trace" id="trace" aria-hidden="true">
+                <polyline
+                  id="trace-line"
+                  fill="none"
+                  stroke-linecap="butt"
+                  stroke-linejoin="miter"
+                  points=""
+                ></polyline>
+              </svg>
+              <!-- cases générées par js/render.js -->
+            </div>
 
-          <div class="win" id="win" hidden>
-            <span class="confetti c1"></span>
-            <span class="confetti c2 cream"></span>
-            <span class="confetti c3"></span>
-            <span class="confetti c4 cream"></span>
-            <span class="confetti c5"></span>
-            <span class="confetti c6"></span>
-            <div class="win-title">Gagné<span class="dot">.</span></div>
-            <div class="win-sub" id="win-sub"></div>
-            <button type="button" class="win-replay" id="replay">
-              REJOUER
-            </button>
+            <div class="win" id="win" hidden>
+              <span class="confetti c1"></span>
+              <span class="confetti c2 cream"></span>
+              <span class="confetti c3"></span>
+              <span class="confetti c4 cream"></span>
+              <span class="confetti c5"></span>
+              <span class="confetti c6"></span>
+              <div class="win-title">Gagné<span class="dot">.</span></div>
+              <div class="win-sub" id="win-sub"></div>
+              <button type="button" class="win-replay" id="replay">
+                REJOUER
+              </button>
+            </div>
           </div>
         </div>
 

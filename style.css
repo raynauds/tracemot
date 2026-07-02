@@ -136,6 +136,12 @@ body {
   margin-top: 72px;
 }
 
+/* Wrapper neutre sur desktop ; sur mobile, devient la zone flexible qui
+   ancre la grille en bas de l'écran. */
+.board-zone {
+  display: contents;
+}
+
 /* Emprise carrée commune à la grille et au bloc victoire */
 .board {
   position: relative;
@@ -508,6 +514,7 @@ body {
   align-items: center;
   gap: 20px;
   height: 58px;
+  flex-shrink: 0; /* liste compressée (mobile) : on scrolle, on n'aplatit pas */
   border-bottom: 1px solid var(--line);
 }
 
@@ -682,8 +689,15 @@ body.debug {
 /* ---------- Mobile (maquette 390×844) ---------- */
 
 @media (max-width: 860px) {
+  /* Page verrouillée à la hauteur du viewport : le scroll éventuel est
+     reporté sur la liste des mots, la grille reste ancrée en bas.
+     dvh (et non vh) : suit la barre d'outils du navigateur mobile. */
   .page {
-    padding: 14px 16px 14px;
+    min-height: 0;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding: 14px 16px max(14px, env(safe-area-inset-bottom));
   }
 
   .header {
@@ -715,10 +729,29 @@ body.debug {
     flex-direction: column;
     gap: 0;
     margin-top: 16px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* La zone réclame la hauteur d'une grille pleine largeur et passe en
+     dernier (order). En cas de manque de place, la liste des mots cède
+     d'abord (flex-shrink énorme), puis la grille rétrécit via 100cqh.
+     L'espace libre est réparti entre consigne, registre et grille par les
+     marges auto (ici et sur .ledger-head) : effet space-between. */
+  .board-zone {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    order: 1;
+    margin-top: auto;
+    flex: 0 1 min(100vw - 32px, 500px);
+    min-height: 0;
+    container-type: size;
   }
 
   .board {
     flex: 0 0 auto;
+    width: min(100%, 100cqh);
   }
 
   .grid {
@@ -752,7 +785,7 @@ body.debug {
     display: contents;
   }
   .ledger-head {
-    margin-top: 22px;
+    margin-top: auto; /* seconde marge du space-between (voir .board-zone) */
   }
   .ledger-label {
     font-size: 12px;
@@ -763,7 +796,15 @@ body.debug {
   }
 
   .word-list {
-    margin-top: 6px;
+    /* 14px : même marge fixe que sous la consigne, pour des interstices
+       égaux de part et d'autre du registre (marges auto identiques). */
+    margin: 6px 0 14px;
+    /* Sans ce pixel, la bordure basse de la dernière ligne tombe pile sur
+       le bord de la zone de scroll et se fait rogner par l'arrondi. */
+    padding-bottom: 1px;
+    flex: 0 999 auto;
+    min-height: 76px; /* ~2 lignes : le scroll reste perceptible */
+    overflow-y: auto;
   }
   .word-row {
     height: 36px;
@@ -799,5 +840,10 @@ body.debug {
   }
   .rule-mobile {
     display: inline;
+  }
+
+  /* Le panneau debug fixe recouvrirait la grille ancrée en bas */
+  body.debug .page {
+    height: calc(100dvh - 160px);
   }
 }
