@@ -1,0 +1,3 @@
+- Ne fais jamais de preview sauf si explicitement demandé
+- Discours concis, droit au but
+- Pour chaque question, donne ta meilleure suggestion entre parenthèses

@@ -617,8 +617,8 @@ body {
   max-width: 420px;
 }
 
-/* Fin de la règle : phrase longue sur desktop, courte sur mobile (maquette 2a) */
-.rule-end-mobile {
+/* Consigne en deux variantes : phrase complète sur desktop, resserrée sur mobile */
+.rule-mobile {
   display: none;
 }
 
@@ -683,7 +683,7 @@ body.debug {
 
 @media (max-width: 860px) {
   .page {
-    padding: 20px 16px 18px;
+    padding: 14px 16px 14px;
   }
 
   .header {
@@ -714,7 +714,7 @@ body.debug {
   .main {
     flex-direction: column;
     gap: 0;
-    margin-top: 28px;
+    margin-top: 16px;
   }
 
   .board {
@@ -746,9 +746,13 @@ body.debug {
     letter-spacing: 3px;
   }
 
+  /* La consigne remonte au-dessus de la grille : les enfants du ledger
+     deviennent des enfants directs de .main (colonne) et se réordonnent. */
   .ledger {
-    padding-top: 0;
-    margin-top: 40px;
+    display: contents;
+  }
+  .ledger-head {
+    margin-top: 22px;
   }
   .ledger-label {
     font-size: 12px;
@@ -762,7 +766,7 @@ body.debug {
     margin-top: 6px;
   }
   .word-row {
-    height: 44px;
+    height: 36px;
     gap: 14px;
   }
   .word-num {
@@ -783,16 +787,17 @@ body.debug {
   }
 
   .rule-text {
-    margin-top: 16px;
+    order: -1;
+    margin: 0 0 14px;
     font-size: 13.5px;
     line-height: 1.5;
     max-width: none;
   }
 
-  .rule-end-desktop {
+  .rule-desktop {
     display: none;
   }
-  .rule-end-mobile {
+  .rule-mobile {
     display: inline;
   }
 }

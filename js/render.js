@@ -51,25 +51,50 @@ function formatTime(ms) {
   return `${m}:${s}`;
 }
 
+// Consigne en deux variantes : la phrase complète sur desktop, une version
+// resserrée sur mobile où la place verticale est comptée (bascule CSS).
 function playingRuleText() {
   const n = FR_NUMBERS[WORDS_TO_WIN] || String(WORDS_TO_WIN);
   const l5 = FR_NUMBERS[FIVE_WORD_LENGTH] || String(FIVE_WORD_LENGTH);
+  const N = `${n[0].toUpperCase()}${n.slice(1)}`;
   if (state.mode === "chevauchement") {
-    return (
-      `${n[0].toUpperCase()}${n.slice(1)} mots de ${l5} lettres se cachent ` +
-      `dans la grille, et ils peuvent se croiser. Reliez des lettres ` +
-      `voisines pour les retrouver - eux seuls comptent.`
-    );
+    return {
+      desktop:
+        `${N} mots de ${l5} lettres se cachent dans la grille, et ils ` +
+        `peuvent se croiser. Reliez des lettres voisines pour les ` +
+        `retrouver - eux seuls comptent.`,
+      mobile:
+        `Trouvez les ${n} mots de ${l5} lettres cachés dans la grille ` +
+        `en reliant les lettres adjacentes.`,
+    };
   }
   if (state.mode === "pavage") {
-    return (
-      `${n[0].toUpperCase()}${n.slice(1)} mots de ${l5} lettres pavent la ` +
-      `grille : chaque lettre sert à exactement un mot. Reliez des lettres ` +
-      `voisines pour les retrouver.`
-    );
+    return {
+      desktop:
+        `${N} mots de ${l5} lettres pavent la ` +
+        `grille : chaque lettre sert à exactement un mot. Reliez des lettres ` +
+        `voisines pour les retrouver.`,
+      mobile:
+        `Trouvez les ${n} mots de ${l5} lettres qui pavent la grille ` +
+        `en reliant les lettres adjacentes.`,
+    };
   }
   const l = FR_NUMBERS[MIN_WORD_LENGTH] || String(MIN_WORD_LENGTH);
-  return `Reliez des lettres voisines pour former ${n} mots d'au moins ${l} lettres.`;
+  return {
+    desktop: `Reliez des lettres voisines pour former ${n} mots d'au moins ${l} lettres.`,
+    mobile: `Trouvez ${n} mots d'au moins ${l} lettres en reliant les lettres adjacentes.`,
+  };
+}
+
+/** @param {{desktop: string, mobile: string}} rule */
+function renderRuleText(rule) {
+  const d = document.createElement("span");
+  d.className = "rule-desktop";
+  d.textContent = rule.desktop;
+  const m = document.createElement("span");
+  m.className = "rule-mobile";
+  m.textContent = rule.mobile;
+  ruleTextEl.replaceChildren(d, m);
 }
 
 // --- Sélecteur de mode ----------------------------------------------------
@@ -353,7 +378,7 @@ export function renderNewGame() {
   renderCounter();
   counterEl.classList.remove("full");
   chronoEl.classList.remove("won");
-  ruleTextEl.textContent = playingRuleText();
+  renderRuleText(playingRuleText());
   winEl.hidden = true;
   gridEl.hidden = false;
   updateTrace();
