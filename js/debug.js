@@ -21,7 +21,9 @@ export function renderDebugPanel() {
   if (!debugPanelEl) return;
   const all = findAllWords(state.letters, state.words, state.fullPrefixes);
   const entries = [...all.entries()].sort(([a], [b]) => a.localeCompare(b));
-  const childCount = entries.filter(([w]) => state.childWords.has(w)).length;
+  const childCount = entries.filter(([w]) =>
+    state.tierWords.enfant.has(w),
+  ).length;
 
   debugPanelEl.textContent = "";
   const label = document.createElement("span");
@@ -37,7 +39,7 @@ export function renderDebugPanel() {
 
   for (const [word, path] of entries) {
     const span = document.createElement("span");
-    span.className = state.childWords.has(word)
+    span.className = state.tierWords.enfant.has(word)
       ? "debug-word child"
       : "debug-word";
     span.textContent = word;

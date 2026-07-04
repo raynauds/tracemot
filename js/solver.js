@@ -10,7 +10,6 @@ import {
   LETTER_WEIGHTS,
   MAX_FIVE_GRID_TRIES,
   MAX_GRID_REPAIRS,
-  MAX_GRID_TRIES,
   MIN_WORD_LENGTH,
   WORDS_TO_WIN,
 } from "./config.js";
@@ -36,7 +35,7 @@ function drawLetters() {
   return Array.from({ length: CELL_COUNT }, drawLetter);
 }
 
-// --- Solveur (garantie de solvabilité) --------------------------------
+// --- Grille -------------------------------------------------------------
 
 // Voisins orthogonaux précalculés pour chaque case.
 const NEIGHBORS = Array.from({ length: CELL_COUNT }, (_, i) => {
@@ -50,87 +49,15 @@ const NEIGHBORS = Array.from({ length: CELL_COUNT }, (_, i) => {
   return out;
 });
 
-/**
- * Compte les mots distincts de `words` trouvables dans la grille, avec
- * arrêt anticipé dès que `target` mots sont atteints. DFS orthogonal,
- * élagage par le Set des préfixes.
- * @param {string[]} letters
- * @param {number} target
- * @param {Set<string>} words
- * @param {Set<string>} prefixes
- */
-export function countSolvableWords(letters, target, words, prefixes) {
-  /** @type {Set<string>} */
-  const found = new Set();
-
-  /**
-   * @param {number} idx
-   * @param {number} mask
-   * @param {string} prefix
-   */
-  function dfs(idx, mask, prefix) {
-    const next = prefix + letters[idx];
-    if (!prefixes.has(next)) return;
-    if (next.length >= MIN_WORD_LENGTH && words.has(next)) {
-      found.add(next);
-      if (found.size >= target) return;
-    }
-    for (const nb of NEIGHBORS[idx]) {
-      const bit = 1 << nb;
-      if (mask & bit) continue;
-      dfs(nb, mask | bit, next);
-      if (found.size >= target) return;
-    }
-  }
-
-  for (let i = 0; i < CELL_COUNT && found.size < target; i++) {
-    dfs(i, 1 << i, "");
-  }
-  return found.size;
-}
-
-/**
- * Tire des grilles jusqu'à en obtenir une où au moins WORDS_TO_WIN mots
- * « enfant » sont traçables. La validation en jeu reste sur le dictionnaire
- * complet : on garantit seulement que la grille contient assez de mots
- * connus des enfants.
- * @param {Set<string>} childWords
- * @param {Set<string>} childPrefixes
- * @returns {{ letters: string[], tries: number }}
- */
-export function generateGrid(childWords, childPrefixes) {
-  let best = drawLetters();
-  let bestCount = -1;
-  for (let t = 0; t < MAX_GRID_TRIES; t++) {
-    const letters = t === 0 ? best : drawLetters();
-    const count = countSolvableWords(
-      letters,
-      WORDS_TO_WIN,
-      childWords,
-      childPrefixes,
-    );
-    if (count >= WORDS_TO_WIN) return { letters, tries: t + 1 };
-    if (count > bestCount) {
-      bestCount = count;
-      best = letters;
-    }
-  }
-  console.warn(
-    `Tracemot : plafond de ${MAX_GRID_TRIES} essais atteint - ` +
-      `meilleure grille conservée (${bestCount} mots enfant trouvables sur ${WORDS_TO_WIN} demandés).`,
-  );
-  return { letters: best, tries: MAX_GRID_TRIES };
-}
-
-// --- Modes 5×5 (chevauchement et pavage parfait) ------------------------
+// --- Pavage parfait ------------------------------------------------------
 //
-// Ces modes garantissent une grille où exactement WORDS_TO_WIN mots de
-// FIVE_WORD_LENGTH lettres sont traçables - ceux de la solution, choisis
-// dans les paliers de vocabulaire dosés par la difficulté - vérifié contre
-// le dictionnaire complet,
-// chaque mot n'ayant qu'un seul tracé possible. Génération par tirage +
-// vérification : on place les mots, on contrôle l'exclusivité, on répare
-// (chevauchement) ou on retire (pavage) jusqu'à obtenir une grille propre.
+// La grille garantit qu'exactement WORDS_TO_WIN mots de FIVE_WORD_LENGTH
+// lettres sont traçables - ceux de la solution, choisis dans les paliers
+// de vocabulaire dosés par la difficulté - vérifié contre le dictionnaire
+// complet, chaque mot n'ayant qu'un seul tracé possible. Génération par
+// tirage + vérification : on découpe un pavage, on y pose les mots, on
+// contrôle l'exclusivité et on remplace un mot impliqué dans un tracé
+// parasite jusqu'à obtenir une grille propre.
 
 const ALL_CELLS = Array.from({ length: CELL_COUNT }, (_, i) => i);
 
@@ -146,14 +73,6 @@ function shuffled(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
-}
-
-/** @param {string} current */
-function drawLetterOther(current) {
-  for (;;) {
-    const l = drawLetter();
-    if (l !== current) return l;
-  }
 }
 
 // Un tracé et son inverse comptent pour un seul tracé : la clé canonique
@@ -302,50 +221,6 @@ function collectIssues(found, intended) {
 }
 
 /**
- * Place `word` sur la grille partielle (null = case libre) : DFS randomisé,
- * une case convient si elle est libre ou porte déjà la bonne lettre. Si
- * `requireOverlap`, le tracé doit réutiliser au moins une case occupée
- * (croisement avec les mots déjà posés, façon mots croisés).
- * @param {(string|null)[]} letters
- * @param {string} word
- * @param {boolean} requireOverlap
- * @returns {number[]|null}
- */
-function placeWordPath(letters, word, requireOverlap) {
-  /** @type {number[]|null} */
-  let result = null;
-
-  /**
-   * @param {number[]} path
-   * @param {number} overlaps
-   */
-  function dfs(path, overlaps) {
-    if (path.length === word.length) {
-      if (!requireOverlap || overlaps > 0) result = path.slice();
-      return;
-    }
-    const last = path[path.length - 1];
-    for (const nb of shuffled(NEIGHBORS[last])) {
-      if (path.includes(nb)) continue;
-      const cell = letters[nb];
-      if (cell !== null && cell !== word[path.length]) continue;
-      path.push(nb);
-      dfs(path, overlaps + (cell !== null ? 1 : 0));
-      path.pop();
-      if (result) return;
-    }
-  }
-
-  for (const start of shuffled(ALL_CELLS)) {
-    const cell = letters[start];
-    if (cell !== null && cell !== word[0]) continue;
-    dfs([start], cell !== null ? 1 : 0);
-    if (result) return result;
-  }
-  return null;
-}
-
-/**
  * Mot de remplacement pour la position `i` de la solution : distinct des
  * mots en place et à distance de Hamming ≥ 2 de chacun des autres.
  * `candidates` est le vivier du palier du mot remplacé (la composition de
@@ -362,106 +237,6 @@ function pickReplacementWord(candidates, words, i) {
     if (words.every((c, j) => j === i || hamming(c, w) >= 2)) return w;
   }
   return null;
-}
-
-/**
- * Tentative de grille « chevauchement » : les mots se croisent (chaque mot
- * après le premier partage au moins une case avec les précédents), les cases
- * restantes reçoivent des lettres de remplissage. Réparation locale tant
- * qu'il reste des tracés parasites : redistribution d'une lettre de
- * remplissage quand le tracé en contient une, sinon remplacement d'un des
- * mots impliqués (retiré puis reposé ailleurs sous un autre mot).
- * @param {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}} five
- * @param {import("./config.js").Difficulty} difficulty
- * @returns {{letters: string[], solution: string[], issues: number}|null}
- */
-function attemptOverlapGrid(five, difficulty) {
-  const picked = pickSolutionWords(five.candidates, difficulty);
-  if (!picked) return null;
-  const { words, tiers } = picked;
-
-  /** @type {number[][]} */
-  const paths = [];
-  /** @type {(string|null)[]} */
-  const partial = new Array(CELL_COUNT).fill(null);
-  for (let i = 0; i < words.length; i++) {
-    const path = placeWordPath(partial, words[i], i > 0);
-    if (!path) return null;
-    for (let k = 0; k < path.length; k++) partial[path[k]] = words[i][k];
-    paths.push(path);
-  }
-
-  /** @type {string[]} */
-  let letters = [];
-  /** @type {Set<number>} */
-  let fillers = new Set();
-  // (Re)matérialise la grille depuis words/paths ; les lettres de
-  // remplissage encore en place sont conservées (réparations comprises).
-  function materialize() {
-    /** @type {(string|null)[]} */
-    const next = new Array(CELL_COUNT).fill(null);
-    for (let i = 0; i < words.length; i++) {
-      for (let k = 0; k < paths[i].length; k++) next[paths[i][k]] = words[i][k];
-    }
-    /** @type {Set<number>} */
-    const nextFillers = new Set();
-    for (let c = 0; c < CELL_COUNT; c++) {
-      if (next[c] === null) {
-        next[c] = fillers.has(c) ? letters[c] : drawLetter();
-        nextFillers.add(c);
-      }
-    }
-    letters = /** @type {string[]} */ (next);
-    fillers = nextFillers;
-  }
-  materialize();
-
-  const verify = () =>
-    collectIssues(
-      findFivePaths(letters, five.words5, five.prefixes5),
-      new Map(words.map((w, i) => [w, canonKey(paths[i])])),
-    );
-
-  let issues = verify();
-  for (let r = 0; r < MAX_GRID_REPAIRS && issues.length > 0; r++) {
-    const fixable = issues.filter((p) => p.some((c) => fillers.has(c)));
-    if (fixable.length > 0) {
-      for (const path of fixable) {
-        const cells = path.filter((c) => fillers.has(c));
-        const cell = cells[(Math.random() * cells.length) | 0];
-        letters[cell] = drawLetterOther(letters[cell]);
-      }
-    } else {
-      // Tracé fautif entièrement sur les mots posés : remplacer un des
-      // mots impliqués est la seule issue.
-      const bad = issues[(Math.random() * issues.length) | 0];
-      const involved = words
-        .map((_, i) => i)
-        .filter((i) => bad.some((c) => paths[i].includes(c)));
-      const i = involved[(Math.random() * involved.length) | 0];
-      /** @type {(string|null)[]} */
-      const others = new Array(CELL_COUNT).fill(null);
-      for (let j = 0; j < words.length; j++) {
-        if (j === i) continue;
-        for (let k = 0; k < paths[j].length; k++) {
-          others[paths[j][k]] = words[j][k];
-        }
-      }
-      /** @type {number[]|null} */
-      let path = null;
-      for (let g = 0; g < 12 && path === null; g++) {
-        const repl = pickReplacementWord(five.candidates[tiers[i]], words, i);
-        if (repl === null) break;
-        path = placeWordPath(others, repl, true);
-        if (path) words[i] = repl;
-      }
-      if (!path) break; // pas de remplaçant plaçable : on rend tel quel
-      paths[i] = path;
-      materialize();
-    }
-    issues = verify();
-  }
-  return { letters, solution: words.slice(), issues: issues.length };
 }
 
 /**
@@ -608,20 +383,18 @@ function attemptTilingGrid(five, difficulty) {
 }
 
 /**
- * Génère une grille pour un mode 5×5 : tirages successifs jusqu'à une
+ * Génère une grille de pavage parfait : tirages successifs jusqu'à une
  * grille sans tracé fautif. Au-delà de MAX_FIVE_GRID_TRIES tentatives, la
  * grille la moins fautive rencontrée est rendue (avertissement en console).
- * @param {import("./config.js").Mode} mode "chevauchement" ou "pavage"
  * @param {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}} five
  * @param {import("./config.js").Difficulty} difficulty
  * @returns {{ letters: string[], solution: string[], tries: number }}
  */
-export function generateFiveGrid(mode, five, difficulty) {
-  const attempt = mode === "pavage" ? attemptTilingGrid : attemptOverlapGrid;
+export function generateFiveGrid(five, difficulty) {
   /** @type {{letters: string[], solution: string[], issues: number}|null} */
   let best = null;
   for (let t = 0; t < MAX_FIVE_GRID_TRIES; t++) {
-    const result = attempt(five, difficulty);
+    const result = attemptTilingGrid(five, difficulty);
     if (!result) continue;
     if (result.issues === 0) {
       return { letters: result.letters, solution: result.solution, tries: t + 1 };
@@ -631,7 +404,7 @@ export function generateFiveGrid(mode, five, difficulty) {
   if (!best) {
     // Paliers de vocabulaire trop pauvres pour composer la solution : ne
     // devrait jamais arriver avec les fichiers fournis.
-    console.warn("Tracemot : génération 5×5 impossible, grille aléatoire.");
+    console.warn("Tracemot : génération du pavage impossible, grille aléatoire.");
     return { letters: drawLetters(), solution: [], tries: MAX_FIVE_GRID_TRIES };
   }
   console.warn(

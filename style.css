@@ -354,50 +354,6 @@ body {
   text-transform: uppercase;
 }
 
-/* ---------- Sélecteur de mode ---------- */
-
-.modes {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px 28px;
-  padding-top: 16px;
-}
-
-/* display:flex ci-dessus écraserait l'attribut hidden (sélecteur masqué
-   quand un seul mode est accessible). */
-.modes[hidden] {
-  display: none;
-}
-
-.modes-label {
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 2px;
-  color: var(--foot);
-}
-
-.mode-btn {
-  background: none;
-  border: none;
-  padding: 0 0 3px;
-  cursor: pointer;
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 2px;
-  color: var(--muted);
-  border-bottom: 2px solid transparent;
-}
-
-.mode-btn:hover {
-  color: var(--ink);
-}
-
-.mode-btn.active {
-  color: var(--ink);
-  border-bottom-color: var(--vermilion);
-}
-
 /* ---------- Layout principal ---------- */
 
 .main {
@@ -452,7 +408,7 @@ body {
   stroke: var(--ink);
 }
 
-/* Tracé fantôme d'un mot trouvé (mode pavage) : assorti aux cases désactivées */
+/* Tracé fantôme d'un mot trouvé : assorti aux cases désactivées */
 .trace .trace-ghost {
   stroke: var(--ghost);
 }
@@ -490,7 +446,7 @@ body {
   }
 }
 
-/* Mode pavage : case consommée par un mot trouvé, sortie du jeu */
+/* Case consommée par un mot trouvé, sortie du jeu */
 .cell.disabled {
   background: var(--paper);
   border-color: var(--line);
@@ -1035,18 +991,6 @@ body.debug {
   }
   .diff-note {
     margin-top: 14px;
-  }
-
-  .modes {
-    gap: 6px 16px;
-    padding-top: 12px;
-  }
-  .modes-label {
-    display: none;
-  }
-  .mode-btn {
-    font-size: 11px;
-    letter-spacing: 1.5px;
   }
 
   .main {

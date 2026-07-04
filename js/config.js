@@ -13,34 +13,13 @@ export const WORDS_TO_WIN = 5;
 // Survoler un mot met en évidence son tracé dans la grille.
 export const DEBUG = false;
 
-/** @typedef {"classique"|"chevauchement"|"pavage"} Mode */
-
-// Modes de jeu. « classique » : mots libres d'au moins MIN_WORD_LENGTH
-// lettres. Les deux modes « 5×5 » cachent exactement WORDS_TO_WIN mots de
-// FIVE_WORD_LENGTH lettres du vocabulaire courant, et garantissent qu'aucun
-// autre mot de cette longueur n'est traçable (vérifié contre le dictionnaire
-// complet) et que chaque mot n'a qu'un seul tracé possible. En
-// « chevauchement » les mots peuvent se croiser (lettres partagées), en
-// « pavage » ils recouvrent exactement les 25 cases.
-/** @type {Mode[]} */
-export const MODES = ["classique", "chevauchement", "pavage"];
-/** @type {Mode} */
-export const DEFAULT_MODE = "classique";
-// Modes accessibles dans l'interface (au moins un). Retirez des entrées
-// pour restreindre le jeu. Avec un seul mode accessible, le sélecteur de
-// mode disparaît entièrement : le jeu se présente sans notion de mode.
-/** @type {Mode[]} */
-export const ENABLED_MODES = ["pavage"];
-
 /** @typedef {"enfant"|"ado"|"adulte"|"inconnu"} Tier */
 /** @typedef {1|2|3|4|5} Difficulty */
 
 // Difficultés (nombre d'étoiles). Chaque niveau fixe la composition des
-// mots cachés des modes 5×5 parmi les quatre paliers de vocabulaire :
-// bornes [min, max] du nombre de mots tirés dans les paliers « ado »,
-// « adulte » et « inconnu », le reste venant du palier « enfant ». En mode
-// classique la difficulté est sans effet : la solvabilité de la grille
-// reste garantie sur le vocabulaire enfant.
+// mots cachés parmi les quatre paliers de vocabulaire : bornes [min, max]
+// du nombre de mots tirés dans les paliers « ado », « adulte » et
+// « inconnu », le reste venant du palier « enfant ».
 /** @type {Record<Difficulty, {ado: [number, number], adulte: [number, number], inconnu: [number, number]}>} */
 export const DIFFICULTY_QUOTAS = {
   1: { ado: [0, 0], adulte: [0, 0], inconnu: [0, 0] },
@@ -71,7 +50,7 @@ export const DIFFICULTY_LABELS = {
 // Durée d'affichage du toast confirmant un changement de difficulté.
 export const DIFFICULTY_TOAST_MS = 2000;
 
-// Longueur imposée des mots dans les modes 5×5. Le pavage parfait exige
+// Longueur imposée des mots. Le pavage parfait exige
 // WORDS_TO_WIN × FIVE_WORD_LENGTH = CELL_COUNT.
 export const FIVE_WORD_LENGTH = 5;
 // Tentatives complètes (choix des mots + placement + réparations +
@@ -81,13 +60,13 @@ export const MAX_FIVE_GRID_TRIES = 250;
 // de remplissage ou remplacement d'un mot impliqué dans un tracé parasite.
 export const MAX_GRID_REPAIRS = 60;
 
+// Seuil du panneau debug (findAllWords) : longueur minimale des mots listés.
 export const MIN_WORD_LENGTH = 3;
 export const GRID_SIZE = 5;
 // Durée d'affichage d'un mot refusé (rouge + motif) avant que la ligne
 // du registre ne redevienne libre.
 export const REJECT_DISPLAY_MS = 2000;
 export const CELL_COUNT = GRID_SIZE * GRID_SIZE;
-export const MAX_GRID_TRIES = 100;
 
 // Pondération des lettres selon leur fréquence en français (Q volontairement rare).
 /** @type {Record<string, number>} */

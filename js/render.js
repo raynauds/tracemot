@@ -7,10 +7,8 @@ import {
   DIFFICULTY_LABELS,
   DIFFICULTY_TOAST_MS,
   ENABLED_DIFFICULTIES,
-  ENABLED_MODES,
   FIVE_WORD_LENGTH,
   FR_NUMBERS,
-  MIN_WORD_LENGTH,
   REJECT_DISPLAY_MS,
   WORDS_TO_WIN,
 } from "./config.js";
@@ -60,32 +58,14 @@ function playingRuleText() {
   const n = FR_NUMBERS[WORDS_TO_WIN] || String(WORDS_TO_WIN);
   const l5 = FR_NUMBERS[FIVE_WORD_LENGTH] || String(FIVE_WORD_LENGTH);
   const N = `${n[0].toUpperCase()}${n.slice(1)}`;
-  if (state.mode === "chevauchement") {
-    return {
-      desktop:
-        `${N} mots de ${l5} lettres se cachent dans la grille, et ils ` +
-        `peuvent se croiser. Reliez des lettres voisines pour les ` +
-        `retrouver - eux seuls comptent.`,
-      mobile:
-        `Trouvez les ${n} mots de ${l5} lettres cachés dans la grille ` +
-        `en reliant les lettres adjacentes.`,
-    };
-  }
-  if (state.mode === "pavage") {
-    return {
-      desktop:
-        `${N} mots de ${l5} lettres pavent la ` +
-        `grille : chaque lettre sert à exactement un mot. Reliez des lettres ` +
-        `voisines pour les retrouver.`,
-      mobile:
-        `Trouvez les ${n} mots de ${l5} lettres qui pavent la grille ` +
-        `en reliant les lettres adjacentes.`,
-    };
-  }
-  const l = FR_NUMBERS[MIN_WORD_LENGTH] || String(MIN_WORD_LENGTH);
   return {
-    desktop: `Reliez des lettres voisines pour former ${n} mots d'au moins ${l} lettres.`,
-    mobile: `Trouvez ${n} mots d'au moins ${l} lettres en reliant les lettres adjacentes.`,
+    desktop:
+      `${N} mots de ${l5} lettres pavent la ` +
+      `grille : chaque lettre sert à exactement un mot. Reliez des lettres ` +
+      `voisines pour les retrouver.`,
+    mobile:
+      `Trouvez les ${n} mots de ${l5} lettres qui pavent la grille ` +
+      `en reliant les lettres adjacentes.`,
   };
 }
 
@@ -98,31 +78,6 @@ function renderRuleText(rule) {
   m.className = "rule-mobile";
   m.textContent = rule.mobile;
   ruleTextEl.replaceChildren(d, m);
-}
-
-// --- Sélecteur de mode ----------------------------------------------------
-
-/** @type {HTMLElement[]} */
-const modeBtns = Array.from(document.querySelectorAll(".mode-btn"));
-/** @type {HTMLElement|null} */
-const modesNav = document.querySelector(".modes");
-
-export function renderModeBar() {
-  // Un seul mode accessible : le sélecteur disparaît, le jeu se présente
-  // sans notion de mode.
-  if (modesNav) modesNav.hidden = ENABLED_MODES.length <= 1;
-  for (const btn of modeBtns) {
-    const mode = btn.dataset.mode || "";
-    btn.hidden = !ENABLED_MODES.some((m) => m === mode);
-    btn.classList.toggle("active", mode === state.mode);
-  }
-}
-
-/** @param {(mode: string) => void} onSelect */
-export function bindModeBar(onSelect) {
-  for (const btn of modeBtns) {
-    btn.addEventListener("click", () => onSelect(btn.dataset.mode || ""));
-  }
 }
 
 // --- Sélecteur de difficulté (chip + popover / feuille + toast) ------------
@@ -308,7 +263,7 @@ export function renderPendingWord() {
   const content = row.children[1];
   const word = state.path.map((i) => state.letters[i]).join("");
   // Hint discret : l'encre se densifie dès que le tracé forme un mot
-  // acceptable dans le mode courant.
+  // acceptable.
   const isWord = wordRejectReason(word) === null;
   content.className = isWord ? "word-text pending valid" : "word-text pending";
   content.textContent = word;
@@ -370,7 +325,7 @@ export function updateSelection() {
   });
 }
 
-/** @type {SVGElement[]} Polylines fantômes des mots trouvés (mode pavage). */
+/** @type {SVGElement[]} Polylines fantômes des mots trouvés. */
 const ghostLines = [];
 
 /** @param {number[]} path */
@@ -387,7 +342,7 @@ function traceWidth() {
   return cells[0].offsetWidth >= 80 ? "6" : "5";
 }
 
-// Tracés fantômes (mode pavage) : le trait d'un mot validé reste affiché,
+// Tracés fantômes : le trait d'un mot validé reste affiché,
 // dans les tons des cases désactivées, pour relire les mots sur la grille.
 export function renderFoundTraces() {
   while (ghostLines.length > state.foundPaths.length) {
@@ -428,7 +383,7 @@ export function updateTrace() {
   traceLineEl.setAttribute("stroke-width", traceWidth());
 }
 
-// Mode pavage : les cases consommées par un mot trouvé sortent du jeu.
+// Les cases consommées par un mot trouvé sortent du jeu.
 export function renderUsedCells() {
   cells.forEach((cell, i) => {
     cell.classList.toggle("disabled", state.usedCells.has(i));

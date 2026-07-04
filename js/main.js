@@ -5,19 +5,16 @@
 import {
   DEBUG,
   DEFAULT_DIFFICULTY,
-  DEFAULT_MODE,
   ENABLED_DIFFICULTIES,
-  ENABLED_MODES,
   WORDS_TO_WIN,
 } from "./config.js";
 import { state } from "./state.js";
 import { buildFiveLetterSets, loadDictionaries } from "./dictionary.js";
-import { generateFiveGrid, generateGrid } from "./solver.js";
+import { generateFiveGrid } from "./solver.js";
 import { wordRejectReason } from "./rules.js";
 import { attachInputHandlers, clearPath } from "./input.js";
 import {
   bindDifficultyBar,
-  bindModeBar,
   buildBoard,
   fillListRow,
   flashPath,
@@ -26,7 +23,6 @@ import {
   renderDifficultyBar,
   renderFoundTraces,
   renderLoadError,
-  renderModeBar,
   renderNewGame,
   renderUsedCells,
   renderWin,
@@ -36,7 +32,6 @@ import {
   stopTimer,
 } from "./render.js";
 
-const MODE_STORAGE_KEY = "tracemot.mode";
 const DIFFICULTY_STORAGE_KEY = "tracemot.difficulty";
 
 /** @type {typeof import("./debug.js")|null} Module debug, chargé si DEBUG. */
@@ -50,20 +45,13 @@ function startGame() {
   state.path = [];
   state.pointerId = null;
 
-  if (state.mode === "classique") {
-    const grid = generateGrid(state.childWords, state.childPrefixes);
-    state.letters = grid.letters;
-    state.gridTries = grid.tries;
-    state.solution = [];
-  } else {
-    if (!state.five) {
-      state.five = buildFiveLetterSets(state.words, state.tierWords);
-    }
-    const grid = generateFiveGrid(state.mode, state.five, state.difficulty);
-    state.letters = grid.letters;
-    state.gridTries = grid.tries;
-    state.solution = grid.solution;
+  if (!state.five) {
+    state.five = buildFiveLetterSets(state.words, state.tierWords);
   }
+  const grid = generateFiveGrid(state.five, state.difficulty);
+  state.letters = grid.letters;
+  state.gridTries = grid.tries;
+  state.solution = grid.solution;
 
   renderNewGame();
   if (debug) debug.renderDebugPanel();
@@ -93,43 +81,14 @@ function commitPath() {
 
   state.found.push(word);
   fillListRow(state.found.length - 1, word, true);
-  // En pavage parfait, chaque lettre sert à exactement un mot : les cases
-  // du tracé validé sont retirées du jeu.
-  if (state.mode === "pavage") {
-    for (const i of traced) state.usedCells.add(i);
-    state.foundPaths.push(traced);
-    renderUsedCells();
-    renderFoundTraces();
-  }
+  // Chaque lettre sert à exactement un mot : les cases du tracé validé
+  // sont retirées du jeu.
+  for (const i of traced) state.usedCells.add(i);
+  state.foundPaths.push(traced);
+  renderUsedCells();
+  renderFoundTraces();
   renderCounter();
   if (state.found.length >= WORDS_TO_WIN) triggerWin();
-}
-
-/** @param {string} mode */
-function setMode(mode) {
-  const valid = ENABLED_MODES.find((m) => m === mode);
-  if (!valid || valid === state.mode || !state.ready) return;
-  state.mode = valid;
-  try {
-    localStorage.setItem(MODE_STORAGE_KEY, valid);
-  } catch (_) {
-    /* stockage indisponible : le mode ne survivra pas au rechargement */
-  }
-  renderModeBar();
-  startGame();
-}
-
-function restoreMode() {
-  let stored = null;
-  try {
-    stored = localStorage.getItem(MODE_STORAGE_KEY);
-  } catch (_) {
-    /* stockage indisponible */
-  }
-  const valid = ENABLED_MODES.find((m) => m === stored);
-  state.mode =
-    valid ??
-    (ENABLED_MODES.includes(DEFAULT_MODE) ? DEFAULT_MODE : ENABLED_MODES[0]);
 }
 
 /** @param {number} difficulty */
@@ -163,12 +122,9 @@ function restoreDifficulty() {
 }
 
 async function init() {
-  restoreMode();
   restoreDifficulty();
   buildBoard();
   renderCounter();
-  renderModeBar();
-  bindModeBar(setMode);
   renderDifficultyBar();
   bindDifficultyBar(setDifficulty);
   attachInputHandlers({ onCommit: commitPath, onReplay: startGame });
@@ -183,8 +139,6 @@ async function init() {
       adulte: tiers.adulte.words,
       inconnu: tiers.inconnu.words,
     };
-    state.childWords = tiers.enfant.words;
-    state.childPrefixes = tiers.enfant.prefixes;
   } catch (err) {
     console.error("Tracemot : échec du chargement des dictionnaires", err);
     renderLoadError(

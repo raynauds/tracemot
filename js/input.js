@@ -60,7 +60,7 @@ function onPointerDown(e) {
   }
   const cell = cellFrom(e.target);
   if (!cell) return;
-  // Case déjà consommée par un mot trouvé (mode pavage) : hors jeu.
+  // Case déjà consommée par un mot trouvé : hors jeu.
   if (state.usedCells.has(Number(cell.dataset.index))) return;
   e.preventDefault();
   // Neutralise la capture implicite du pointeur (tactile), sinon les
@@ -94,7 +94,7 @@ function onPointerMove(e) {
   const cell = cellFrom(document.elementFromPoint(e.clientX, e.clientY));
   if (!cell) return;
   const idx = Number(cell.dataset.index);
-  if (state.usedCells.has(idx)) return; // case consommée (mode pavage)
+  if (state.usedCells.has(idx)) return; // case consommée par un mot trouvé
   const last = state.path[state.path.length - 1];
   if (idx === last) return;
 

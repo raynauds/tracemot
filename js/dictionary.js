@@ -56,10 +56,10 @@ export function parseWordList(text, withPrefixes) {
 }
 
 /**
- * Sous-ensembles « 5 lettres » pour les modes 5×5 : mots et préfixes du
- * dictionnaire complet (vérification qu'aucun mot parasite n'est traçable)
- * et mots candidats de chaque palier de vocabulaire (les mots à cacher,
- * dosés selon la difficulté).
+ * Sous-ensembles « 5 lettres » pour la génération de la grille : mots et
+ * préfixes du dictionnaire complet (vérification qu'aucun mot parasite
+ * n'est traçable) et mots candidats de chaque palier de vocabulaire (les
+ * mots à cacher, dosés selon la difficulté).
  * @param {Set<string>} fullWords
  * @param {Record<import("./config.js").Tier, Set<string>>} tierWords
  */
@@ -87,8 +87,8 @@ export function buildFiveLetterSets(fullWords, tierWords) {
  * Charge le dictionnaire complet (validation des tracés) et les quatre
  * paliers de vocabulaire (choix des mots cachés selon la difficulté).
  * Les préfixes du dictionnaire complet ne servent qu'au mode debug :
- * `withFullPrefixes` évite de les construire pour rien. Seuls les préfixes
- * du palier enfant sont construits (solvabilité du mode classique).
+ * `withFullPrefixes` évite de les construire pour rien. Aucun palier n'a
+ * besoin de ses préfixes.
  * @param {boolean} withFullPrefixes
  */
 export async function loadDictionaries(withFullPrefixes) {
@@ -99,7 +99,7 @@ export async function loadDictionaries(withFullPrefixes) {
   const tiers =
     /** @type {Record<import("./config.js").Tier, ReturnType<typeof parseWordList>>} */ ({});
   TIER_NAMES.forEach((tier, i) => {
-    tiers[tier] = parseWordList(tierTexts[i], tier === "enfant");
+    tiers[tier] = parseWordList(tierTexts[i], false);
   });
   return { full: parseWordList(fullText, withFullPrefixes), tiers };
 }
