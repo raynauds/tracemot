@@ -95,6 +95,14 @@ body {
 .difficulty {
   position: relative;
   align-self: center;
+  /* Invisible mais emprise réservée tant que le niveau restauré n'est pas
+     écrit dans la chip (classe posée par renderDifficultyBar) : évite de
+     voir le placeholder HTML se corriger, sans pop-in au dévoilement. */
+  visibility: hidden;
+}
+
+.difficulty.ready {
+  visibility: visible;
 }
 
 .diff-chip {

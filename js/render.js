@@ -152,6 +152,9 @@ export function renderDifficultyBar() {
   if (difficultyNav) difficultyNav.hidden = ENABLED_DIFFICULTIES.length <= 1;
   const label = DIFFICULTY_LABELS[state.difficulty];
   diffChipLabelEl.textContent = `${state.difficulty} · ${label.name}`;
+  // La chip démarre en visibility:hidden (CSS) : dévoilée maintenant que
+  // le niveau affiché est le vrai.
+  if (difficultyNav) difficultyNav.classList.add("ready");
   for (const row of diffRows) {
     const level = Number(row.dataset.difficulty);
     row.classList.toggle("selected", level === state.difficulty);
@@ -212,7 +215,19 @@ export function buildBoard() {
     cells.push(cell);
   }
 
+  // Les lignes du registre sont pré-rendues dans le HTML (anti-shift au
+  // chargement) : on les adopte, et on n'ajuste que si WORDS_TO_WIN diffère.
+  while (wordListEl.children.length > WORDS_TO_WIN) {
+    wordListEl.lastElementChild?.remove();
+  }
   for (let i = 0; i < WORDS_TO_WIN; i++) {
+    const existing = /** @type {HTMLElement|undefined} */ (
+      wordListEl.children[i]
+    );
+    if (existing) {
+      listRows.push(existing);
+      continue;
+    }
     const li = document.createElement("li");
     li.className = "word-row empty";
     const num = document.createElement("span");
@@ -220,7 +235,7 @@ export function buildBoard() {
     num.textContent = String(i + 1).padStart(2, "0");
     const content = document.createElement("span");
     content.className = "word-dots";
-    content.textContent = "· · · · ·"; // placeholder visible dès le chargement
+    content.textContent = "· · · · ·";
     li.append(num, content);
     wordListEl.appendChild(li);
     listRows.push(li);
