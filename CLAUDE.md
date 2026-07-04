@@ -1,3 +1,3 @@
-- Ne fais jamais de preview sauf si explicitement demandé
+- Ne lance jamais le projet, pas de preview
 - Discours concis, droit au but
 - Pour chaque question, donne ta meilleure suggestion entre parenthèses
