@@ -4,6 +4,7 @@
 
 import {
   CELL_COUNT,
+  ENABLED_DIFFICULTIES,
   ENABLED_MODES,
   FIVE_WORD_LENGTH,
   FR_NUMBERS,
@@ -119,6 +120,33 @@ export function renderModeBar() {
 export function bindModeBar(onSelect) {
   for (const btn of modeBtns) {
     btn.addEventListener("click", () => onSelect(btn.dataset.mode || ""));
+  }
+}
+
+// --- Sélecteur de difficulté (étoiles du header) ---------------------------
+
+/** @type {HTMLButtonElement[]} */
+const diffBtns = Array.from(document.querySelectorAll(".diff-btn"));
+/** @type {HTMLElement|null} */
+const difficultyNav = document.querySelector(".difficulty");
+
+export function renderDifficultyBar() {
+  // Une seule difficulté accessible : le sélecteur disparaît, le jeu se
+  // présente sans notion de difficulté.
+  if (difficultyNav) difficultyNav.hidden = ENABLED_DIFFICULTIES.length <= 1;
+  for (const btn of diffBtns) {
+    const level = Number(btn.dataset.difficulty);
+    btn.classList.toggle("on", level <= state.difficulty);
+    btn.disabled = !ENABLED_DIFFICULTIES.some((d) => d === level);
+  }
+}
+
+/** @param {(difficulty: number) => void} onSelect */
+export function bindDifficultyBar(onSelect) {
+  for (const btn of diffBtns) {
+    btn.addEventListener("click", () =>
+      onSelect(Number(btn.dataset.difficulty)),
+    );
   }
 }
 

@@ -32,6 +32,31 @@ export const DEFAULT_MODE = "classique";
 /** @type {Mode[]} */
 export const ENABLED_MODES = ["pavage"];
 
+/** @typedef {"enfant"|"ado"|"adulte"|"inconnu"} Tier */
+/** @typedef {1|2|3|4|5} Difficulty */
+
+// Difficultés (nombre d'étoiles). Chaque niveau fixe la composition des
+// mots cachés des modes 5×5 parmi les quatre paliers de vocabulaire :
+// bornes [min, max] du nombre de mots tirés dans les paliers « ado »,
+// « adulte » et « inconnu », le reste venant du palier « enfant ». En mode
+// classique la difficulté est sans effet : la solvabilité de la grille
+// reste garantie sur le vocabulaire enfant.
+/** @type {Record<Difficulty, {ado: [number, number], adulte: [number, number], inconnu: [number, number]}>} */
+export const DIFFICULTY_QUOTAS = {
+  1: { ado: [0, 0], adulte: [0, 0], inconnu: [0, 0] },
+  2: { ado: [1, 2], adulte: [0, 0], inconnu: [0, 0] },
+  3: { ado: [3, 5], adulte: [0, 0], inconnu: [0, 0] },
+  4: { ado: [1, 2], adulte: [1, 2], inconnu: [0, 0] },
+  5: { ado: [0, 5], adulte: [1, 2], inconnu: [1, 2] },
+};
+/** @type {Difficulty} */
+export const DEFAULT_DIFFICULTY = 1;
+// Difficultés accessibles dans l'interface (au moins une). Retirez des
+// entrées pour restreindre le jeu. Avec une seule difficulté accessible,
+// le sélecteur (étoiles du header) disparaît entièrement.
+/** @type {Difficulty[]} */
+export const ENABLED_DIFFICULTIES = [1, 2, 3, 4, 5];
+
 // Longueur imposée des mots dans les modes 5×5. Le pavage parfait exige
 // WORDS_TO_WIN × FIVE_WORD_LENGTH = CELL_COUNT.
 export const FIVE_WORD_LENGTH = 5;

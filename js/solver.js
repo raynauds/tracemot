@@ -4,6 +4,7 @@
 
 import {
   CELL_COUNT,
+  DIFFICULTY_QUOTAS,
   FIVE_WORD_LENGTH,
   GRID_SIZE,
   LETTER_WEIGHTS,
@@ -125,7 +126,8 @@ export function generateGrid(childWords, childPrefixes) {
 //
 // Ces modes garantissent une grille où exactement WORDS_TO_WIN mots de
 // FIVE_WORD_LENGTH lettres sont traçables - ceux de la solution, choisis
-// dans le dictionnaire enfant - vérifié contre le dictionnaire complet,
+// dans les paliers de vocabulaire dosés par la difficulté - vérifié contre
+// le dictionnaire complet,
 // chaque mot n'ayant qu'un seul tracé possible. Génération par tirage +
 // vérification : on place les mots, on contrôle l'exclusivité, on répare
 // (chevauchement) ou on retire (pavage) jusqu'à obtenir une grille propre.
@@ -176,21 +178,63 @@ function hamming(a, b) {
 }
 
 /**
- * Tire WORDS_TO_WIN mots candidats deux à deux distants d'au moins
- * 2 lettres (pas de SALLE/BALLE dans la même solution).
- * @param {string[]} candidates
- * @returns {string[]|null}
+ * @param {number} lo
+ * @param {number} hi
  */
-function pickSolutionWords(candidates) {
-  if (candidates.length < WORDS_TO_WIN) return null;
+function randInt(lo, hi) {
+  return lo + ((Math.random() * (hi - lo + 1)) | 0);
+}
+
+/**
+ * Tire la composition des mots cachés pour une difficulté : nombre de mots
+ * par palier, dans les bornes des quotas, le reste en mots enfant. Les
+ * paliers les plus contraints (inconnu, adulte) sont tirés d'abord, les
+ * quotas suivants sont plafonnés aux places restantes.
+ * @param {import("./config.js").Difficulty} difficulty
+ * @returns {Record<import("./config.js").Tier, number>}
+ */
+function drawTierCounts(difficulty) {
+  const q = DIFFICULTY_QUOTAS[difficulty];
+  let left = WORDS_TO_WIN;
+  const inconnu = randInt(q.inconnu[0], Math.min(q.inconnu[1], left));
+  left -= inconnu;
+  const adulte = randInt(q.adulte[0], Math.min(q.adulte[1], left));
+  left -= adulte;
+  const ado = randInt(Math.min(q.ado[0], left), Math.min(q.ado[1], left));
+  left -= ado;
+  return { enfant: left, ado, adulte, inconnu };
+}
+
+/**
+ * Tire WORDS_TO_WIN mots candidats respectant la composition de la
+ * difficulté, deux à deux distants d'au moins 2 lettres (pas de
+ * SALLE/BALLE dans la même solution). `tiers[i]` est le palier du mot
+ * `words[i]` : un remplacement (réparation) se fait dans le même palier
+ * pour préserver la composition.
+ * @param {Record<import("./config.js").Tier, string[]>} candidates
+ * @param {import("./config.js").Difficulty} difficulty
+ * @returns {{words: string[], tiers: import("./config.js").Tier[]}|null}
+ */
+function pickSolutionWords(candidates, difficulty) {
   for (let t = 0; t < 50; t++) {
+    const counts = drawTierCounts(difficulty);
+    /** @type {import("./config.js").Tier[]} */
+    const tiers = [];
+    for (const tier of /** @type {import("./config.js").Tier[]} */ (
+      Object.keys(counts)
+    )) {
+      if (candidates[tier].length < counts[tier]) break; // palier trop pauvre
+      for (let k = 0; k < counts[tier]; k++) tiers.push(tier);
+    }
+    if (tiers.length !== WORDS_TO_WIN) continue;
     /** @type {string[]} */
     const chosen = [];
     for (let g = 0; g < 200 && chosen.length < WORDS_TO_WIN; g++) {
-      const w = candidates[(Math.random() * candidates.length) | 0];
+      const pool = candidates[tiers[chosen.length]];
+      const w = pool[(Math.random() * pool.length) | 0];
       if (chosen.every((c) => hamming(c, w) >= 2)) chosen.push(w);
     }
-    if (chosen.length === WORDS_TO_WIN) return chosen;
+    if (chosen.length === WORDS_TO_WIN) return { words: chosen, tiers };
   }
   return null;
 }
@@ -304,6 +348,8 @@ function placeWordPath(letters, word, requireOverlap) {
 /**
  * Mot de remplacement pour la position `i` de la solution : distinct des
  * mots en place et à distance de Hamming ≥ 2 de chacun des autres.
+ * `candidates` est le vivier du palier du mot remplacé (la composition de
+ * la difficulté est ainsi préservée).
  * @param {string[]} candidates
  * @param {string[]} words
  * @param {number} i
@@ -325,12 +371,14 @@ function pickReplacementWord(candidates, words, i) {
  * qu'il reste des tracés parasites : redistribution d'une lettre de
  * remplissage quand le tracé en contient une, sinon remplacement d'un des
  * mots impliqués (retiré puis reposé ailleurs sous un autre mot).
- * @param {{candidates: string[], words5: Set<string>, prefixes5: Set<string>}} five
+ * @param {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}} five
+ * @param {import("./config.js").Difficulty} difficulty
  * @returns {{letters: string[], solution: string[], issues: number}|null}
  */
-function attemptOverlapGrid(five) {
-  const words = pickSolutionWords(five.candidates);
-  if (!words) return null;
+function attemptOverlapGrid(five, difficulty) {
+  const picked = pickSolutionWords(five.candidates, difficulty);
+  if (!picked) return null;
+  const { words, tiers } = picked;
 
   /** @type {number[][]} */
   const paths = [];
@@ -402,7 +450,7 @@ function attemptOverlapGrid(five) {
       /** @type {number[]|null} */
       let path = null;
       for (let g = 0; g < 12 && path === null; g++) {
-        const repl = pickReplacementWord(five.candidates, words, i);
+        const repl = pickReplacementWord(five.candidates[tiers[i]], words, i);
         if (repl === null) break;
         path = placeWordPath(others, repl, true);
         if (path) words[i] = repl;
@@ -512,12 +560,14 @@ function carveTiling() {
  * y sont posés dans un sens aléatoire. Pas de case de remplissage, donc la
  * réparation locale remplace un mot impliqué dans un tracé parasite (les
  * tracés étant disjoints, changer un mot ne touche pas les autres).
- * @param {{candidates: string[], words5: Set<string>, prefixes5: Set<string>}} five
+ * @param {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}} five
+ * @param {import("./config.js").Difficulty} difficulty
  * @returns {{letters: string[], solution: string[], issues: number}|null}
  */
-function attemptTilingGrid(five) {
-  const words = pickSolutionWords(five.candidates);
-  if (!words) return null;
+function attemptTilingGrid(five, difficulty) {
+  const picked = pickSolutionWords(five.candidates, difficulty);
+  if (!picked) return null;
+  const { words, tiers } = picked;
 
   const paths = carveTiling().map((p) =>
     Math.random() < 0.5 ? [...p].reverse() : p,
@@ -547,7 +597,7 @@ function attemptTilingGrid(five) {
     for (const path of issues) for (const c of path) involved.add(owner[c]);
     const list = [...involved];
     const i = list[(Math.random() * list.length) | 0];
-    const repl = pickReplacementWord(five.candidates, words, i);
+    const repl = pickReplacementWord(five.candidates[tiers[i]], words, i);
     if (repl === null) break;
     words[i] = repl;
     if (Math.random() < 0.5) paths[i] = [...paths[i]].reverse();
@@ -562,15 +612,16 @@ function attemptTilingGrid(five) {
  * grille sans tracé fautif. Au-delà de MAX_FIVE_GRID_TRIES tentatives, la
  * grille la moins fautive rencontrée est rendue (avertissement en console).
  * @param {import("./config.js").Mode} mode "chevauchement" ou "pavage"
- * @param {{candidates: string[], words5: Set<string>, prefixes5: Set<string>}} five
+ * @param {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}} five
+ * @param {import("./config.js").Difficulty} difficulty
  * @returns {{ letters: string[], solution: string[], tries: number }}
  */
-export function generateFiveGrid(mode, five) {
+export function generateFiveGrid(mode, five, difficulty) {
   const attempt = mode === "pavage" ? attemptTilingGrid : attemptOverlapGrid;
   /** @type {{letters: string[], solution: string[], issues: number}|null} */
   let best = null;
   for (let t = 0; t < MAX_FIVE_GRID_TRIES; t++) {
-    const result = attempt(five);
+    const result = attempt(five, difficulty);
     if (!result) continue;
     if (result.issues === 0) {
       return { letters: result.letters, solution: result.solution, tries: t + 1 };
@@ -578,8 +629,8 @@ export function generateFiveGrid(mode, five) {
     if (!best || result.issues < best.issues) best = result;
   }
   if (!best) {
-    // Dictionnaire enfant trop pauvre pour choisir 5 mots : ne devrait
-    // jamais arriver avec les fichiers fournis.
+    // Paliers de vocabulaire trop pauvres pour composer la solution : ne
+    // devrait jamais arriver avec les fichiers fournis.
     console.warn("Tracemot : génération 5×5 impossible, grille aléatoire.");
     return { letters: drawLetters(), solution: [], tries: MAX_FIVE_GRID_TRIES };
   }

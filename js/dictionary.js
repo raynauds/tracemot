@@ -4,6 +4,19 @@
 
 import { CELL_COUNT, FIVE_WORD_LENGTH } from "./config.js";
 
+// Fichiers des quatre paliers de vocabulaire, du plus courant au plus rare.
+// Les paliers sont disjoints : un mot n'apparaît que dans son palier.
+/** @type {Record<import("./config.js").Tier, string>} */
+const TIER_FILES = {
+  enfant: "docs/dictionnaires/1_dico_entree_enfant.txt",
+  ado: "docs/dictionnaires/2_dico_entree_ado.txt",
+  adulte: "docs/dictionnaires/3_dico_entree_adulte.txt",
+  inconnu: "docs/dictionnaires/4_dico_entree_non_connu.txt",
+};
+export const TIER_NAMES = /** @type {import("./config.js").Tier[]} */ (
+  Object.keys(TIER_FILES)
+);
+
 /** @param {string} url */
 async function fetchWordFile(url) {
   const resp = await fetch(url);
@@ -45,11 +58,12 @@ export function parseWordList(text, withPrefixes) {
 /**
  * Sous-ensembles « 5 lettres » pour les modes 5×5 : mots et préfixes du
  * dictionnaire complet (vérification qu'aucun mot parasite n'est traçable)
- * et mots candidats du dictionnaire enfant (les mots à cacher).
+ * et mots candidats de chaque palier de vocabulaire (les mots à cacher,
+ * dosés selon la difficulté).
  * @param {Set<string>} fullWords
- * @param {Set<string>} childWords
+ * @param {Record<import("./config.js").Tier, Set<string>>} tierWords
  */
-export function buildFiveLetterSets(fullWords, childWords) {
+export function buildFiveLetterSets(fullWords, tierWords) {
   /** @type {Set<string>} */
   const words5 = new Set();
   /** @type {Set<string>} */
@@ -59,26 +73,33 @@ export function buildFiveLetterSets(fullWords, childWords) {
     words5.add(w);
     for (let i = 1; i <= FIVE_WORD_LENGTH; i++) prefixes5.add(w.slice(0, i));
   }
-  const candidates = [...childWords].filter(
-    (w) => w.length === FIVE_WORD_LENGTH && words5.has(w),
-  );
+  const candidates =
+    /** @type {Record<import("./config.js").Tier, string[]>} */ ({});
+  for (const tier of TIER_NAMES) {
+    candidates[tier] = [...tierWords[tier]].filter(
+      (w) => w.length === FIVE_WORD_LENGTH && words5.has(w),
+    );
+  }
   return { candidates, words5, prefixes5 };
 }
 
 /**
- * Charge le dictionnaire complet (validation des tracés) et le dictionnaire
- * « enfant » (solvabilité des grilles). Les préfixes du dictionnaire complet
- * ne servent qu'au mode debug : `withFullPrefixes` évite de les construire
- * pour rien.
+ * Charge le dictionnaire complet (validation des tracés) et les quatre
+ * paliers de vocabulaire (choix des mots cachés selon la difficulté).
+ * Les préfixes du dictionnaire complet ne servent qu'au mode debug :
+ * `withFullPrefixes` évite de les construire pour rien. Seuls les préfixes
+ * du palier enfant sont construits (solvabilité du mode classique).
  * @param {boolean} withFullPrefixes
  */
 export async function loadDictionaries(withFullPrefixes) {
-  const [fullText, childText] = await Promise.all([
-    fetchWordFile("dictionnaire.txt"),
-    fetchWordFile("dicoentreeenfant.txt"),
+  const [fullText, ...tierTexts] = await Promise.all([
+    fetchWordFile("docs/dictionnaires/dictionnaire.txt"),
+    ...TIER_NAMES.map((tier) => fetchWordFile(TIER_FILES[tier])),
   ]);
-  return {
-    full: parseWordList(fullText, withFullPrefixes),
-    child: parseWordList(childText, true),
-  };
+  const tiers =
+    /** @type {Record<import("./config.js").Tier, ReturnType<typeof parseWordList>>} */ ({});
+  TIER_NAMES.forEach((tier, i) => {
+    tiers[tier] = parseWordList(tierTexts[i], tier === "enfant");
+  });
+  return { full: parseWordList(fullText, withFullPrefixes), tiers };
 }

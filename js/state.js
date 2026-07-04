@@ -6,9 +6,11 @@ export const state = {
   ready: false, // dictionnaires chargés et partie en place
   /** @type {import("./config.js").Mode} Mode de jeu courant. */
   mode: "classique",
+  /** @type {import("./config.js").Difficulty} Difficulté courante (étoiles). */
+  difficulty: 1,
   /** @type {string[]} Mots cachés de la grille (modes 5×5 uniquement). */
   solution: [],
-  /** @type {{candidates: string[], words5: Set<string>, prefixes5: Set<string>}|null}
+  /** @type {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}|null}
    *  Sous-ensembles « 5 lettres » des dictionnaires, construits au premier
    *  lancement d'un mode 5×5. */
   five: null,
@@ -16,7 +18,15 @@ export const state = {
   words: new Set(),
   /** @type {Set<string>} Préfixes du dictionnaire complet (mode debug uniquement). */
   fullPrefixes: new Set(),
-  /** @type {Set<string>} Mots « enfant » (solvabilité des grilles). */
+  /** @type {Record<import("./config.js").Tier, Set<string>>}
+   *  Mots des quatre paliers de vocabulaire (mots cachés des modes 5×5). */
+  tierWords: {
+    enfant: new Set(),
+    ado: new Set(),
+    adulte: new Set(),
+    inconnu: new Set(),
+  },
+  /** @type {Set<string>} Mots « enfant » (solvabilité du mode classique). */
   childWords: new Set(),
   /** @type {Set<string>} Préfixes des mots enfant (élagage du solveur). */
   childPrefixes: new Set(),
