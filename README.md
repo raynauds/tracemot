@@ -18,13 +18,13 @@ Les deux modes 5×5 garantissent qu'exactement 5 mots de 5 lettres sont traçabl
 
 ## Difficultés
 
-Cinq niveaux (étoiles du header) dosent le vocabulaire des mots cachés des modes 5×5, tiré de quatre paliers : enfant, ado, adulte, non connu.
+Cinq niveaux nommés (chip du header, qui ouvre une feuille sur mobile ou un popover sur desktop) dosent le vocabulaire des mots cachés des modes 5×5, tiré de quatre paliers : enfant, ado, adulte, non connu. Changer de niveau relance une grille, confirmé par un toast.
 
-- ⭐ - uniquement des mots enfant.
-- ⭐⭐ - enfant + ado, avec exactement 1 ou 2 mots ado.
-- ⭐⭐⭐ - enfant + ado, avec 3 à 5 mots ado.
-- ⭐⭐⭐⭐ - exactement 1 ou 2 mots ado et 1 ou 2 mots adulte, le reste enfant.
-- ⭐⭐⭐⭐⭐ - exactement 1 ou 2 mots non connus et 1 ou 2 mots adulte, le reste enfant/ado.
+- ⭐ **Doux** - uniquement des mots enfant.
+- ⭐⭐ **Équilibré** - enfant + ado, avec exactement 1 ou 2 mots ado.
+- ⭐⭐⭐ **Relevé** - enfant + ado, avec 3 à 5 mots ado.
+- ⭐⭐⭐⭐ **Corsé** - exactement 1 ou 2 mots ado et 1 ou 2 mots adulte, le reste enfant.
+- ⭐⭐⭐⭐⭐ **Brûlant** - exactement 1 ou 2 mots non connus et 1 ou 2 mots adulte, le reste enfant/ado.
 
 La difficulté choisie est mémorisée (`localStorage`). En mode classique la difficulté est sans effet (solvabilité toujours garantie sur le palier enfant).
 

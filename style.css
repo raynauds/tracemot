@@ -10,6 +10,9 @@
   --line: #d8cfbc;
   --ghost: #b9af9c;
   --foot: #a99f8a;
+  --star-off: #cfc6b2;
+  --level-selected: #efe7d6;
+  --level-pressed: #e7dcc3;
   --serif: "Source Serif 4", serif;
   --mono: "IBM Plex Mono", monospace;
 }
@@ -51,7 +54,7 @@ body {
 .header-left {
   display: flex;
   align-items: baseline;
-  gap: 18px;
+  gap: 24px;
 }
 
 .title {
@@ -84,46 +87,271 @@ body {
   color: var(--vermilion);
 }
 
-/* ---------- Sélecteur de difficulté (étoiles du header) ---------- */
+/* ---------- Sélecteur de difficulté (chip + popover / feuille) ---------- */
 
-/* Logé dans le header à côté du titre : n'ajoute aucune hauteur de
-   contenu, y compris sur mobile. L'étoile N sélectionne la difficulté N ;
-   les étoiles jusqu'à la difficulté courante sont encrées. */
+/* Chip nommée dans le header : « ★ 3 · Moyen ». Un tap ouvre le popover
+   sous la chip (desktop) ou la feuille en bas d'écran (mobile) ; choisir
+   un niveau ferme aussitôt et confirme par un toast d'environ 2 s. */
 .difficulty {
+  position: relative;
+  align-self: center;
+}
+
+.diff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  padding: 8px 13px;
+  cursor: pointer;
+}
+
+.diff-chip-star {
+  color: var(--vermilion);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.diff-chip-label {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.diff-chip-caret {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.diff-chip-caret::before {
+  content: "▾";
+}
+
+/* Panneau ouvert : chip inversée, caret retourné */
+.diff-chip.open {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.diff-chip.open .diff-chip-caret {
+  color: var(--ghost);
+}
+
+.diff-chip.open .diff-chip-caret::before {
+  content: "▴";
+}
+
+.diff-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(38, 34, 28, 0.18);
+}
+
+/* Desktop : popover ancré sous la chip */
+.diff-panel {
+  position: absolute;
+  z-index: 21;
+  top: calc(100% + 14px);
+  left: 0;
+  width: 440px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 0 20px 44px rgba(38, 34, 28, 0.35);
+  padding: 16px 16px 18px;
+}
+
+.diff-panel-head {
   display: flex;
   align-items: center;
-  align-self: center;
-  gap: 0;
+  justify-content: space-between;
 }
 
-.difficulty[hidden] {
-  display: none;
+.diff-panel-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 2.5px;
 }
 
-.diff-btn {
+.diff-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: 1.5px solid var(--ink);
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.diff-close:hover {
+  background: var(--card-hover);
+}
+
+.diff-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+}
+
+.diff-level {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 10px;
   background: none;
   border: none;
-  padding: 2px 3px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--serif);
+  color: var(--ink);
+  text-align: left;
   cursor: pointer;
-  font-size: 20px;
-  line-height: 1;
-  color: var(--line);
 }
 
-.diff-btn.on {
+.diff-level-bar {
+  flex: 0 0 auto;
+  width: 4px;
+  align-self: stretch;
+  margin: 6px 0;
+  background: transparent;
+}
+
+.diff-level-stars {
+  flex: 0 0 auto;
+  width: 82px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.diff-level-stars .on {
   color: var(--vermilion);
 }
 
-/* Difficulté retirée de ENABLED_DIFFICULTIES : étoile inerte, estompée */
-.diff-btn:disabled {
+.diff-level-stars .off {
+  color: var(--star-off);
+}
+
+.diff-level-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diff-level-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.diff-level-desc {
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* Coche réservée en largeur sur chaque ligne, encrée sur la sélection */
+.diff-level-check {
+  font-size: 16px;
+  font-weight: 700;
+  color: transparent;
+}
+
+.diff-level.selected {
+  background: var(--level-selected);
+}
+
+.diff-level.selected .diff-level-bar {
+  background: var(--vermilion);
+}
+
+.diff-level.selected .diff-level-check {
+  color: var(--vermilion);
+}
+
+@media (hover: hover) {
+  .diff-level:not(:disabled):not(.selected):hover {
+    background: var(--card-hover);
+  }
+}
+
+.diff-level:not(:disabled):active {
+  background: var(--level-pressed);
+}
+
+.diff-level:not(:disabled):active .diff-level-bar {
+  background: var(--line);
+}
+
+/* Difficulté retirée de ENABLED_DIFFICULTIES : ligne inerte, estompée */
+.diff-level:disabled {
   cursor: default;
   opacity: 0.35;
 }
 
-@media (hover: hover) {
-  .diff-btn:not(:disabled):hover {
-    color: var(--ink);
+.diff-note {
+  margin: 12px 0 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  color: var(--foot);
+}
+
+/* Toast de confirmation, par-dessus la grille */
+.diff-toast {
+  position: fixed;
+  z-index: 22;
+  left: 50%;
+  top: 56%;
+  transform: translateX(-50%);
+  width: min(440px, 100vw - 32px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 0 12px 30px rgba(38, 34, 28, 0.35);
+  animation: toast-in 0.2s ease;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
   }
+}
+
+.diff-toast-bar {
+  flex: 0 0 auto;
+  width: 6px;
+  align-self: stretch;
+  background: var(--vermilion);
+}
+
+.diff-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.diff-toast-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.diff-toast-sub {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: 1px;
+  color: var(--ghost);
+  text-transform: uppercase;
 }
 
 /* ---------- Sélecteur de mode ---------- */
@@ -758,11 +986,55 @@ body.debug {
     font-size: 17px;
   }
 
-  /* Les étoiles restent dans la ligne du header (plus basses que le
-     titre) : la hauteur totale du contenu ne bouge pas. */
-  .diff-btn {
-    font-size: 16px;
-    padding: 2px;
+  /* La chip reste dans la ligne du header (plus basse que le titre) :
+     la hauteur totale du contenu ne bouge pas. */
+  .diff-chip {
+    gap: 6px;
+    padding: 7px 10px;
+  }
+  .diff-chip-star {
+    font-size: 14px;
+  }
+  .diff-chip-label {
+    font-size: 12.5px;
+  }
+  .diff-chip-caret {
+    font-size: 9px;
+  }
+
+  /* Feuille en bas d'écran à la place du popover, voile plus dense */
+  .diff-overlay {
+    background: rgba(38, 34, 28, 0.45);
+  }
+  .diff-panel {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    border: none;
+    border-top: 2px solid var(--ink);
+    box-shadow: none;
+    padding: 18px 16px max(24px, env(safe-area-inset-bottom));
+    animation: sheet-up 0.22s ease;
+  }
+  @keyframes sheet-up {
+    from {
+      opacity: 0.6;
+      transform: translateY(24px);
+    }
+  }
+  .diff-close {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  .diff-list {
+    margin-top: 12px;
+  }
+  .diff-note {
+    margin-top: 14px;
   }
 
   .modes {

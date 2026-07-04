@@ -53,9 +53,23 @@ export const DIFFICULTY_QUOTAS = {
 export const DEFAULT_DIFFICULTY = 1;
 // Difficultés accessibles dans l'interface (au moins une). Retirez des
 // entrées pour restreindre le jeu. Avec une seule difficulté accessible,
-// le sélecteur (étoiles du header) disparaît entièrement.
+// le sélecteur (chip du header) disparaît entièrement.
 /** @type {Difficulty[]} */
 export const ENABLED_DIFFICULTIES = [1, 2, 3, 4, 5];
+
+// Nom et description de chaque difficulté : chip du header, lignes de la
+// feuille de sélection et toast de confirmation.
+/** @type {Record<Difficulty, {name: string, desc: string}>} */
+export const DIFFICULTY_LABELS = {
+  1: { name: "Doux", desc: "Que des mots très courants" },
+  2: { name: "Équilibré", desc: "Un ou deux mots moins courants" },
+  3: { name: "Relevé", desc: "Une bonne pincée de mots moins courants" },
+  4: { name: "Corsé", desc: "Quelques mots recherchés dans le lot" },
+  5: { name: "Brûlant", desc: "Une ou deux perles rares dans le lot" },
+};
+
+// Durée d'affichage du toast confirmant un changement de difficulté.
+export const DIFFICULTY_TOAST_MS = 2000;
 
 // Longueur imposée des mots dans les modes 5×5. Le pavage parfait exige
 // WORDS_TO_WIN × FIVE_WORD_LENGTH = CELL_COUNT.

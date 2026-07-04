@@ -4,6 +4,8 @@
 
 import {
   CELL_COUNT,
+  DIFFICULTY_LABELS,
+  DIFFICULTY_TOAST_MS,
   ENABLED_DIFFICULTIES,
   ENABLED_MODES,
   FIVE_WORD_LENGTH,
@@ -123,30 +125,117 @@ export function bindModeBar(onSelect) {
   }
 }
 
-// --- Sélecteur de difficulté (étoiles du header) ---------------------------
+// --- Sélecteur de difficulté (chip + popover / feuille + toast) ------------
 
-/** @type {HTMLButtonElement[]} */
-const diffBtns = Array.from(document.querySelectorAll(".diff-btn"));
 /** @type {HTMLElement|null} */
 const difficultyNav = document.querySelector(".difficulty");
+const diffChipEl = byId("diff-chip");
+const diffChipLabelEl = byId("diff-chip-label");
+const diffPanelEl = byId("diff-panel");
+const diffListEl = byId("diff-list");
+const diffOverlayEl = byId("diff-overlay");
+const diffCloseEl = byId("diff-close");
+const diffToastEl = byId("diff-toast");
+const diffToastTitleEl = byId("diff-toast-title");
+const diffToastSubEl = byId("diff-toast-sub");
+
+/** @type {HTMLButtonElement[]} Lignes du panneau, une par difficulté. */
+const diffRows = [];
+/** @type {ReturnType<typeof setTimeout>|null} */
+let diffToastTimer = null;
+
+// Lignes du panneau générées depuis DIFFICULTY_LABELS : étoiles pleines
+// jusqu'au niveau, nom, description, coche sur le niveau courant.
+const maxLevel = Object.keys(DIFFICULTY_LABELS).length;
+for (const [levelStr, { name, desc }] of Object.entries(DIFFICULTY_LABELS)) {
+  const level = Number(levelStr);
+  const row = document.createElement("button");
+  row.type = "button";
+  row.className = "diff-level";
+  row.dataset.difficulty = levelStr;
+
+  const bar = document.createElement("span");
+  bar.className = "diff-level-bar";
+  const stars = document.createElement("span");
+  stars.className = "diff-level-stars";
+  const on = document.createElement("span");
+  on.className = "on";
+  on.textContent = "★".repeat(level);
+  const off = document.createElement("span");
+  off.className = "off";
+  off.textContent = "★".repeat(maxLevel - level);
+  stars.append(on, off);
+  const text = document.createElement("span");
+  text.className = "diff-level-text";
+  const nameEl = document.createElement("span");
+  nameEl.className = "diff-level-name";
+  nameEl.textContent = name;
+  const descEl = document.createElement("span");
+  descEl.className = "diff-level-desc";
+  descEl.textContent = desc;
+  text.append(nameEl, descEl);
+  const check = document.createElement("span");
+  check.className = "diff-level-check";
+  check.textContent = "✓";
+
+  row.append(bar, stars, text, check);
+  diffListEl.appendChild(row);
+  diffRows.push(row);
+}
+
+/** @param {boolean} open */
+function setDifficultyPanelOpen(open) {
+  diffPanelEl.hidden = !open;
+  diffOverlayEl.hidden = !open;
+  diffChipEl.classList.toggle("open", open);
+  diffChipEl.setAttribute("aria-expanded", String(open));
+}
 
 export function renderDifficultyBar() {
   // Une seule difficulté accessible : le sélecteur disparaît, le jeu se
   // présente sans notion de difficulté.
   if (difficultyNav) difficultyNav.hidden = ENABLED_DIFFICULTIES.length <= 1;
-  for (const btn of diffBtns) {
-    const level = Number(btn.dataset.difficulty);
-    btn.classList.toggle("on", level <= state.difficulty);
-    btn.disabled = !ENABLED_DIFFICULTIES.some((d) => d === level);
+  const label = DIFFICULTY_LABELS[state.difficulty];
+  diffChipLabelEl.textContent = `${state.difficulty} · ${label.name}`;
+  for (const row of diffRows) {
+    const level = Number(row.dataset.difficulty);
+    row.classList.toggle("selected", level === state.difficulty);
+    row.disabled = !ENABLED_DIFFICULTIES.some((d) => d === level);
   }
+}
+
+// Confirmation d'un changement de niveau : la feuille s'est refermée,
+// le toast rappelle le niveau choisi et qu'une grille est relancée.
+export function showDifficultyToast() {
+  const label = DIFFICULTY_LABELS[state.difficulty];
+  diffToastTitleEl.textContent = `Niveau ${state.difficulty} — ${label.name}`;
+  diffToastSubEl.textContent = `${label.desc} · Nouvelle grille`;
+  diffToastEl.hidden = false;
+  if (diffToastTimer !== null) clearTimeout(diffToastTimer);
+  diffToastTimer = setTimeout(() => {
+    diffToastTimer = null;
+    diffToastEl.hidden = true;
+  }, DIFFICULTY_TOAST_MS);
 }
 
 /** @param {(difficulty: number) => void} onSelect */
 export function bindDifficultyBar(onSelect) {
-  for (const btn of diffBtns) {
-    btn.addEventListener("click", () =>
-      onSelect(Number(btn.dataset.difficulty)),
-    );
+  diffChipEl.addEventListener("click", () =>
+    setDifficultyPanelOpen(diffPanelEl.hidden),
+  );
+  diffCloseEl.addEventListener("click", () => setDifficultyPanelOpen(false));
+  diffOverlayEl.addEventListener("click", () => setDifficultyPanelOpen(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !diffPanelEl.hidden) setDifficultyPanelOpen(false);
+  });
+  for (const row of diffRows) {
+    row.addEventListener("click", () => {
+      // Sélection = fermeture immédiate ; re-choisir le niveau courant
+      // referme simplement, sans relancer de grille.
+      setDifficultyPanelOpen(false);
+      const level = Number(row.dataset.difficulty);
+      if (level !== state.difficulty) onSelect(level);
+    });
   }
 }
 

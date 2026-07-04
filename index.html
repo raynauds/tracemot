@@ -21,11 +21,48 @@
         <div class="header-left">
           <h1 class="title">Tracemot</h1>
           <nav class="difficulty" aria-label="Difficulté">
-            <button type="button" class="diff-btn" data-difficulty="1" aria-label="Difficulté 1 étoile">★</button>
-            <button type="button" class="diff-btn" data-difficulty="2" aria-label="Difficulté 2 étoiles">★</button>
-            <button type="button" class="diff-btn" data-difficulty="3" aria-label="Difficulté 3 étoiles">★</button>
-            <button type="button" class="diff-btn" data-difficulty="4" aria-label="Difficulté 4 étoiles">★</button>
-            <button type="button" class="diff-btn" data-difficulty="5" aria-label="Difficulté 5 étoiles">★</button>
+            <button
+              type="button"
+              class="diff-chip"
+              id="diff-chip"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+            >
+              <span class="diff-chip-star" aria-hidden="true">★</span>
+              <span class="diff-chip-label" id="diff-chip-label"></span>
+              <span class="diff-chip-caret" aria-hidden="true"></span>
+            </button>
+            <div class="diff-overlay" id="diff-overlay" hidden></div>
+            <div
+              class="diff-panel"
+              id="diff-panel"
+              role="dialog"
+              aria-label="Choix de la difficulté"
+              hidden
+            >
+              <div class="diff-panel-head">
+                <span class="diff-panel-title">DIFFICULTÉ</span>
+                <button
+                  type="button"
+                  class="diff-close"
+                  id="diff-close"
+                  aria-label="Fermer"
+                >
+                  ✕
+                </button>
+              </div>
+              <div class="diff-list" id="diff-list">
+                <!-- niveaux générés par js/render.js -->
+              </div>
+              <p class="diff-note">CHANGER DE NIVEAU RELANCE UNE GRILLE</p>
+            </div>
+            <div class="diff-toast" id="diff-toast" hidden>
+              <span class="diff-toast-bar" aria-hidden="true"></span>
+              <div class="diff-toast-text">
+                <span class="diff-toast-title" id="diff-toast-title"></span>
+                <span class="diff-toast-sub" id="diff-toast-sub"></span>
+              </div>
+            </div>
           </nav>
         </div>
         <div class="header-right">

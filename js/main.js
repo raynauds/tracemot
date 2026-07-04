@@ -30,6 +30,7 @@ import {
   renderNewGame,
   renderUsedCells,
   renderWin,
+  showDifficultyToast,
   showReject,
   startTimer,
   stopTimer,
@@ -142,6 +143,7 @@ function setDifficulty(difficulty) {
     /* stockage indisponible : la difficulté ne survivra pas au rechargement */
   }
   renderDifficultyBar();
+  showDifficultyToast();
   startGame();
 }
 
