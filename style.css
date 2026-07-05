@@ -381,7 +381,8 @@ body {
   position: relative;
   flex: 0 1 500px;
   width: 100%;
-  max-width: 500px;
+  max-width: min(500px, 50vh);
+  max-height: 50vh;
   aspect-ratio: 1;
   container-type: inline-size;
 }
@@ -1019,6 +1020,7 @@ body.debug {
     justify-content: center;
     order: 1;
     flex: 0 1 min(100vw - 32px, 500px);
+    max-height: 50vh;
     min-height: 0;
     container-type: size;
   }
