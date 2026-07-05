@@ -12,8 +12,8 @@ import {
   REJECT_DISPLAY_MS,
   WORDS_TO_WIN,
 } from "./config.js";
-import { state } from "./state.js";
 import { wordRejectReason } from "./rules.js";
+import { state } from "./state.js";
 
 /**
  * @param {string} id
@@ -166,7 +166,7 @@ export function renderDifficultyBar() {
 // le toast rappelle le niveau choisi et qu'une grille est relancée.
 export function showDifficultyToast() {
   const label = DIFFICULTY_LABELS[state.difficulty];
-  diffToastTitleEl.textContent = `Niveau ${state.difficulty} — ${label.name}`;
+  diffToastTitleEl.textContent = `Niveau ${state.difficulty} - ${label.name}`;
   diffToastSubEl.textContent = `${label.desc} · Nouvelle grille`;
   diffToastEl.hidden = false;
   if (diffToastTimer !== null) clearTimeout(diffToastTimer);
@@ -184,7 +184,8 @@ export function bindDifficultyBar(onSelect) {
   diffCloseEl.addEventListener("click", () => setDifficultyPanelOpen(false));
   diffOverlayEl.addEventListener("click", () => setDifficultyPanelOpen(false));
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !diffPanelEl.hidden) setDifficultyPanelOpen(false);
+    if (e.key === "Escape" && !diffPanelEl.hidden)
+      setDifficultyPanelOpen(false);
   });
   for (const row of diffRows) {
     row.addEventListener("click", () => {
@@ -467,7 +468,14 @@ export function renderNewGame() {
   }
   cells.forEach((cell, i) => {
     cell.textContent = state.letters[i];
-    cell.classList.remove("sel", "head", "flash", "deal", "debug-hint", "disabled");
+    cell.classList.remove(
+      "sel",
+      "head",
+      "flash",
+      "deal",
+      "debug-hint",
+      "disabled",
+    );
   });
   // Le reflow force le redémarrage de l'animation quand on rejoue.
   void gridEl.offsetWidth;

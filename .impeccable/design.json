@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-05T00:00:00.000Z",
+  "title": "Design System: Tracemot",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "primary", "displayName": "Encre", "canonical": "#26221c", "tonalRamp": ["#1a1712", "#26221c", "#3a352c", "#4f483b", "#6e6656", "#948a75", "#b9af9c", "#d8cfbc"] },
+      "vermilion": { "role": "secondary", "displayName": "Vermillon", "canonical": "#b3402a", "tonalRamp": ["#5c1f13", "#7d2c1c", "#9c3624", "#b3402a", "#c65a44", "#d97e6b", "#e8a595", "#f3cbc0"] },
+      "paper": { "role": "neutral", "displayName": "Papier", "canonical": "#f6f1e7", "tonalRamp": ["#8a8271", "#a99f8a", "#b9af9c", "#cfc6b2", "#d8cfbc", "#e7dcc3", "#f0e9d9", "#f6f1e7"] },
+      "card": { "role": "neutral", "displayName": "Carte", "canonical": "#fdfbf5", "tonalRamp": ["#8a8271", "#a99f8a", "#c7bda8", "#d8cfbc", "#e7dcc3", "#f3ecdc", "#faf6ec", "#fdfbf5"] },
+      "line": { "role": "neutral", "displayName": "Filet", "canonical": "#d8cfbc" },
+      "ghost": { "role": "neutral", "displayName": "Fantôme", "canonical": "#b9af9c" },
+      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#6e6656" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Le « Gagné. » du bloc victoire, unique par partie." },
+      "headline": { "displayName": "Headline", "purpose": "Mots trouvés du registre, en capitales espacées." },
+      "title": { "displayName": "Title", "purpose": "Titre Tracemot du header." },
+      "body": { "displayName": "Body", "purpose": "Consigne de jeu et descriptions de niveau, en italique." },
+      "label": { "displayName": "Label", "purpose": "Étiquettes et données mono en capitales espacées (chrono, compteur, labels)." }
+    },
+    "shadows": [
+      { "name": "cell-hover", "value": "inset 0 0 0 1px #26221c, 0 3px 0 rgba(38,34,28,0.14)", "purpose": "Case qui se soulève au survol souris — ombre dure et courte." },
+      { "name": "popover", "value": "0 20px 44px rgba(38,34,28,0.35)", "purpose": "Détache le popover de difficulté au-dessus du plateau (desktop)." },
+      { "name": "toast", "value": "0 12px 30px rgba(38,34,28,0.35)", "purpose": "Toast de confirmation par-dessus la grille." }
+    ],
+    "motion": [
+      { "name": "cell-deal", "value": "cell-deal 0.26s ease backwards (delay var(--i)*18ms)", "purpose": "Cascade d'impression des lettres à l'arrivée d'une grille." },
+      { "name": "word-stamp", "value": "word-stamp 0.28s (accélère vers l'impact puis se pose)", "purpose": "Le mot validé s'abat comme un tampon, sans rebond." },
+      { "name": "cell-pop", "value": "cell-pop 0.16s ease", "purpose": "Pop de la case de tête qui rejoint le tracé." },
+      { "name": "win-pop", "value": "win-pop 0.45s cubic-bezier(0.2,0.8,0.3,1)", "purpose": "Apparition du bloc victoire." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "860px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Grid Cell",
+      "kind": "custom",
+      "refersTo": "cell",
+      "description": "Case de la grille : lettre encrée sur papier, bord d'encre franc, angles vifs. États sel / head / disabled.",
+      "html": "<div class=\"ds-cells\"><div class=\"ds-cell\">A</div><div class=\"ds-cell sel\">M</div><div class=\"ds-cell head\">O</div><div class=\"ds-cell disabled\">R</div></div>",
+      "css": ".ds-cells { display: grid; grid-template-columns: repeat(4, 64px); gap: 10px; font-family: 'Source Serif 4', serif; } .ds-cell { display: flex; align-items: center; justify-content: center; height: 64px; background: #fdfbf5; border: 1.5px solid #26221c; color: #26221c; font-size: 34px; font-weight: 700; border-radius: 0; cursor: pointer; transition: transform .12s ease, background-color .12s ease, box-shadow .12s ease; } .ds-cell:hover { background: #f3ecdc; box-shadow: inset 0 0 0 1px #26221c, 0 3px 0 rgba(38,34,28,0.14); transform: translateY(-2px); } .ds-cell.sel { background: #26221c; border-color: #26221c; color: #f6f1e7; } .ds-cell.head { background: #b3402a; border-color: #b3402a; color: #f6f1e7; } .ds-cell.disabled { background: #f6f1e7; border-color: #d8cfbc; color: #b9af9c; cursor: default; }"
+    },
+    {
+      "name": "Difficulty Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Chip nommée du header : étoile vermillon + label mono, bord encre. S'inverse à l'ouverture.",
+      "html": "<button class=\"ds-chip\"><span class=\"ds-chip-star\">★</span><span class=\"ds-chip-label\">1 · Doux</span><span class=\"ds-chip-caret\">▾</span></button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid #26221c; background: #fdfbf5; color: #26221c; padding: 8px 13px; border-radius: 0; cursor: pointer; } .ds-chip-star { color: #b3402a; font-size: 16px; line-height: 1; } .ds-chip-label { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; } .ds-chip-caret { font-size: 10px; color: #6e6656; } .ds-chip:hover { background: #26221c; color: #f6f1e7; } .ds-chip:hover .ds-chip-caret { color: #b9af9c; }"
+    },
+    {
+      "name": "Replay Button",
+      "kind": "button",
+      "refersTo": "button-replay",
+      "description": "Le seul bouton plein de couleur : vermillon, texte papier, capitales très espacées, angles vifs.",
+      "html": "<button class=\"ds-btn-replay\">REJOUER</button>",
+      "css": ".ds-btn-replay { background: #b3402a; color: #f6f1e7; border: none; border-radius: 0; height: 62px; padding: 0 40px; font-family: 'Source Serif 4', serif; font-size: 21px; font-weight: 700; letter-spacing: 4px; cursor: pointer; transition: filter .12s ease; } .ds-btn-replay:hover { filter: brightness(1.08); } .ds-btn-replay:active { filter: brightness(0.94); }"
+    },
+    {
+      "name": "Difficulty Level Row",
+      "kind": "custom",
+      "refersTo": "level-selected",
+      "description": "Ligne de niveau du sélecteur : étoiles vermillon/éteintes, nom sérif + description italique, filet vermillon interne et coche à la sélection.",
+      "html": "<div class=\"ds-level selected\"><span class=\"ds-level-bar\"></span><span class=\"ds-level-stars\"><span class=\"on\">★</span><span class=\"on\">★</span><span class=\"on\">★</span><span class=\"off\">★</span><span class=\"off\">★</span></span><span class=\"ds-level-text\"><span class=\"ds-level-name\">Relevé</span><span class=\"ds-level-desc\">Une bonne pincée de mots moins courants</span></span><span class=\"ds-level-check\">✓</span></div>",
+      "css": ".ds-level { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 10px; background: #efe7d6; border-bottom: 1px solid #d8cfbc; font-family: 'Source Serif 4', serif; color: #26221c; text-align: left; } .ds-level-bar { flex: 0 0 auto; width: 4px; align-self: stretch; margin: 6px 0; background: #b3402a; } .ds-level-stars { width: 82px; font-size: 14px; letter-spacing: 1px; } .ds-level-stars .on { color: #b3402a; } .ds-level-stars .off { color: #cfc6b2; } .ds-level-text { flex: 1; display: flex; flex-direction: column; gap: 2px; } .ds-level-name { font-size: 16px; font-weight: 600; } .ds-level-desc { font-size: 12.5px; font-style: italic; color: #6e6656; } .ds-level-check { font-size: 16px; font-weight: 700; color: #b3402a; }"
+    },
+    {
+      "name": "Word Ledger Row",
+      "kind": "custom",
+      "refersTo": "headline",
+      "description": "Ligne du registre : numéro mono vermillon, mot en capitales espacées ou points fantôme, filet bas.",
+      "html": "<ol class=\"ds-ledger\"><li class=\"ds-word-row\"><span class=\"ds-word-num\">01</span><span class=\"ds-word-text\">PORTE</span></li><li class=\"ds-word-row empty\"><span class=\"ds-word-num\">02</span><span class=\"ds-word-dots\">· · · · ·</span></li></ol>",
+      "css": ".ds-ledger { list-style: none; margin: 0; padding: 0; } .ds-word-row { display: flex; align-items: center; gap: 20px; height: 58px; border-bottom: 1px solid #d8cfbc; } .ds-word-num { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #b3402a; width: 20px; } .ds-word-row.empty .ds-word-num { color: #b9af9c; } .ds-word-text { font-family: 'Source Serif 4', serif; font-size: 26px; font-weight: 600; letter-spacing: 3px; color: #26221c; } .ds-word-dots { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: #b9af9c; letter-spacing: 4px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "L'Imprimerie",
+    "overview": "Tracemot se compose comme un objet imprimé, pas comme un écran d'application. La grille est une forme typographique : des lettres encrées, posées sur un papier crème, cernées de traits d'encre francs. Chaque interaction emprunte au geste de l'atelier — le mot trouvé s'abat comme un tampon, les lettres d'une nouvelle grille tombent en cascade d'impression, le tracé courant est une barre d'encre. Le système est dense mais calme : la couleur est rare, et le vermillon ne parle que pour marquer l'événement. La personnalité tient dans la retenue : un jeu qui respire la qualité d'une page composée, jamais l'excitation d'une app de rétention.",
+    "keyCharacteristics": [
+      "Palette papier / encre / vermillon ; le vermillon ne sert qu'à l'événement.",
+      "Coins nets partout — zéro border-radius.",
+      "À-plat par défaut ; l'ombre n'existe qu'en réponse à un état ou pour une surface flottante.",
+      "Sérif de presse pour le contenu, mono technique pour les données et labels.",
+      "Motion « atelier » : tampon, cascade d'impression, pop, flash — jamais de rebond élastique."
+    ],
+    "rules": [
+      { "name": "La Règle de l'Encre Unique", "body": "Le vermillon ne décrit jamais une surface au repos ni une décoration. Il ne s'allume que pour signaler un événement de jeu (tracé actif, victoire, refus, sélection).", "section": "colors" },
+      { "name": "La Règle du Neutre Chaud", "body": "Tous les neutres vivent dans la même famille sableuse chaude, faible chroma. Aucun gris froid, aucun neutre pur. L'écart entre paper et card est une surélévation optique, pas un contraste.", "section": "colors" },
+      { "name": "La Règle du Mono-Donnée", "body": "Tout ce qui est chiffre, compteur, minuterie ou étiquette système est en IBM Plex Mono, capitales, letter-spacing ≥ 2px. Le sérif ne compte pas ; il lit.", "section": "typography" },
+      { "name": "La Règle des Capitales Espacées", "body": "Mots trouvés et labels s'écrivent en capitales avec un letter-spacing marqué (3–4px). Jamais de casse mixte pour ces éléments.", "section": "typography" },
+      { "name": "La Règle du Plat-au-Repos", "body": "Une surface au repos est plate. Toute ombre doit répondre à un état (survol, flottaison) et disparaître au retour au repos. Une ombre décorative permanente est interdite.", "section": "elevation" },
+      { "name": "La Règle de l'Ombre Dure", "body": "Les ombres de survol sont franches et courtes, comme une plaque qui se soulève de la page. Le flou doux diffus est réservé aux surfaces flottantes.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do garder le vermillon pour l'événement uniquement (tracé actif, tête, victoire, refus, sélection, compteur atteint).",
+      "Do garder tous les angles vifs (border-radius: 0) — cases, chip, boutons, panneaux, toast.",
+      "Do rester à-plat au repos ; réserver l'ombre aux survols et surfaces flottantes, ombre dure pour les éléments de jeu.",
+      "Do utiliser IBM Plex Mono en capitales espacées pour les données et labels ; Source Serif 4 pour tout ce qui se lit.",
+      "Do maintenir le contraste AA — surveiller muted (#6e6656) et foot (#a99f8a) sur paper, ne pas descendre le texte vers ghost.",
+      "Do doubler toute information de couleur d'un signal de forme ou de texte (le mot refusé garde son motif écrit).",
+      "Do garder les cibles tactiles ≥ 44px sur les cases et les contrôles."
+    ],
+    "donts": [
+      "Don't virer vers l'app gamifiée criarde : pas de dégradés saturés, badges, pop-ups d'engagement, confettis permanents.",
+      "Don't tomber dans le SaaS générique : pas de cartes identiques répétées, bleu corporate, esthétique template.",
+      "Don't introduire de néon / dark tech gaming : pas de fond sombre décoratif, accent néon, RGB.",
+      "Don't utiliser de border-left / border-right coloré > 1px comme liseré de carte ; le filet vermillon du niveau est une barre interne dédiée.",
+      "Don't poser de gris froid ou de neutre pur ; tout neutre reste dans la famille sableuse chaude.",
+      "Don't animer avec du rebond élastique ou du bounce ; la motion imite l'atelier (tampon, cascade, pop, flash).",
+      "Don't oublier l'alternative prefers-reduced-motion (tampon, cascade, victoire, confettis)."
+    ]
+  }
+}
