@@ -233,6 +233,20 @@ export function getStage() {
   return app.stage;
 }
 
+// Application Pixi : input.js s'en sert pour le canvas (contextmenu/dragstart)
+// et le Ticker (pan clavier).
+/** @returns {Application} */
+export function getApp() {
+  return app;
+}
+
+// Caméra : input.js la pilote pour le pan (translation) et le pinch (zoom
+// autour du milieu des doigts). Le zoom molette/boutons reste géré ici.
+/** @returns {Camera} */
+export function getCamera() {
+  return camera;
+}
+
 // Molette → zoom centré sur le pointeur. Facteur exponentiel (doublement
 // tous les ~500 px) pour un zoom lisse ; la caméra borne fit/max.
 /** @param {WheelEvent} e */
