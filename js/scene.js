@@ -505,8 +505,11 @@ export async function initScene() {
   cellsLayer = new Container();
   traceLayer = new Container();
   lettersLayer = new Container();
-  // Lettres au-dessus du trait pour rester lisibles.
-  world.addChild(cellsLayer, traceLayer, lettersLayer);
+  // Ordre : trait SOUS les cases SOUS les lettres. Les fonds de cases sont
+  // opaques : le trait n'apparaît que dans les espaces entre cases, jamais à
+  // travers une lettre ni par-dessus un fond (rouge de la tête, etc.). Il relie
+  // visuellement les cases par-dessous, comme un fil passant derrière les tuiles.
+  world.addChild(traceLayer, cellsLayer, lettersLayer);
   app.stage.addChild(world);
 
   // Fantômes sous le tracé actif, tous deux dans traceLayer.
