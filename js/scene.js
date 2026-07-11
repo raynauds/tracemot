@@ -507,11 +507,12 @@ function buildZoomControls() {
    * @param {string} label
    * @param {string} title
    * @param {() => void} onClick
+   * @param {string} [extraClass] modificateur optionnel (ex. bouton de pas)
    */
-  const addButton = (label, title, onClick) => {
+  const addButton = (label, title, onClick, extraClass) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "zoom-btn";
+    btn.className = extraClass ? `zoom-btn ${extraClass}` : "zoom-btn";
     btn.textContent = label;
     btn.title = title;
     btn.setAttribute("aria-label", title);
@@ -519,9 +520,18 @@ function buildZoomControls() {
     bar.appendChild(btn);
   };
 
-  addButton("+", "Zoomer", () => camera.zoomAt(camera.screenCenter(), ZOOM_STEP));
-  addButton("−", "Dézoomer", () =>
-    camera.zoomAt(camera.screenCenter(), 1 / ZOOM_STEP),
+  // Boutons de pas + / − : masqués sur mobile (le pinch suffit), voir style.css.
+  addButton(
+    "+",
+    "Zoomer",
+    () => camera.zoomAt(camera.screenCenter(), ZOOM_STEP),
+    "zoom-btn--step",
+  );
+  addButton(
+    "−",
+    "Dézoomer",
+    () => camera.zoomAt(camera.screenCenter(), 1 / ZOOM_STEP),
+    "zoom-btn--step",
   );
   addButton("⤢", "Tout voir", () => camera.fit());
   document.body.appendChild(bar);

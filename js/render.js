@@ -32,7 +32,7 @@ const winSubEl = byId("win-sub");
 const chronoEl = byId("chrono");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
-const ruleTextEl = byId("rule-text");
+const ruleSpecEl = byId("rule-spec");
 
 /** @type {HTMLElement[]} */
 const listRows = []; // les WORDS_TO_WIN lignes du registre
@@ -47,32 +47,13 @@ function formatTime(ms) {
   return `${m}:${s}`;
 }
 
-// Consigne en deux variantes : la phrase complète sur desktop, une version
-// resserrée sur mobile où la place verticale est comptée (bascule CSS).
-function playingRuleText() {
-  const n = FR_NUMBERS[WORDS_TO_WIN] || String(WORDS_TO_WIN);
+// Bande « specs » de la règle : dimensions du puzzle en toutes lettres, tirées
+// de la config (mises en capitales par le CSS). La phrase serif au-dessus est
+// générique (sans nombres) et vit dans le HTML.
+function renderRuleSpec() {
   const l5 = FR_NUMBERS[FIVE_WORD_LENGTH] || String(FIVE_WORD_LENGTH);
-  const N = `${n[0].toUpperCase()}${n.slice(1)}`;
-  return {
-    desktop:
-      `${N} mots de ${l5} lettres pavent la ` +
-      `grille : chaque lettre sert à exactement un mot. Reliez des lettres ` +
-      `voisines pour les retrouver.`,
-    mobile:
-      `Trouvez les ${n} mots de ${l5} lettres qui pavent la grille ` +
-      `en reliant les lettres adjacentes.`,
-  };
-}
-
-/** @param {{desktop: string, mobile: string}} rule */
-function renderRuleText(rule) {
-  const d = document.createElement("span");
-  d.className = "rule-desktop";
-  d.textContent = rule.desktop;
-  const m = document.createElement("span");
-  m.className = "rule-mobile";
-  m.textContent = rule.mobile;
-  ruleTextEl.replaceChildren(d, m);
+  ruleSpecEl.textContent =
+    `${WORDS_TO_WIN} mots · ${l5} lettres · toute la grille`;
 }
 
 // --- Sélecteur de difficulté (chip + popover / feuille + toast) ------------
@@ -210,6 +191,39 @@ ledgerToggleEl.addEventListener("click", () =>
 );
 // État initial : replié sur mobile (pastille), déplié sur desktop.
 setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
+
+// --- Règle du jeu (colophon repliable) -------------------------------------
+
+// Ouverte par défaut ; l'utilisateur peut la minimiser en chip. Le choix
+// persiste : au retour on rouvre, sauf s'il avait minimisé (localStorage).
+const RULE_STORAGE_KEY = "tracemot.rule";
+const ruleEl = byId("rulecard");
+const ruleToggleEl = byId("rule-toggle");
+
+/** @param {boolean} collapsed */
+function setRuleCollapsed(collapsed) {
+  ruleEl.classList.toggle("collapsed", collapsed);
+  ruleToggleEl.setAttribute("aria-expanded", String(!collapsed));
+}
+
+ruleToggleEl.addEventListener("click", () => {
+  const collapsed = !ruleEl.classList.contains("collapsed");
+  setRuleCollapsed(collapsed);
+  try {
+    localStorage.setItem(RULE_STORAGE_KEY, collapsed ? "collapsed" : "open");
+  } catch (_) {
+    /* stockage indisponible : le choix ne survivra pas au rechargement */
+  }
+});
+
+// État initial : minimisé seulement si l'utilisateur l'avait choisi.
+let ruleStored = null;
+try {
+  ruleStored = localStorage.getItem(RULE_STORAGE_KEY);
+} catch (_) {
+  /* stockage indisponible */
+}
+setRuleCollapsed(ruleStored === "collapsed");
 
 // --- Registre : adoption des lignes pré-rendues ----------------------------
 
@@ -367,7 +381,7 @@ export function renderNewGame() {
   renderCounter();
   counterEl.classList.remove("full");
   chronoEl.classList.remove("won");
-  renderRuleText(playingRuleText());
+  renderRuleSpec();
   winEl.hidden = true;
 }
 
@@ -377,8 +391,6 @@ export function renderWin() {
   chronoEl.classList.add("won");
   counterEl.classList.add("full");
   winSubEl.textContent = `${WORDS_TO_WIN} MOT${WORDS_TO_WIN > 1 ? "S" : ""} EN ${time}`;
-  ruleTextEl.textContent =
-    "Chrono arrêté - cette grille est résolue. Rejouer distribue de nouvelles lettres.";
   winEl.hidden = false;
 }
 

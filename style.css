@@ -738,24 +738,91 @@ body {
   animation: word-in 0.3s ease;
 }
 
-/* Consigne : overlay non interactif ancré en bas à gauche. */
-.rule-text {
+/* Règle du jeu : « colophon » repliable ancré en bas à gauche. Même langage que
+   le registre (carte crème, filet encre, ombre, caret) et que les libellés mono
+   du chrome. Déplié : ligne serif + bande mono « specs ». Replié : chip RÈGLE. */
+.rulecard {
   position: fixed;
   left: max(24px, env(safe-area-inset-left));
   bottom: max(24px, env(safe-area-inset-bottom));
   z-index: 10;
-  pointer-events: none;
-  margin: 0;
-  max-width: 380px;
-  font-size: 15px;
-  font-style: italic;
-  color: var(--muted);
-  line-height: 1.6;
+  width: max-content;
+  max-width: 320px;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 14px 34px rgba(38, 34, 28, 0.2);
+  pointer-events: auto;
 }
 
-/* Consigne en deux variantes : phrase complète sur desktop, resserrée sur mobile */
-.rule-mobile {
+/* En-tête = bouton plier/déplier (libellé mono capitales + caret). */
+.rulecard-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.rulecard.collapsed .rulecard-head {
+  border-bottom: none;
+}
+
+.rulecard-label {
+  flex: 1;
+  font-size: 12px;
+  letter-spacing: 2.5px;
+  color: var(--ink);
+}
+
+.rulecard-caret {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.rulecard-caret::before {
+  content: "▾";
+}
+
+.rulecard.collapsed .rulecard-caret::before {
+  content: "▸";
+}
+
+/* Repliée : seule la chip d'en-tête reste. */
+.rulecard.collapsed .rulecard-body {
   display: none;
+}
+
+.rulecard-body {
+  padding: 12px 14px 13px;
+}
+
+/* Le « comment » : une phrase serif, sobre. */
+.rulecard-line {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* La bande « specs » : dimensions du puzzle en mono, écho du chrono/compteur. */
+.rulecard-spec {
+  margin: 11px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 /* ---------- Mode debug (flag DEBUG dans js/config.js) ---------- */
@@ -940,22 +1007,16 @@ body {
     letter-spacing: 1px;
   }
 
-  /* Consigne resserrée, ancrée sous le header. */
-  .rule-text {
+  /* Règle : ancrée sous le header (le bas est pris par le zoom / la pastille). */
+  .rulecard {
     top: calc(max(12px, env(safe-area-inset-top)) + 56px);
     bottom: auto;
     left: max(14px, env(safe-area-inset-left));
-    right: max(14px, env(safe-area-inset-right));
-    max-width: none;
-    font-size: 13px;
-    line-height: 1.45;
+    max-width: min(320px, calc(100vw - 28px));
   }
 
-  .rule-desktop {
-    display: none;
-  }
-  .rule-mobile {
-    display: inline;
+  .rulecard-line {
+    font-size: 13.5px;
   }
 
   /* Zoom déplacé à gauche : la pastille registre occupe le coin bas-droit. */
@@ -1004,4 +1065,13 @@ body {
 .zoom-btn:active {
   background: var(--ink);
   color: var(--paper);
+}
+
+/* Sur écran tactile, le pinch remplace les boutons de pas : on ne garde que
+   « tout voir ». `(pointer: coarse)` = dispositif de pointage grossier (doigt),
+   indépendant de la largeur d'écran. */
+@media (pointer: coarse) {
+  .zoom-btn--step {
+    display: none;
+  }
 }

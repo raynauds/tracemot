@@ -79,18 +79,33 @@
       </div>
     </header>
 
-    <!-- Consigne : overlay non interactif au-dessus du canvas. -->
-    <p class="rule-text" id="rule-text">
-      <span class="rule-desktop"
-        >Cinq mots de cinq lettres pavent la grille : chaque lettre sert à
-        exactement un mot. Reliez des lettres voisines pour les
-        retrouver.</span
+    <!-- Règle du jeu : colophon repliable ancré en bas à gauche (chip une fois
+         minimisé). L'en-tête est un bouton plier/déplier ; l'état est mémorisé
+         en localStorage (js/render.js). Ouvert par défaut, sauf minimisation
+         antérieure. -->
+    <aside class="rulecard" id="rulecard">
+      <button
+        type="button"
+        class="rulecard-head"
+        id="rule-toggle"
+        aria-expanded="true"
+        aria-controls="rule-body"
       >
-      <span class="rule-mobile"
-        >Trouvez les cinq mots de cinq lettres qui pavent la grille en reliant
-        les lettres adjacentes.</span
-      >
-    </p>
+        <span class="rulecard-label">RÈGLE</span>
+        <span class="rulecard-caret" aria-hidden="true"></span>
+      </button>
+      <div class="rulecard-body" id="rule-body">
+        <p class="rulecard-line">
+          Reliez des lettres voisines pour tracer les mots ; chaque lettre ne
+          sert qu'une fois.
+        </p>
+        <!-- Nombres pré-remplis (config par défaut) pour éviter un shift ;
+             js/render.js réécrit selon WORDS_TO_WIN / FIVE_WORD_LENGTH. -->
+        <p class="rulecard-spec" id="rule-spec">
+          5 mots · 5 lettres · toute la grille
+        </p>
+      </div>
+    </aside>
 
     <!-- Registre « Mots trouvés » : panneau flottant repliable ancré à droite.
          Ouvert par défaut sur desktop, replié en pastille (n / N) sur mobile

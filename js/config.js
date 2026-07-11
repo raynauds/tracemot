@@ -111,6 +111,12 @@ export const CELL_GAP = 10;
 // grille hors de l'interface (registre, en-tête…). Monter la valeur = plus de
 // marge et de dézoom.
 export const VIEW_MARGIN = 0.2;
+// Marge (px écran) visée au cadrage d'ouverture « tout voir ». Indépendante de
+// VIEW_MARGIN : celle-ci fixe jusqu'où on peut dézoomer, FIT_MARGIN_PX fixe le
+// zoom par défaut affiché au chargement (grille cadrée avec ce vide sur le côté
+// contraignant, mots trouvés supposé fermé). Le résultat reste borné dans
+// [fitScale, maxScale]. Baisser = grille plus grande à l'ouverture.
+export const FIT_MARGIN_PX = 24;
 // Zoom maximum : on ne voit jamais moins que ZOOM_MAX_CELLS cases de côté.
 export const ZOOM_MAX_CELLS = 3;
 // Facteur des boutons + / − (zoom discret).

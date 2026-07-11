@@ -4,7 +4,13 @@
 // écran<->monde, le cadrage « fit », les bornes (clamp) et le zoom centré
 // pointeur. Le pan au drag et le pinch arrivent en phase 4.
 
-import { CELL_GAP, CELL_SIZE, VIEW_MARGIN, ZOOM_MAX_CELLS } from "./config.js";
+import {
+  CELL_GAP,
+  CELL_SIZE,
+  FIT_MARGIN_PX,
+  VIEW_MARGIN,
+  ZOOM_MAX_CELLS,
+} from "./config.js";
 
 /** @typedef {import("pixi.js").Application} Application */
 /** @typedef {import("pixi.js").Container} Container */
@@ -61,6 +67,9 @@ export class Camera {
     // (zoom max, jamais dépassé) ; fitScale ≤ 1 = grille entière visible.
     this.fitScale = 1;
     this.maxScale = 1;
+    // Échelle du cadrage d'ouverture (« tout voir »), plus serrée que fitScale,
+    // toujours bornée dans [fitScale, maxScale]. Calculée dans recompute.
+    this.defaultScale = 1;
     // Marge de vue / débattement de pan (px), calculée dans recompute.
     this.margin = 0;
     this.recompute();
@@ -90,6 +99,20 @@ export class Camera {
     // Garde-fou : sur une grille tenant en moins de ZOOM_MAX_CELLS cases,
     // fitScale pourrait dépasser 1.
     if (this.maxScale < this.fitScale) this.maxScale = this.fitScale;
+    // Cadrage d'ouverture : marges asymétriques. À l'horizontale, marge fixe
+    // FIT_MARGIN_PX (serrée : sur mobile portrait la largeur est contraignante,
+    // la grille remplit l'écran à 24 px près). À la verticale, on garde la marge
+    // généreuse de fitScale (this.margin) pour ne pas coller au header/registre
+    // sur desktop paysage, où la hauteur est contraignante. Puis borné dans
+    // [fitScale, maxScale] pour rester dans les niveaux de zoom autorisés.
+    const fitToMargin = Math.min(
+      (sw - 2 * FIT_MARGIN_PX) / this.gridW,
+      (sh - 2 * this.margin) / this.gridH,
+    );
+    this.defaultScale = Math.min(
+      this.maxScale,
+      Math.max(this.fitScale, fitToMargin),
+    );
   }
 
   // Contraint un état : scale dans [fitScale, maxScale] et position bornée par
@@ -151,15 +174,16 @@ export class Camera {
     return { x: wx * this.scale + this.x, y: wy * this.scale + this.y };
   }
 
-  // Cadrage « tout voir » : scale minimum, grille centrée. clampAxis ne recentre
-  // plus (pan libre), donc on vise explicitement le centre ici.
+  // Cadrage « tout voir » : échelle d'ouverture (defaultScale, plus serrée que
+  // le dézoom max), grille centrée. clampAxis ne recentre plus (pan libre), donc
+  // on vise explicitement le centre ici.
   fit() {
     const sw = this.app.screen.width;
     const sh = this.app.screen.height;
     this.set(
-      this.fitScale,
-      (sw - this.gridW * this.fitScale) / 2,
-      (sh - this.gridH * this.fitScale) / 2,
+      this.defaultScale,
+      (sw - this.gridW * this.defaultScale) / 2,
+      (sh - this.gridH * this.defaultScale) / 2,
     );
   }
 
