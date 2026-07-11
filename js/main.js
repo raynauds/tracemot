@@ -73,7 +73,13 @@ function triggerWin() {
 }
 
 function commitPath() {
-  if (state.path.length === 0) return;
+  // Moins de 2 lettres : simple tap ou lettre unique relâchée → ce n'est pas
+  // une vraie soumission. On désélectionne (clearPath remet aussi la ligne du
+  // registre à vide) sans flow d'erreur (ni flash, ni secousse, ni « reject »).
+  if (state.path.length < 2) {
+    clearPath();
+    return;
+  }
   const word = state.path.map((i) => state.letters[i]).join("");
   const traced = state.path.slice();
   clearPath(); // libère la ligne d'aperçu avant de la remplir ou de la marquer refusée

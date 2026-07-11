@@ -18,7 +18,6 @@ import {
   LINE,
   PAPER,
   VERMILION,
-  ZOOM_MAX_CELLS,
   ZOOM_STEP,
 } from "./config.js";
 import { Camera } from "./camera.js";
@@ -28,11 +27,39 @@ import { easeOutCubic, initTweens, tween } from "./tween.js";
 // Grille carrée dérivée de la config, sans hypothèse « 5 » en dur.
 const rows = GRID_SIZE;
 const cols = CELL_COUNT / GRID_SIZE;
-const pitch = CELL_SIZE + CELL_GAP;
+
+// Constantes de design (proportions), en « unités design ». Elles sont
+// multipliées par baseScale (caméra) pour donner les métriques de rendu.
 const CELL_RADIUS = 8;
-const CELL_STROKE = 3; // unités monde
+const CELL_STROKE = 3;
 const FONT_SIZE = 42; // ≈ rapport lettre/case du DOM
-const TRACE_WIDTH = 10; // largeur du trait, en unités monde (épaissit au zoom)
+const TRACE_WIDTH = 10; // largeur du trait
+
+// Métriques de rendu = unités design × baseScale. baseScale (caméra) vaut le
+// nombre de px natifs par unité design au zoom max : la scène est donc gravée à
+// la taille du zoom max, et la caméra ne fait plus que dézoomer (world.scale
+// ≤ 1). Conséquence : le texte (une texture) n'est jamais agrandi → jamais
+// flou ; les niveaux de zoom inférieurs ne sont que des minifications nettes.
+const metrics = {
+  base: 1,
+  pitch: CELL_SIZE + CELL_GAP,
+  cell: CELL_SIZE,
+  radius: CELL_RADIUS,
+  stroke: CELL_STROKE,
+  trace: TRACE_WIDTH,
+  font: FONT_SIZE,
+};
+
+/** @param {number} base facteur px-natifs / unité design (baseScale caméra) */
+function updateMetrics(base) {
+  metrics.base = base;
+  metrics.pitch = (CELL_SIZE + CELL_GAP) * base;
+  metrics.cell = CELL_SIZE * base;
+  metrics.radius = CELL_RADIUS * base;
+  metrics.stroke = CELL_STROKE * base;
+  metrics.trace = TRACE_WIDTH * base;
+  metrics.font = FONT_SIZE * base;
+}
 
 // --- Réglages d'animation (Pixi-natif : alpha/scale/tint/position) ---------
 const DEAL_MS = 300; // distribution : durée d'apparition d'une case
@@ -78,7 +105,7 @@ const debugHint = new Set();
 function cellOrigin(i) {
   const col = i % cols;
   const row = Math.floor(i / cols);
-  return { x: col * pitch, y: row * pitch };
+  return { x: col * metrics.pitch, y: row * metrics.pitch };
 }
 
 /**
@@ -87,7 +114,7 @@ function cellOrigin(i) {
  */
 function cellCenter(i) {
   const o = cellOrigin(i);
-  return { x: o.x + CELL_SIZE / 2, y: o.y + CELL_SIZE / 2 };
+  return { x: o.x + metrics.cell / 2, y: o.y + metrics.cell / 2 };
 }
 
 // État visuel d'une case : disabled (mot trouvé) > head (dernière du tracé) >
@@ -137,10 +164,16 @@ function paintCell(i) {
   const g = cellBgs[i];
   g.clear();
   // Géométrie centrée sur (0,0) local : le fond est placé au centre de la case
-  // (buildGrid), donc scale/pop grandissent autour du centre, sans dérive.
-  g.roundRect(-CELL_SIZE / 2, -CELL_SIZE / 2, CELL_SIZE, CELL_SIZE, CELL_RADIUS)
+  // (layoutCells), donc scale/pop grandissent autour du centre, sans dérive.
+  g.roundRect(
+    -metrics.cell / 2,
+    -metrics.cell / 2,
+    metrics.cell,
+    metrics.cell,
+    metrics.radius,
+  )
     .fill(fill)
-    .stroke({ width: CELL_STROKE, color: stroke, alignment: 0.5 });
+    .stroke({ width: metrics.stroke, color: stroke, alignment: 0.5 });
   cellTexts[i].style.fill = textFill;
 }
 
@@ -180,25 +213,22 @@ function repaintCells() {
   for (let i = 0; i < CELL_COUNT; i++) paintCell(i);
 }
 
-// Résolution de texture des lettres : couvre le zoom maximal pour rester
-// nette sans flou (un Text Pixi est une texture agrandie au zoom).
+// Résolution de texture des lettres. Le glyphe est déjà gravé à la taille du
+// zoom max (metrics.font = FONT_SIZE × baseScale) et la caméra ne dépasse
+// jamais world.scale = 1 : il suffit donc de couvrir la densité écran (dpr)
+// plus un léger sur-échantillonnage pour l'anticrénelage. Plus besoin du
+// facteur d'échelle du zoom, ni d'un plafond élevé.
 function letterResolution() {
   const dpr = window.devicePixelRatio || 1;
-  const maxScale =
-    Math.min(app.screen.width, app.screen.height) / (ZOOM_MAX_CELLS * pitch);
-  return Math.min(8, Math.max(2, maxScale * dpr));
+  return Math.min(4, dpr * 1.5);
 }
 
 // Construit les CELL_COUNT cases (fond + lettre vide) une fois pour toutes.
-// Les lettres sont peuplées par renderSceneGrid.
+// Positions, tailles et résolution sont posées par layoutCells (rappelée au
+// resize via relayout). Les lettres sont peuplées par renderSceneGrid.
 function buildGrid() {
-  const resolution = letterResolution();
   for (let i = 0; i < CELL_COUNT; i++) {
-    const { x, y } = cellOrigin(i);
-
     const bg = new Graphics();
-    // Centré : géométrie dessinée autour de (0,0), placée au centre de la case.
-    bg.position.set(x + CELL_SIZE / 2, y + CELL_SIZE / 2);
     cellsLayer.addChild(bg);
     cellBgs.push(bg);
 
@@ -207,19 +237,41 @@ function buildGrid() {
       style: {
         fontFamily: "Source Serif 4",
         fontWeight: "700",
-        fontSize: FONT_SIZE,
+        fontSize: metrics.font,
         fill: INK,
         align: "center",
       },
     });
-    text.style.resolution = resolution;
     text.anchor.set(0.5);
-    text.position.set(x + CELL_SIZE / 2, y + CELL_SIZE / 2);
     lettersLayer.addChild(text);
     cellTexts.push(text);
+  }
+  layoutCells();
+}
 
+// Positionne et dimensionne cases + lettres selon les métriques courantes
+// (unités design × baseScale). Géométrie centrée sur (0,0) local et placée au
+// centre de la case : scale/pop grandissent autour du centre, sans dérive.
+function layoutCells() {
+  const resolution = letterResolution();
+  for (let i = 0; i < CELL_COUNT; i++) {
+    const c = cellCenter(i);
+    cellBgs[i].position.set(c.x, c.y);
+    cellTexts[i].position.set(c.x, c.y);
+    cellTexts[i].style.fontSize = metrics.font;
+    cellTexts[i].style.resolution = resolution;
     paintCell(i);
   }
+}
+
+// Recalcule les métriques (baseScale caméra) puis re-pose la grille et les
+// tracés : appelé au resize, quand baseScale change (le zoom max reste
+// ~ZOOM_MAX_CELLS cases, la scène est regravée à la nouvelle taille native).
+function relayout() {
+  updateMetrics(camera.baseScale);
+  layoutCells();
+  renderTrace();
+  renderFoundTraces();
 }
 
 // --- Tracé (espace monde) --------------------------------------------------
@@ -239,7 +291,7 @@ function strokePath(g, path, color, alpha = 1) {
     const p = cellCenter(path[k]);
     g.lineTo(p.x, p.y);
   }
-  g.stroke({ width: TRACE_WIDTH, color, alpha, cap: "round", join: "round" });
+  g.stroke({ width: metrics.trace, color, alpha, cap: "round", join: "round" });
 }
 
 // Redessine le tracé en cours (ligne d'encre continue).
@@ -396,7 +448,7 @@ export function setDebugHint(path) {
 // --- Hit-test / accès stage (pour input.js) --------------------------------
 
 // Case sous un point écran (Point global d'un event fédéré), ou null.
-// Conversion écran→monde via world.toLocal, puis tolérance rayon CELL_SIZE/2
+// Conversion écran→monde via world.toLocal, puis tolérance rayon cell/2
 // autour du centre de la case la plus proche (reprise de la logique DOM).
 /**
  * @param {import("pixi.js").PointData} global
@@ -405,12 +457,12 @@ export function setDebugHint(path) {
 export function cellAtGlobal(global) {
   if (!world) return null;
   const p = world.toLocal(global);
-  const col = Math.round((p.x - CELL_SIZE / 2) / pitch);
-  const row = Math.round((p.y - CELL_SIZE / 2) / pitch);
+  const col = Math.round((p.x - metrics.cell / 2) / metrics.pitch);
+  const row = Math.round((p.y - metrics.cell / 2) / metrics.pitch);
   if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
-  const cx = col * pitch + CELL_SIZE / 2;
-  const cy = row * pitch + CELL_SIZE / 2;
-  if (Math.hypot(p.x - cx, p.y - cy) > CELL_SIZE / 2) return null;
+  const cx = col * metrics.pitch + metrics.cell / 2;
+  const cy = row * metrics.pitch + metrics.cell / 2;
+  if (Math.hypot(p.x - cx, p.y - cy) > metrics.cell / 2) return null;
   return row * cols + col;
 }
 
@@ -521,6 +573,12 @@ export async function initScene() {
   app.stage.eventMode = "static";
   app.stage.hitArea = app.screen;
 
+  // Caméra : calcule baseScale (px natifs par unité design au zoom max) et le
+  // cadrage initial « fit ». Créée AVANT la grille : celle-ci est gravée à
+  // baseScale (taille du zoom max) pour que la caméra ne fasse que dézoomer.
+  camera = new Camera(app, world, { rows, cols });
+  updateMetrics(camera.baseScale);
+
   // Polices prêtes avant de créer les Text (sinon fallback figé en texture).
   try {
     await document.fonts.load('700 42px "Source Serif 4"');
@@ -531,9 +589,12 @@ export async function initScene() {
 
   buildGrid();
 
-  // Caméra : cadrage initial « fit », recadrage au resize.
-  camera = new Camera(app, world, { rows, cols });
-  app.renderer.on("resize", () => camera.resize());
+  // Resize : recalcule baseScale (caméra) puis regrave la grille à la nouvelle
+  // taille native (le zoom max reste ~ZOOM_MAX_CELLS cases, texte net).
+  app.renderer.on("resize", () => {
+    camera.resize();
+    relayout();
+  });
 
   // Secousse de refus : offset écran ajouté chaque frame après le clamp caméra.
   app.ticker.add(applyShake);

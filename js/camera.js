@@ -34,30 +34,43 @@ export class Camera {
   constructor(app, world, grid) {
     this.app = app;
     this.world = world;
-    this.pitch = CELL_SIZE + CELL_GAP;
-    // Géométrie de la grille à l'échelle 1 (unités monde).
-    this.gridW = grid.cols * CELL_SIZE + (grid.cols - 1) * CELL_GAP;
-    this.gridH = grid.rows * CELL_SIZE + (grid.rows - 1) * CELL_GAP;
+    this.pitchDesign = CELL_SIZE + CELL_GAP;
+    // Géométrie de la grille en unités design (avant baseScale).
+    this.gridWDesign = grid.cols * CELL_SIZE + (grid.cols - 1) * CELL_GAP;
+    this.gridHDesign = grid.rows * CELL_SIZE + (grid.rows - 1) * CELL_GAP;
+    // baseScale : px natifs par unité design au zoom max (ZOOM_MAX_CELLS cases
+    // remplissent le petit côté). La scène est gravée à cette taille ; la caméra
+    // ne fait plus que dézoomer (world.scale ≤ 1). Recalculé au resize.
+    this.baseScale = 1;
+    // Géométrie de la grille en unités monde (design × baseScale = px natifs).
+    this.gridW = this.gridWDesign;
+    this.gridH = this.gridHDesign;
     // État caméra.
     this.scale = 1;
     this.x = 0;
     this.y = 0;
-    // Bornes d'échelle, recalculées au resize.
+    // Bornes de world.scale, recalculées au resize. maxScale = 1 = rendu natif
+    // (zoom max, jamais dépassé) ; fitScale ≤ 1 = grille entière visible.
     this.fitScale = 1;
     this.maxScale = 1;
     this.recompute();
     this.fit();
   }
 
-  // Recalcule fitScale (scale minimum : grille entière visible) et maxScale
-  // (on ne voit jamais moins que ZOOM_MAX_CELLS cases de côté) selon l'écran.
+  // Recalcule baseScale (px natifs / unité design au zoom max), la géométrie
+  // monde et les bornes : fitScale (world.scale montrant toute la grille) et
+  // maxScale = 1 (rendu natif : la scène est déjà gravée à la taille du zoom
+  // max, on ne dépasse jamais 1, donc le texte n'est jamais agrandi).
   recompute() {
     const sw = this.app.screen.width;
     const sh = this.app.screen.height;
+    this.baseScale = Math.min(sw, sh) / (ZOOM_MAX_CELLS * this.pitchDesign);
+    this.gridW = this.gridWDesign * this.baseScale;
+    this.gridH = this.gridHDesign * this.baseScale;
     this.fitScale = Math.min(sw / this.gridW, sh / this.gridH) * FIT_PADDING;
-    this.maxScale = Math.min(sw, sh) / (ZOOM_MAX_CELLS * this.pitch);
+    this.maxScale = 1;
     // Garde-fou : sur une grille tenant en moins de ZOOM_MAX_CELLS cases,
-    // maxScale pourrait passer sous fitScale.
+    // fitScale pourrait dépasser 1.
     if (this.maxScale < this.fitScale) this.maxScale = this.fitScale;
   }
 
