@@ -413,24 +413,7 @@ body {
   -webkit-touch-callout: none;
 }
 
-/* Tracé (barres encre) dessiné derrière les cases */
-.trace {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.trace polyline {
-  stroke: var(--ink);
-}
-
-/* Tracé fantôme d'un mot trouvé : assorti aux cases désactivées */
-.trace .trace-ghost {
-  stroke: var(--ghost);
-}
+/* Le tracé (actif + fantômes) est désormais rendu par PixiJS (js/scene.js). */
 
 .cell {
   position: relative;
@@ -558,15 +541,17 @@ body {
 
 /* ---------- Chargement / erreur ---------- */
 
+/* Overlay plein écran au-dessus du canvas Pixi (le plateau DOM est masqué). */
 .status {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 32px;
-  border: 1.5px dashed var(--line);
+  background: var(--paper);
   font-family: var(--mono);
   font-size: 13px;
   letter-spacing: 2px;
@@ -582,8 +567,9 @@ body {
 /* ---------- Bloc victoire (remplace la grille, même emprise) ---------- */
 
 .win {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 30;
   background: var(--ink);
   display: flex;
   flex-direction: column;
@@ -622,7 +608,8 @@ body {
 }
 
 .win-replay {
-  align-self: stretch;
+  align-self: center;
+  width: min(360px, 100%);
   margin-top: 18px;
   height: 62px;
   background: var(--vermilion);

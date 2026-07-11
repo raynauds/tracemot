@@ -27,8 +27,6 @@ function byId(id) {
 
 export const gridEl = byId("grid");
 export const replayEl = byId("replay");
-const traceLineEl = byId("trace-line");
-const traceEl = byId("trace");
 const statusEl = byId("status");
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
@@ -327,83 +325,10 @@ export function renderCounter() {
   counterEl.innerHTML = `<span class="count">${state.found.length}</span> / ${WORDS_TO_WIN}`;
 }
 
-// --- Grille et tracé -------------------------------------------------------
-
-export function updateSelection() {
-  const last = state.path[state.path.length - 1];
-  const inPath = new Set(state.path);
-  // Pendant un tracé, le survol des autres cases est neutralisé (CSS).
-  gridEl.classList.toggle("tracing", state.path.length > 0);
-  cells.forEach((cell, i) => {
-    cell.classList.toggle("sel", inPath.has(i) && i !== last);
-    cell.classList.toggle("head", i === last);
-  });
-}
-
-/** @type {SVGElement[]} Polylines fantômes des mots trouvés. */
-const ghostLines = [];
-
-/** @param {number[]} path */
-function tracePoints(path) {
-  return path
-    .map((i) => {
-      const c = cells[i];
-      return `${c.offsetLeft + c.offsetWidth / 2},${c.offsetTop + c.offsetHeight / 2}`;
-    })
-    .join(" ");
-}
-
-function traceWidth() {
-  return cells[0].offsetWidth >= 80 ? "6" : "5";
-}
-
-// Tracés fantômes : le trait d'un mot validé reste affiché,
-// dans les tons des cases désactivées, pour relire les mots sur la grille.
-export function renderFoundTraces() {
-  while (ghostLines.length > state.foundPaths.length) {
-    const line = ghostLines.pop();
-    if (line) line.remove();
-  }
-  while (ghostLines.length < state.foundPaths.length) {
-    const line = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "polyline",
-    );
-    line.setAttribute("class", "trace-ghost");
-    line.setAttribute("fill", "none");
-    line.setAttribute("stroke-linecap", "butt");
-    line.setAttribute("stroke-linejoin", "miter");
-    traceEl.insertBefore(line, traceLineEl); // sous le tracé actif
-    ghostLines.push(line);
-  }
-  ghostLines.forEach((line, i) => {
-    line.setAttribute("points", tracePoints(state.foundPaths[i]));
-    line.setAttribute("stroke-width", traceWidth());
-  });
-}
-
-// Barres du tracé : polyline recalculée depuis la géométrie réelle des cases.
-export function updateTrace() {
-  traceEl.setAttribute(
-    "viewBox",
-    `0 0 ${gridEl.clientWidth} ${gridEl.clientHeight}`,
-  );
-  // Les fantômes suivent la même géométrie (utile au resize).
-  renderFoundTraces();
-  if (state.path.length < 2) {
-    traceLineEl.setAttribute("points", "");
-    return;
-  }
-  traceLineEl.setAttribute("points", tracePoints(state.path));
-  traceLineEl.setAttribute("stroke-width", traceWidth());
-}
-
-// Les cases consommées par un mot trouvé sortent du jeu.
-export function renderUsedCells() {
-  cells.forEach((cell, i) => {
-    cell.classList.toggle("disabled", state.usedCells.has(i));
-  });
-}
+// --- Grille (animations DOM résiduelles) -----------------------------------
+// La sélection, le tracé, les fantômes et les cases consommées sont désormais
+// rendus par js/scene.js (Pixi). Ne restent ici que les feedbacks DOM (flash,
+// shake) portés en Pixi ultérieurement.
 
 function shakeGrid() {
   gridEl.classList.remove("shake");
@@ -479,7 +404,6 @@ export function renderNewGame() {
   renderRuleText(playingRuleText());
   winEl.hidden = true;
   gridEl.hidden = false;
-  updateTrace();
 }
 
 export function renderWin() {

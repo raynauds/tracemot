@@ -13,7 +13,12 @@ import { buildFiveLetterSets, loadDictionaries } from "./dictionary.js";
 import { generateFiveGrid } from "./solver.js";
 import { wordRejectReason } from "./rules.js";
 import { attachInputHandlers, clearPath } from "./input.js";
-import { initScene, renderSceneGrid } from "./scene.js";
+import {
+  initScene,
+  renderFoundTraces,
+  renderSceneGrid,
+  renderUsedCells,
+} from "./scene.js";
 import {
   bindDifficultyBar,
   buildBoard,
@@ -22,10 +27,8 @@ import {
   hideStatus,
   renderCounter,
   renderDifficultyBar,
-  renderFoundTraces,
   renderLoadError,
   renderNewGame,
-  renderUsedCells,
   renderWin,
   showDifficultyToast,
   showReject,
@@ -129,8 +132,9 @@ async function init() {
   renderCounter();
   renderDifficultyBar();
   bindDifficultyBar(setDifficulty);
-  attachInputHandlers({ onCommit: commitPath, onReplay: startGame });
   await initScene(); // Application Pixi + graphe de scène (canvas de fond)
+  // Après initScene : le stage Pixi existe, cible des events fédérés du tracé.
+  attachInputHandlers({ onCommit: commitPath, onReplay: startGame });
 
   try {
     const { full, tiers } = await loadDictionaries(DEBUG);

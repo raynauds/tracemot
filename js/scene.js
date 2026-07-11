@@ -1,8 +1,9 @@
 // @ts-check
-// Scène Pixi : rendu plein écran de la grille (fonds de cases + lettres).
-// Le chrome (registre, chrono, difficulté, victoire) reste piloté par
-// render.js. La caméra (zoom molette/boutons, cadrage) vit dans camera.js ;
-// le tracé arrive en phase suivante.
+// Scène Pixi : rendu plein écran de la grille (fonds de cases + lettres),
+// tracé actif et tracés fantômes. Le chrome (registre, chrono, difficulté,
+// victoire) reste piloté par render.js. La caméra (zoom molette/boutons,
+// cadrage) vit dans camera.js. L'arbitrage des gestes vit dans input.js, qui
+// s'appuie sur cellAtGlobal / getStage exposés ici.
 
 import { Application, Container, Graphics, Text } from "pixi.js";
 import {
@@ -10,9 +11,12 @@ import {
   CELL_GAP,
   CELL_SIZE,
   CARD,
+  GHOST,
   GRID_SIZE,
   INK,
+  LINE,
   PAPER,
+  VERMILION,
   ZOOM_MAX_CELLS,
   ZOOM_STEP,
 } from "./config.js";
@@ -26,6 +30,7 @@ const pitch = CELL_SIZE + CELL_GAP;
 const CELL_RADIUS = 8;
 const CELL_STROKE = 3; // unités monde
 const FONT_SIZE = 42; // ≈ rapport lettre/case du DOM
+const TRACE_WIDTH = 10; // largeur du trait, en unités monde (épaissit au zoom)
 
 /** @type {Application} */
 let app;
@@ -39,6 +44,10 @@ let cellsLayer;
 let traceLayer;
 /** @type {Container} */
 let lettersLayer;
+/** @type {Graphics} Tracés fantômes des mots trouvés (sous le tracé actif). */
+let ghostTrace;
+/** @type {Graphics} Tracé en cours. */
+let activeTrace;
 /** @type {Graphics[]} Fonds de cases, dans l'ordre des indices. */
 const cellBgs = [];
 /** @type {Text[]} Lettres des cases, dans l'ordre des indices. */
@@ -54,12 +63,64 @@ function cellOrigin(i) {
   return { x: col * pitch, y: row * pitch };
 }
 
-/** Fond normal d'une case (états sel/head/disabled arrivent en phase 3). */
-function drawCell(/** @type {Graphics} */ g) {
+/**
+ * Centre (monde) d'une case selon son indice.
+ * @param {number} i
+ */
+function cellCenter(i) {
+  const o = cellOrigin(i);
+  return { x: o.x + CELL_SIZE / 2, y: o.y + CELL_SIZE / 2 };
+}
+
+// État visuel d'une case : disabled (mot trouvé) > head (dernière du tracé) >
+// sel (dans le tracé) > normal. Les cases consommées sont inertes, jamais
+// dans le tracé.
+/** @param {number} i */
+function cellState(i) {
+  if (state.usedCells.has(i)) return "disabled";
+  const path = state.path;
+  if (path.length && i === path[path.length - 1]) return "head";
+  if (path.includes(i)) return "sel";
+  return "normal";
+}
+
+// Peint fond + lettre d'une case selon son état (couleurs de config.js).
+/** @param {number} i */
+function paintCell(i) {
+  let fill, stroke, textFill;
+  switch (cellState(i)) {
+    case "head":
+      fill = VERMILION;
+      stroke = VERMILION;
+      textFill = PAPER;
+      break;
+    case "sel":
+      fill = INK;
+      stroke = INK;
+      textFill = PAPER;
+      break;
+    case "disabled":
+      fill = PAPER;
+      stroke = LINE;
+      textFill = GHOST;
+      break;
+    default:
+      fill = CARD;
+      stroke = INK;
+      textFill = INK;
+  }
+  const g = cellBgs[i];
   g.clear();
   g.roundRect(0, 0, CELL_SIZE, CELL_SIZE, CELL_RADIUS)
-    .fill(CARD)
-    .stroke({ width: CELL_STROKE, color: INK, alignment: 0.5 });
+    .fill(fill)
+    .stroke({ width: CELL_STROKE, color: stroke, alignment: 0.5 });
+  cellTexts[i].style.fill = textFill;
+}
+
+// Repeint toutes les cases (25 petits roundRect : bon marché, appelé aux
+// changements de tracé et de cases consommées).
+function repaintCells() {
+  for (let i = 0; i < CELL_COUNT; i++) paintCell(i);
 }
 
 // Résolution de texture des lettres : couvre le zoom maximal pour rester
@@ -80,7 +141,6 @@ function buildGrid() {
 
     const bg = new Graphics();
     bg.position.set(x, y);
-    drawCell(bg);
     cellsLayer.addChild(bg);
     cellBgs.push(bg);
 
@@ -99,7 +159,78 @@ function buildGrid() {
     text.position.set(x + CELL_SIZE / 2, y + CELL_SIZE / 2);
     lettersLayer.addChild(text);
     cellTexts.push(text);
+
+    paintCell(i);
   }
+}
+
+// --- Tracé (espace monde) --------------------------------------------------
+
+// Trace la polyligne d'un chemin sur un Graphics (largeur/couleur donnés).
+/**
+ * @param {Graphics} g
+ * @param {number[]} path
+ * @param {number} color
+ */
+function strokePath(g, path, color) {
+  if (path.length < 2) return;
+  const p0 = cellCenter(path[0]);
+  g.moveTo(p0.x, p0.y);
+  for (let k = 1; k < path.length; k++) {
+    const p = cellCenter(path[k]);
+    g.lineTo(p.x, p.y);
+  }
+  g.stroke({ width: TRACE_WIDTH, color, cap: "round", join: "round" });
+}
+
+// Redessine le tracé en cours (ligne d'encre continue).
+export function renderTrace() {
+  activeTrace.clear();
+  strokePath(activeTrace, state.path, INK);
+}
+
+// Tracés fantômes : les traits des mots validés restent affichés, dans les
+// tons des cases désactivées, pour relire les mots sur la grille.
+export function renderFoundTraces() {
+  ghostTrace.clear();
+  for (const path of state.foundPaths) strokePath(ghostTrace, path, GHOST);
+}
+
+// Repeint les cases selon la sélection courante (tint sel/head).
+export function updateSelection() {
+  repaintCells();
+}
+
+// Repeint les cases consommées par les mots trouvés (état disabled).
+export function renderUsedCells() {
+  repaintCells();
+}
+
+// --- Hit-test / accès stage (pour input.js) --------------------------------
+
+// Case sous un point écran (Point global d'un event fédéré), ou null.
+// Conversion écran→monde via world.toLocal, puis tolérance rayon CELL_SIZE/2
+// autour du centre de la case la plus proche (reprise de la logique DOM).
+/**
+ * @param {import("pixi.js").PointData} global
+ * @returns {number|null}
+ */
+export function cellAtGlobal(global) {
+  if (!world) return null;
+  const p = world.toLocal(global);
+  const col = Math.round((p.x - CELL_SIZE / 2) / pitch);
+  const row = Math.round((p.y - CELL_SIZE / 2) / pitch);
+  if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
+  const cx = col * pitch + CELL_SIZE / 2;
+  const cy = row * pitch + CELL_SIZE / 2;
+  if (Math.hypot(p.x - cx, p.y - cy) > CELL_SIZE / 2) return null;
+  return row * cols + col;
+}
+
+// Stage Pixi : cible des events fédérés du tracé (configuré dans initScene).
+/** @returns {import("pixi.js").Container} */
+export function getStage() {
+  return app.stage;
 }
 
 // Molette → zoom centré sur le pointeur. Facteur exponentiel (doublement
@@ -157,11 +288,13 @@ export async function initScene() {
     resolution: window.devicePixelRatio || 1,
   });
 
-  // Canvas en fond plein écran, sous le chrome DOM.
+  // Canvas en fond plein écran, sous le chrome DOM. touch-action: none pour
+  // que le tracé tactile ne déclenche pas scroll/zoom du navigateur.
   const canvas = app.canvas;
   canvas.style.position = "fixed";
   canvas.style.inset = "0";
   canvas.style.zIndex = "0";
+  canvas.style.touchAction = "none";
   document.body.appendChild(canvas);
 
   world = new Container();
@@ -171,6 +304,15 @@ export async function initScene() {
   // Lettres au-dessus du trait pour rester lisibles.
   world.addChild(cellsLayer, traceLayer, lettersLayer);
   app.stage.addChild(world);
+
+  // Fantômes sous le tracé actif, tous deux dans traceLayer.
+  ghostTrace = new Graphics();
+  activeTrace = new Graphics();
+  traceLayer.addChild(ghostTrace, activeTrace);
+
+  // Le stage reçoit les events fédérés (tracé) sur tout l'écran.
+  app.stage.eventMode = "static";
+  app.stage.hitArea = app.screen;
 
   // Polices prêtes avant de créer les Text (sinon fallback figé en texture).
   try {
@@ -192,15 +334,15 @@ export async function initScene() {
 }
 
 // Réaffiche la grille pour la partie courante : pose les lettres, remet les
-// fonds à l'état normal, recadre. Le tracé (fantômes, sélection) viendra en
-// phase 3.
+// cases à l'état normal, efface le tracé et les fantômes, recadre.
 export function renderSceneGrid() {
   if (!app) return;
   for (let i = 0; i < CELL_COUNT; i++) {
     cellTexts[i].text = state.letters[i] ?? "";
-    cellTexts[i].style.fill = INK;
-    drawCell(cellBgs[i]);
   }
+  repaintCells();
+  renderTrace(); // state.path vide → efface le tracé actif
+  renderFoundTraces(); // state.foundPaths vide → efface les fantômes
   // Nouvelle partie : on revient au cadrage « tout voir ».
   if (camera) camera.fit();
 }

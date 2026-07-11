@@ -76,33 +76,10 @@
       <main class="main">
         <div class="board-zone">
           <div class="board" id="board">
-            <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
-
+            <!-- Grille et tracé désormais rendus par PixiJS (js/scene.js).
+                 Le plateau DOM est masqué (nettoyage du markup en phase 7). -->
             <div class="grid" id="grid" hidden>
-              <svg class="trace" id="trace" aria-hidden="true">
-                <polyline
-                  id="trace-line"
-                  fill="none"
-                  stroke-linecap="butt"
-                  stroke-linejoin="miter"
-                  points=""
-                ></polyline>
-              </svg>
               <!-- cases générées par js/render.js -->
-            </div>
-
-            <div class="win" id="win" hidden>
-              <span class="confetti c1"></span>
-              <span class="confetti c2 cream"></span>
-              <span class="confetti c3"></span>
-              <span class="confetti c4 cream"></span>
-              <span class="confetti c5"></span>
-              <span class="confetti c6"></span>
-              <div class="win-title">Gagné<span class="dot">.</span></div>
-              <div class="win-sub" id="win-sub"></div>
-              <button type="button" class="win-replay" id="replay">
-                REJOUER
-              </button>
             </div>
           </div>
         </div>
@@ -160,6 +137,24 @@
         </section>
       </main>
     </div>
+
+    <!-- Statut (chargement/erreur) et victoire : overlays plein écran au-dessus
+         du canvas Pixi, sortis du plateau DOM masqué. Mise en forme définitive
+         (registre flottant, victoire) affinée en phase 7. -->
+    <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
+
+    <div class="win" id="win" hidden>
+      <span class="confetti c1"></span>
+      <span class="confetti c2 cream"></span>
+      <span class="confetti c3"></span>
+      <span class="confetti c4 cream"></span>
+      <span class="confetti c5"></span>
+      <span class="confetti c6"></span>
+      <div class="win-title">Gagné<span class="dot">.</span></div>
+      <div class="win-sub" id="win-sub"></div>
+      <button type="button" class="win-replay" id="replay">REJOUER</button>
+    </div>
+
     <script type="module" src="js/main.js"></script>
   </body>
 </html>

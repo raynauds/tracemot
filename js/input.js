@@ -1,18 +1,22 @@
 // @ts-check
-// Pointer Events (souris + tactile) : construction du tracé sur la grille.
+// Tracé sur la grille Pixi. Events fédérés sur app.stage (pointerdown +
+// globalpointermove + pointerup), hit-test de case en espace monde.
 // Ne modifie que state.path et state.pointerId ; la validation du mot est
-// déléguée au handler onCommit fourni par main.js.
+// déléguée au handler onCommit fourni par main.js. Les règles (adjacence
+// orthogonale, backtrack, cases inertes, filets de sécurité) sont reprises
+// telles quelles de l'ancien input.js ; seule la source de coordonnées change.
 
 import { GRID_SIZE } from "./config.js";
 import { state } from "./state.js";
+import { buzz, renderPendingWord, replayEl } from "./render.js";
 import {
-  buzz,
-  gridEl,
-  renderPendingWord,
-  replayEl,
+  cellAtGlobal,
+  getStage,
+  renderTrace,
   updateSelection,
-  updateTrace,
-} from "./render.js";
+} from "./scene.js";
+
+/** @typedef {import("pixi.js").FederatedPointerEvent} FederatedPointerEvent */
 
 /** @type {() => void} */
 let onCommit = () => {};
@@ -20,7 +24,7 @@ let onCommit = () => {};
 export function clearPath() {
   state.path = [];
   updateSelection();
-  updateTrace();
+  renderTrace();
   renderPendingWord();
 }
 
@@ -36,18 +40,7 @@ function isOrthAdjacent(a, b) {
   return Math.abs(ra - rb) + Math.abs(ca - cb) === 1;
 }
 
-// Case de la grille contenant l'élément donné, ou null.
-/**
- * @param {EventTarget|Element|null} el
- * @returns {HTMLElement|null}
- */
-function cellFrom(el) {
-  if (!(el instanceof Element)) return null;
-  const cell = el.closest(".cell");
-  return cell instanceof HTMLElement ? cell : null;
-}
-
-/** @param {PointerEvent} e */
+/** @param {FederatedPointerEvent} e */
 function onPointerDown(e) {
   if (!state.ready || state.won) return;
   if (e.button !== 0) return; // bouton principal, doigt ou stylet uniquement
@@ -58,27 +51,19 @@ function onPointerDown(e) {
     state.pointerId = null;
     clearPath();
   }
-  const cell = cellFrom(e.target);
-  if (!cell) return;
+  const idx = cellAtGlobal(e.global);
+  if (idx === null) return;
   // Case déjà consommée par un mot trouvé : hors jeu.
-  if (state.usedCells.has(Number(cell.dataset.index))) return;
-  e.preventDefault();
-  // Neutralise la capture implicite du pointeur (tactile), sinon les
-  // pointermove resteraient rattachés à cette case.
-  try {
-    cell.releasePointerCapture(e.pointerId);
-  } catch (_) {
-    /* pas de capture active */
-  }
+  if (state.usedCells.has(idx)) return;
   state.pointerId = e.pointerId;
-  state.path = [Number(cell.dataset.index)];
+  state.path = [idx];
   buzz();
   updateSelection();
-  updateTrace();
+  renderTrace();
   renderPendingWord();
 }
 
-/** @param {PointerEvent} e */
+/** @param {FederatedPointerEvent} e */
 function onPointerMove(e) {
   if (state.pointerId === null || e.pointerId !== state.pointerId || state.won)
     return;
@@ -89,20 +74,12 @@ function onPointerMove(e) {
     clearPath();
     return;
   }
-  // Suivi du doigt : elementFromPoint plutôt que les events des autres
-  // cases (le pointerdown tactile capture implicitement la case d'origine).
-  const cell = cellFrom(document.elementFromPoint(e.clientX, e.clientY));
-  if (!cell) return;
-  const idx = Number(cell.dataset.index);
+  // Case sous le pointeur (hit-test monde + tolérance rayon dans scene.js).
+  const idx = cellAtGlobal(e.global);
+  if (idx === null) return;
   if (state.usedCells.has(idx)) return; // case consommée par un mot trouvé
   const last = state.path[state.path.length - 1];
   if (idx === last) return;
-
-  // Zone de tolérance : le pointeur doit être proche du centre de la case.
-  const rect = cell.getBoundingClientRect();
-  const dx = e.clientX - (rect.left + rect.width / 2);
-  const dy = e.clientY - (rect.top + rect.height / 2);
-  if (Math.hypot(dx, dy) > rect.width / 2) return;
 
   // Retour sur l'avant-dernière case : backtrack.
   if (state.path.length >= 2 && idx === state.path[state.path.length - 2]) {
@@ -114,11 +91,11 @@ function onPointerMove(e) {
     return;
   }
   updateSelection();
-  updateTrace();
+  renderTrace();
   renderPendingWord();
 }
 
-/** @param {PointerEvent} e */
+/** @param {FederatedPointerEvent} e */
 function onPointerUp(e) {
   if (e.pointerId !== state.pointerId) return;
   state.pointerId = null;
@@ -126,7 +103,7 @@ function onPointerUp(e) {
   onCommit();
 }
 
-/** @param {PointerEvent} e */
+/** @param {FederatedPointerEvent} e */
 function onPointerCancel(e) {
   if (e.pointerId !== state.pointerId) return;
   state.pointerId = null;
@@ -138,18 +115,15 @@ function onPointerCancel(e) {
  */
 export function attachInputHandlers(handlers) {
   onCommit = handlers.onCommit;
-  gridEl.addEventListener("pointerdown", onPointerDown);
-  // Filet de sécurité : certains navigateurs posent la capture implicite
-  // après le pointerdown - on la relâche dès qu'elle apparaît.
-  gridEl.addEventListener("gotpointercapture", (e) => {
-    if (e.target instanceof Element) e.target.releasePointerCapture(e.pointerId);
-  });
-  document.addEventListener("pointermove", onPointerMove);
-  document.addEventListener("pointerup", onPointerUp);
-  document.addEventListener("pointercancel", onPointerCancel);
-  gridEl.addEventListener("contextmenu", (e) => e.preventDefault());
-  gridEl.addEventListener("dragstart", (e) => e.preventDefault());
-  window.addEventListener("resize", updateTrace);
+  const stage = getStage();
+  stage.on("pointerdown", onPointerDown);
+  // globalpointermove : suit le pointeur sur tout l'écran, y compris hors de
+  // toute case (le hit-test filtre), sans capture implicite à gérer.
+  stage.on("globalpointermove", onPointerMove);
+  stage.on("pointerup", onPointerUp);
+  // Relâchement hors hitArea (bord de fenêtre) : traité comme un pointerup.
+  stage.on("pointerupoutside", onPointerUp);
+  stage.on("pointercancel", onPointerCancel);
   // Perte de focus en plein tracé : aucun pointerup ne sera délivré,
   // on annule le tracé pour ne pas le laisser armé au retour.
   window.addEventListener("blur", () => {
