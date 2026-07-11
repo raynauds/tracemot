@@ -25,40 +25,43 @@
   display: none !important;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--serif);
+  /* La grille Pixi occupe tout l'écran (canvas fixe) ; le chrome est en
+     overlays fixes. Aucun flux : pas de scroll de page. */
+  overflow: hidden;
 }
 
-.page {
-  min-height: 100vh;
-  max-width: 1440px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  padding: 52px 72px 36px;
-  /* Chrome au-dessus du canvas Pixi (rendu en fond, position: fixed). */
-  position: relative;
-  z-index: 1;
-}
+/* ---------- Header (overlay haut) ---------- */
 
-/* La grille est désormais rendue par PixiJS (js/scene.js) en fond plein
-   écran ; le plateau DOM est masqué pour éviter le doublon (nettoyage
-   complet du markup prévu en phase 7). */
-.board {
-  display: none;
-}
-
-/* ---------- Header ---------- */
-
+/* Barre en surimpression au-dessus du canvas. Le conteneur laisse passer les
+   events de tracé (pointer-events: none) ; seul le sélecteur de difficulté
+   est réactivé plus bas. Léger dégradé pour la lisibilité sur la grille. */
 .header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  pointer-events: none;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  border-bottom: 2px solid var(--ink);
-  padding-bottom: 20px;
+  gap: 24px;
+  padding: 24px max(24px, env(safe-area-inset-right)) 20px
+    max(24px, env(safe-area-inset-left));
+  background: linear-gradient(
+    var(--paper) 55%,
+    rgba(246, 241, 231, 0)
+  );
 }
 
 .header-left {
@@ -105,6 +108,8 @@ body {
 .difficulty {
   position: relative;
   align-self: center;
+  /* Réactive les events : seul contrôle interactif du header (overlay). */
+  pointer-events: auto;
   /* Invisible mais emprise réservée tant que le niveau restauré n'est pas
      écrit dans la chip (classe posée par renderDifficultyBar) : évite de
      voir le placeholder HTML se corriger, sans pop-in au dévoilement. */
@@ -321,10 +326,11 @@ body {
   color: var(--foot);
 }
 
-/* Toast de confirmation, par-dessus la grille */
+/* Toast de confirmation, par-dessus la grille (non interactif) */
 .diff-toast {
   position: fixed;
   z-index: 22;
+  pointer-events: none;
   left: 50%;
   top: 56%;
   transform: translateX(-50%);
@@ -372,176 +378,13 @@ body {
   text-transform: uppercase;
 }
 
-/* ---------- Layout principal ---------- */
-
-.main {
-  display: flex;
-  gap: 88px;
-  margin-top: 72px;
-}
-
-/* Wrapper neutre sur desktop ; sur mobile, devient la zone flexible qui
-   accueille la grille sous le registre. */
-.board-zone {
-  display: contents;
-}
-
-/* Emprise carrée commune à la grille et au bloc victoire */
-.board {
-  position: relative;
-  flex: 0 1 500px;
-  width: 100%;
-  max-width: min(500px, 50vh);
-  max-height: 50vh;
-  aspect-ratio: 1;
-  container-type: inline-size;
-}
-
-/* ---------- Grille ---------- */
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(5, 1fr);
-  gap: 10px;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-}
-
-/* Le tracé (actif + fantômes) est désormais rendu par PixiJS (js/scene.js). */
-
-.cell {
-  position: relative;
-  z-index: 1;
-  background: var(--card);
-  border: 1.5px solid var(--ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
-  font-size: 6.8cqw; /* 34px pour une emprise de 500px */
-  font-weight: 700;
-  cursor: pointer;
-}
-
-/* Hors tracé : transitions douces (survol, retour des cases relâchées) */
-.grid:not(.tracing) .cell {
-  transition:
-    transform 0.12s ease,
-    background-color 0.12s ease,
-    box-shadow 0.12s ease;
-}
-
-/* Survol - souris uniquement, et seulement quand aucun tracé n'est en cours */
-@media (hover: hover) {
-  .grid:not(.tracing) .cell:hover {
-    background: var(--card-hover);
-    box-shadow:
-      inset 0 0 0 1px var(--ink),
-      0 3px 0 rgba(38, 34, 28, 0.14);
-    transform: translateY(-2px);
-  }
-}
-
-/* Case consommée par un mot trouvé, sortie du jeu */
-.cell.disabled {
-  background: var(--paper);
-  border-color: var(--line);
-  color: var(--ghost);
-  cursor: default;
-  transition:
-    background-color 0.25s ease,
-    border-color 0.25s ease,
-    color 0.25s ease;
-}
-
-@media (hover: hover) {
-  .grid:not(.tracing) .cell.disabled:hover {
-    background: var(--paper);
-    box-shadow: none;
-    transform: none;
-  }
-}
-
-.cell.sel {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-
-.cell.head {
-  background: var(--vermilion);
-  border-color: var(--vermilion);
-  color: var(--paper);
-  animation: cell-pop 0.16s ease;
-}
-
-/* Pop de la case qui rejoint le tracé */
-@keyframes cell-pop {
-  50% {
-    transform: scale(1.09);
-  }
-}
-
-/* Impression des lettres en cascade à l'arrivée d'une grille.
-   La classe est retirée en JS à la fin de l'animation. */
-.cell.deal {
-  animation: cell-deal 0.26s ease backwards;
-  animation-delay: calc(var(--i) * 18ms);
-}
-
-@keyframes cell-deal {
-  from {
-    opacity: 0;
-    transform: scale(1.18);
-  }
-}
-
-/* Flash des cases d'un tracé refusé.
-   Déclaré après .deal et .head : prioritaire à spécificité égale. */
-.cell.flash {
-  animation: cell-flash 0.4s ease;
-}
-
-@keyframes cell-flash {
-  from {
-    background: var(--vermilion);
-    border-color: var(--vermilion);
-    color: var(--paper);
-  }
-}
-
-@keyframes shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20% {
-    transform: translateX(-7px);
-  }
-  40% {
-    transform: translateX(7px);
-  }
-  60% {
-    transform: translateX(-5px);
-  }
-  80% {
-    transform: translateX(5px);
-  }
-}
-
-.grid.shake {
-  animation: shake 0.3s ease;
-}
+/* La grille, le tracé et leurs feedbacks (deal, pop, flash, shake, stamp)
+   sont rendus par PixiJS sur le canvas de fond (js/scene.js). Il ne reste
+   ici que le chrome en surimpression. */
 
 /* ---------- Chargement / erreur ---------- */
 
-/* Overlay plein écran au-dessus du canvas Pixi (le plateau DOM est masqué). */
+/* Overlay plein écran au-dessus du canvas Pixi. */
 .status {
   position: fixed;
   inset: 0;
@@ -564,7 +407,7 @@ body {
   line-height: 1.6;
 }
 
-/* ---------- Bloc victoire (remplace la grille, même emprise) ---------- */
+/* ---------- Bloc victoire (overlay plein écran) ---------- */
 
 .win {
   position: fixed;
@@ -652,68 +495,111 @@ body {
 .confetti.c1 {
   left: 8.8%;
   top: 11.6%;
-  width: 2.4cqw;
-  height: 2.4cqw;
+  width: 14px;
+  height: 14px;
   --r: 24deg;
 }
 .confetti.c2 {
   right: 10.4%;
   top: 16%;
-  width: 2cqw;
-  height: 2cqw;
+  width: 12px;
+  height: 12px;
   --r: -18deg;
   animation-delay: 0.4s;
 }
 .confetti.c3 {
   right: 15.2%;
   bottom: 18.4%;
-  width: 2.8cqw;
-  height: 2.8cqw;
+  width: 16px;
+  height: 16px;
   --r: 40deg;
   animation-delay: 0.9s;
 }
 .confetti.c4 {
   left: 14.4%;
   bottom: 14%;
-  width: 1.8cqw;
-  height: 1.8cqw;
+  width: 11px;
+  height: 11px;
   --r: 12deg;
   animation-delay: 1.3s;
 }
 .confetti.c5 {
   left: 34%;
   top: 8.8%;
-  width: 2cqw;
-  height: 2cqw;
+  width: 12px;
+  height: 12px;
   --r: -30deg;
   animation-delay: 0.6s;
 }
 .confetti.c6 {
   right: 34%;
   bottom: 9.2%;
-  width: 1.8cqw;
-  height: 1.8cqw;
+  width: 11px;
+  height: 11px;
   --r: 52deg;
   animation-delay: 1.1s;
 }
 
-/* ---------- Registre des mots ---------- */
+/* ---------- Registre des mots (panneau flottant repliable) ---------- */
 
+/* Ancré au bord droit, sous le header. Interactif (pointer-events: auto) :
+   la barre d'en-tête plie/déplie, la liste scrolle si besoin. */
 .ledger {
-  flex: 1;
-  min-width: 0;
+  position: fixed;
+  top: 96px;
+  right: max(20px, env(safe-area-inset-right));
+  z-index: 10;
+  width: 300px;
+  max-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
-  padding-top: 8px;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 14px 34px rgba(38, 34, 28, 0.2);
+  pointer-events: auto;
 }
 
+/* Barre d'en-tête = bouton plein largeur (plier/déplier). */
 .ledger-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--serif);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ledger.collapsed .ledger-head {
+  border-bottom: none;
+}
+
+.ledger-caret {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ledger-caret::before {
+  content: "▾";
+}
+
+.ledger.collapsed .ledger-caret::before {
+  content: "▸";
+}
+
+/* Repliée : seule la barre reste (pastille compteur n / N). */
+.ledger.collapsed .word-list {
+  display: none;
 }
 
 .ledger-label {
+  flex: 1;
   font-family: var(--mono);
   font-size: 13px;
   letter-spacing: 2.5px;
@@ -735,19 +621,24 @@ body {
 
 .word-list {
   list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
+  margin: 0;
+  padding: 0 16px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 .word-row {
   display: flex;
   align-items: center;
   gap: 20px;
-  height: 58px;
-  flex-shrink: 0; /* liste compressée (mobile) : on scrolle, on n'aplatit pas */
+  height: 48px;
+  flex-shrink: 0; /* liste compressée : on scrolle, on n'aplatit pas */
   border-bottom: 1px solid var(--line);
+}
+
+.word-row:last-child {
+  border-bottom: none;
 }
 
 .word-num {
@@ -847,13 +738,19 @@ body {
   animation: word-in 0.3s ease;
 }
 
+/* Consigne : overlay non interactif ancré en bas à gauche. */
 .rule-text {
-  margin: 36px 0 0;
-  font-size: 16px;
+  position: fixed;
+  left: max(24px, env(safe-area-inset-left));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 10;
+  pointer-events: none;
+  margin: 0;
+  max-width: 380px;
+  font-size: 15px;
   font-style: italic;
   color: var(--muted);
   line-height: 1.6;
-  max-width: 420px;
 }
 
 /* Consigne en deux variantes : phrase complète sur desktop, resserrée sur mobile */
@@ -862,11 +759,6 @@ body {
 }
 
 /* ---------- Mode debug (flag DEBUG dans js/config.js) ---------- */
-
-/* Réserve la hauteur du panneau fixe pour ne pas masquer le contenu. */
-body.debug {
-  padding-bottom: 160px;
-}
 
 .debug-panel {
   position: fixed;
@@ -908,32 +800,15 @@ body.debug {
   font-weight: 700;
 }
 
-/* Tracé du mot survolé dans le panneau : même apparence que le survol
-   d'une case (voir .cell:hover plus haut). */
-.grid:not(.tracing) .cell.debug-hint {
-  background: var(--card-hover);
-  box-shadow:
-    inset 0 0 0 1px var(--ink),
-    0 3px 0 rgba(38, 34, 28, 0.14);
-  transform: translateY(-2px);
-}
+/* Le surlignage du tracé au survol d'un mot du panneau debug sera porté en
+   Pixi (phase 8) ; il n'y a plus de case DOM à styler ici. */
 
 /* ---------- Mobile (maquette 390×844) ---------- */
 
 @media (max-width: 860px) {
-  /* Page verrouillée à la hauteur du viewport : le scroll éventuel est
-     reporté sur la liste des mots, la grille reste entièrement visible.
-     dvh (et non vh) : suit la barre d'outils du navigateur mobile. */
-  .page {
-    min-height: 0;
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
-    padding: 14px 16px max(14px, env(safe-area-inset-bottom));
-  }
-
   .header {
-    padding-bottom: 12px;
+    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+      18px max(14px, env(safe-area-inset-left));
   }
   .header-left {
     gap: 10px;
@@ -999,41 +874,6 @@ body.debug {
     margin-top: 14px;
   }
 
-  .main {
-    flex-direction: column;
-    gap: 0;
-    margin-top: 16px;
-    flex: 1;
-    min-height: 0;
-  }
-
-  /* La zone réclame la hauteur d'une grille pleine largeur et passe en
-     dernier (order). En cas de manque de place, la liste des mots cède
-     d'abord (flex-shrink énorme), puis la grille rétrécit via 100cqh.
-     Flux naturel : marges fixes, l'espace libre éventuel reste en bas. */
-  .board-zone {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    order: 1;
-    flex: 0 1 min(100vw - 32px, 500px);
-    max-height: 50vh;
-    min-height: 0;
-    container-type: size;
-  }
-
-  .board {
-    flex: 0 0 auto;
-    width: min(100%, 100cqh);
-  }
-
-  .grid {
-    gap: 8px;
-  }
-  .cell {
-    font-size: 7.3cqw;
-  } /* 26px pour une emprise de 357px */
-
   .win {
     gap: 16px;
     padding: 0 28px;
@@ -1052,10 +892,21 @@ body.debug {
     letter-spacing: 3px;
   }
 
-  /* La consigne remonte au-dessus de la grille : les enfants du ledger
-     deviennent des enfants directs de .main (colonne) et se réordonnent. */
+  /* Registre : pastille compacte ancrée en bas à droite ; dépliée en tiroir
+     depuis le bas (scrollable). Repliée par défaut (js/render.js). */
   .ledger {
-    display: contents;
+    top: auto;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    right: max(14px, env(safe-area-inset-right));
+    width: auto;
+    max-width: calc(100vw - 28px);
+    max-height: 60dvh;
+  }
+  .ledger:not(.collapsed) {
+    left: max(14px, env(safe-area-inset-left));
+  }
+  .ledger-head {
+    padding: 11px 14px;
   }
   .ledger-label {
     font-size: 12px;
@@ -1066,17 +917,10 @@ body.debug {
   }
 
   .word-list {
-    /* 24px : respiration un peu plus marquée entre le registre et la grille */
-    margin: 6px 0 24px;
-    /* Sans ce pixel, la bordure basse de la dernière ligne tombe pile sur
-       le bord de la zone de scroll et se fait rogner par l'arrondi. */
-    padding-bottom: 1px;
-    flex: 0 999 auto;
-    min-height: 76px; /* ~2 lignes : le scroll reste perceptible */
-    overflow-y: auto;
+    padding: 0 14px;
   }
   .word-row {
-    height: 36px;
+    height: 40px;
     gap: 14px;
   }
   .word-num {
@@ -1096,12 +940,15 @@ body.debug {
     letter-spacing: 1px;
   }
 
+  /* Consigne resserrée, ancrée sous le header. */
   .rule-text {
-    order: -1;
-    margin: 0 0 14px;
-    font-size: 13.5px;
-    line-height: 1.5;
+    top: calc(max(12px, env(safe-area-inset-top)) + 56px);
+    bottom: auto;
+    left: max(14px, env(safe-area-inset-left));
+    right: max(14px, env(safe-area-inset-right));
     max-width: none;
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .rule-desktop {
@@ -1111,20 +958,23 @@ body.debug {
     display: inline;
   }
 
-  /* Le panneau debug fixe recouvrirait la grille ancrée en bas */
-  body.debug .page {
-    height: calc(100dvh - 160px);
+  /* Zoom déplacé à gauche : la pastille registre occupe le coin bas-droit. */
+  .zoom-controls {
+    right: auto;
+    left: max(14px, env(safe-area-inset-left));
   }
 }
 
 /* --- Contrôles de zoom (caméra Pixi) ------------------------------------ */
 /* Boutons flottants + / − / tout voir, ancrés en coin, au-dessus du canvas.
-   Style « chip » : mono, bordure INK. (Positionnement affiné en phase 7.) */
+   Style « chip » : mono, bordure INK. Le conteneur laisse passer les events
+   de tracé ; seuls les boutons les interceptent. */
 .zoom-controls {
   position: fixed;
   right: max(16px, env(safe-area-inset-right));
   bottom: max(16px, env(safe-area-inset-bottom));
-  z-index: 20;
+  z-index: 15;
+  pointer-events: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1133,6 +983,7 @@ body.debug {
 .zoom-btn {
   width: 40px;
   height: 40px;
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;

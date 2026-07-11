@@ -1,9 +1,9 @@
 // @ts-check
-// Tout ce qui touche au DOM : construction de la grille et du registre,
-// tracé SVG, chrono, états de partie (aperçu, refus, victoire).
+// Chrome DOM en surimpression : registre repliable des mots trouvés,
+// sélecteur de difficulté, consigne, chrono, statut et victoire. La grille,
+// le tracé et leurs animations sont rendus par PixiJS (js/scene.js).
 
 import {
-  CELL_COUNT,
   DIFFICULTY_LABELS,
   DIFFICULTY_TOAST_MS,
   ENABLED_DIFFICULTIES,
@@ -25,7 +25,6 @@ function byId(id) {
   return el;
 }
 
-export const gridEl = byId("grid");
 export const replayEl = byId("replay");
 const statusEl = byId("status");
 const winEl = byId("win");
@@ -35,8 +34,6 @@ const counterEl = byId("counter");
 const wordListEl = byId("word-list");
 const ruleTextEl = byId("rule-text");
 
-/** @type {HTMLElement[]} */
-const cells = []; // les 25 divs .cell, dans l'ordre
 /** @type {HTMLElement[]} */
 const listRows = []; // les WORDS_TO_WIN lignes du registre
 
@@ -195,24 +192,28 @@ export function bindDifficultyBar(onSelect) {
   }
 }
 
-// --- Construction du plateau ---------------------------------------------
+// --- Registre repliable ----------------------------------------------------
+
+// Panneau flottant ancré à droite : ouvert par défaut sur desktop, replié en
+// pastille (compteur n / N) sur mobile. Le bouton d'en-tête plie/déplie.
+const ledgerEl = byId("ledger");
+const ledgerToggleEl = byId("ledger-toggle");
+
+/** @param {boolean} collapsed */
+function setLedgerCollapsed(collapsed) {
+  ledgerEl.classList.toggle("collapsed", collapsed);
+  ledgerToggleEl.setAttribute("aria-expanded", String(!collapsed));
+}
+
+ledgerToggleEl.addEventListener("click", () =>
+  setLedgerCollapsed(!ledgerEl.classList.contains("collapsed")),
+);
+// État initial : replié sur mobile (pastille), déplié sur desktop.
+setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
+
+// --- Registre : adoption des lignes pré-rendues ----------------------------
 
 export function buildBoard() {
-  for (let i = 0; i < CELL_COUNT; i++) {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    cell.dataset.index = String(i);
-    cell.style.setProperty("--i", String(i)); // cadence de l'animation d'impression
-    // Les classes d'animation one-shot se retirent d'elles-mêmes, sinon elles
-    // écraseraient les animations suivantes (pop du tracé, flash…).
-    cell.addEventListener("animationend", (e) => {
-      if (e.animationName === "cell-deal") cell.classList.remove("deal");
-      if (e.animationName === "cell-flash") cell.classList.remove("flash");
-    });
-    gridEl.appendChild(cell);
-    cells.push(cell);
-  }
-
   // Les lignes du registre sont pré-rendues dans le HTML (anti-shift au
   // chargement) : on les adopte, et on n'ajuste que si WORDS_TO_WIN diffère.
   while (wordListEl.children.length > WORDS_TO_WIN) {
@@ -292,7 +293,7 @@ export function renderPendingWord() {
 export function showReject(word, reason) {
   const row = listRows[state.found.length];
   if (!row) return;
-  shakeGrid();
+  // Le flash et la secousse de la grille sont rendus par js/scene.js (Pixi).
   row.className = "word-row rejected";
   const content = row.children[1];
   content.className = "word-text rejected";
@@ -325,42 +326,21 @@ export function renderCounter() {
   counterEl.innerHTML = `<span class="count">${state.found.length}</span> / ${WORDS_TO_WIN}`;
 }
 
-// --- Grille (animations DOM résiduelles) -----------------------------------
-// La sélection, le tracé, les fantômes et les cases consommées sont désormais
-// rendus par js/scene.js (Pixi). Ne restent ici que les feedbacks DOM (flash,
-// shake) portés en Pixi ultérieurement.
-
-function shakeGrid() {
-  gridEl.classList.remove("shake");
-  // Force le redémarrage de l'animation si un shake est déjà en cours.
-  void gridEl.offsetWidth;
-  gridEl.classList.add("shake");
-}
-
-// Flash rouge des cases d'un tracé refusé (accompagne le shake).
-/** @param {number[]} indices */
-export function flashPath(indices) {
-  for (const i of indices) {
-    const cell = cells[i];
-    cell.classList.remove("flash");
-    void cell.offsetWidth;
-    cell.classList.add("flash");
-  }
-}
+// --- Grille (feedbacks portés en Pixi) -------------------------------------
+// La sélection, le tracé, les fantômes, les cases consommées et les feedbacks
+// (deal, pop, flash, shake, stamp) sont désormais rendus par js/scene.js.
 
 // Retour haptique discret (mobile) quand une lettre rejoint le tracé.
 export function buzz() {
   if (navigator.vibrate) navigator.vibrate(8);
 }
 
-// Survol d'un mot du panneau debug : reproduit l'apparence du :hover sur
-// les cases de son tracé (classe .debug-hint).
+// Survol d'un mot du panneau debug : mettra en évidence son tracé dans la
+// grille Pixi (portage prévu en phase 8). Stub inerte pour l'instant : le
+// plateau DOM qui portait le surlignage n'existe plus.
 /** @param {number[]|null} path */
 export function setDebugHint(path) {
-  const inPath = path ? new Set(path) : null;
-  cells.forEach((cell, i) => {
-    cell.classList.toggle("debug-hint", inPath !== null && inPath.has(i));
-  });
+  void path;
 }
 
 // --- Chrono ------------------------------------------------------------
@@ -383,27 +363,20 @@ export function stopTimer() {
 
 // --- États de partie --------------------------------------------------------
 
-// Remet le plateau à neuf pour la grille courante (state.letters) :
-// impression des lettres en cascade, registre vidé, grille affichée.
+// Remet le chrome à neuf pour une nouvelle partie : registre vidé, compteur
+// et chrono réinitialisés, consigne rétablie, victoire masquée. La grille
+// Pixi est réaffichée par js/scene.js (renderSceneGrid).
 export function renderNewGame() {
   if (state.rejectTimer !== null) {
     clearTimeout(state.rejectTimer);
     state.rejectTimer = null;
   }
-  cells.forEach((cell, i) => {
-    cell.textContent = state.letters[i];
-    cell.classList.remove("sel", "head", "flash", "deal", "debug-hint", "disabled");
-  });
-  // Le reflow force le redémarrage de l'animation quand on rejoue.
-  void gridEl.offsetWidth;
-  cells.forEach((cell) => cell.classList.add("deal"));
   listRows.forEach(resetListRow);
   renderCounter();
   counterEl.classList.remove("full");
   chronoEl.classList.remove("won");
   renderRuleText(playingRuleText());
   winEl.hidden = true;
-  gridEl.hidden = false;
 }
 
 export function renderWin() {
@@ -414,7 +387,6 @@ export function renderWin() {
   winSubEl.textContent = `${WORDS_TO_WIN} MOT${WORDS_TO_WIN > 1 ? "S" : ""} EN ${time}`;
   ruleTextEl.textContent =
     "Chrono arrêté - cette grille est résolue. Rejouer distribue de nouvelles lettres.";
-  gridEl.hidden = true;
   winEl.hidden = false;
 }
 
