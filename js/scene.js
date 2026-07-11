@@ -1,8 +1,8 @@
 // @ts-check
 // Scène Pixi : rendu plein écran de la grille (fonds de cases + lettres).
 // Le chrome (registre, chrono, difficulté, victoire) reste piloté par
-// render.js. Le tracé et la caméra interactive arrivent en phases suivantes ;
-// ici la caméra est en « fit » fixe.
+// render.js. La caméra (zoom molette/boutons, cadrage) vit dans camera.js ;
+// le tracé arrive en phase suivante.
 
 import { Application, Container, Graphics, Text } from "pixi.js";
 import {
@@ -10,20 +10,19 @@ import {
   CELL_GAP,
   CELL_SIZE,
   CARD,
-  FIT_PADDING,
   GRID_SIZE,
   INK,
   PAPER,
   ZOOM_MAX_CELLS,
+  ZOOM_STEP,
 } from "./config.js";
+import { Camera } from "./camera.js";
 import { state } from "./state.js";
 
 // Grille carrée dérivée de la config, sans hypothèse « 5 » en dur.
 const rows = GRID_SIZE;
 const cols = CELL_COUNT / GRID_SIZE;
 const pitch = CELL_SIZE + CELL_GAP;
-const gridW = cols * CELL_SIZE + (cols - 1) * CELL_GAP;
-const gridH = rows * CELL_SIZE + (rows - 1) * CELL_GAP;
 const CELL_RADIUS = 8;
 const CELL_STROKE = 3; // unités monde
 const FONT_SIZE = 42; // ≈ rapport lettre/case du DOM
@@ -32,6 +31,8 @@ const FONT_SIZE = 42; // ≈ rapport lettre/case du DOM
 let app;
 /** @type {Container} Repère monde (transform caméra). */
 let world;
+/** @type {Camera} Modèle caméra appliqué à world. */
+let camera;
 /** @type {Container} */
 let cellsLayer;
 /** @type {Container} */
@@ -101,15 +102,45 @@ function buildGrid() {
   }
 }
 
-// Cadrage « fit » : la grille entière tient à l'écran, centrée. C'est aussi
-// le scale minimum de la future caméra interactive.
-function fit() {
-  if (!app) return;
-  const sw = app.screen.width;
-  const sh = app.screen.height;
-  const scale = Math.min(sw / gridW, sh / gridH) * FIT_PADDING;
-  world.scale.set(scale);
-  world.position.set((sw - gridW * scale) / 2, (sh - gridH * scale) / 2);
+// Molette → zoom centré sur le pointeur. Facteur exponentiel (doublement
+// tous les ~500 px) pour un zoom lisse ; la caméra borne fit/max.
+/** @param {WheelEvent} e */
+function onWheel(e) {
+  if (!camera) return;
+  e.preventDefault();
+  const rect = app.canvas.getBoundingClientRect();
+  const pointer = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  camera.zoomAt(pointer, Math.pow(2, -e.deltaY / 500));
+}
+
+// Boutons flottants + / − / tout voir : câblés sur zoomAt(centre, ±ZOOM_STEP)
+// et fit(). Style « chip » (mono, bordure INK) défini dans style.css.
+function buildZoomControls() {
+  const bar = document.createElement("div");
+  bar.className = "zoom-controls";
+
+  /**
+   * @param {string} label
+   * @param {string} title
+   * @param {() => void} onClick
+   */
+  const addButton = (label, title, onClick) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "zoom-btn";
+    btn.textContent = label;
+    btn.title = title;
+    btn.setAttribute("aria-label", title);
+    btn.addEventListener("click", onClick);
+    bar.appendChild(btn);
+  };
+
+  addButton("+", "Zoomer", () => camera.zoomAt(camera.screenCenter(), ZOOM_STEP));
+  addButton("−", "Dézoomer", () =>
+    camera.zoomAt(camera.screenCenter(), 1 / ZOOM_STEP),
+  );
+  addButton("⤢", "Tout voir", () => camera.fit());
+  document.body.appendChild(bar);
 }
 
 /**
@@ -150,8 +181,14 @@ export async function initScene() {
   }
 
   buildGrid();
-  fit();
-  app.renderer.on("resize", fit);
+
+  // Caméra : cadrage initial « fit », recadrage au resize.
+  camera = new Camera(app, world, { rows, cols });
+  app.renderer.on("resize", () => camera.resize());
+
+  // Zoom molette (vers le pointeur) + boutons flottants.
+  app.canvas.addEventListener("wheel", onWheel, { passive: false });
+  buildZoomControls();
 }
 
 // Réaffiche la grille pour la partie courante : pose les lettres, remet les
@@ -164,5 +201,6 @@ export function renderSceneGrid() {
     cellTexts[i].style.fill = INK;
     drawCell(cellBgs[i]);
   }
-  fit();
+  // Nouvelle partie : on revient au cadrage « tout voir ».
+  if (camera) camera.fit();
 }

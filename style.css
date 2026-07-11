@@ -1129,3 +1129,41 @@ body.debug {
     height: calc(100dvh - 160px);
   }
 }
+
+/* --- Contrôles de zoom (caméra Pixi) ------------------------------------ */
+/* Boutons flottants + / − / tout voir, ancrés en coin, au-dessus du canvas.
+   Style « chip » : mono, bordure INK. (Positionnement affiné en phase 7.) */
+.zoom-controls {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zoom-btn {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.zoom-btn:hover {
+  background: var(--card-hover);
+}
+
+.zoom-btn:active {
+  background: var(--ink);
+  color: var(--paper);
+}
