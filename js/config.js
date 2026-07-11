@@ -104,8 +104,13 @@ export const LETTER_WEIGHTS = {
 // échelle puis cadrée par la caméra ; aucune valeur écran n'est figée ici.
 export const CELL_SIZE = 100;
 export const CELL_GAP = 10;
-// Marge du cadrage « fit » : la grille entière occupe FIT_PADDING de l'écran.
-export const FIT_PADDING = 0.92;
+// Marge de vue autour de la grille, en fraction du petit côté de l'écran.
+// Règle « à quel point on peut dézoomer et écarter la grille » : au dézoom max,
+// la grille laisse VIEW_MARGIN de vide de chaque côté (donc on dézoome plus), et
+// cette même marge sert de débattement de pan supplémentaire pour pousser la
+// grille hors de l'interface (registre, en-tête…). Monter la valeur = plus de
+// marge et de dézoom.
+export const VIEW_MARGIN = 0.2;
 // Zoom maximum : on ne voit jamais moins que ZOOM_MAX_CELLS cases de côté.
 export const ZOOM_MAX_CELLS = 3;
 // Facteur des boutons + / − (zoom discret).

@@ -4,25 +4,33 @@
 // écran<->monde, le cadrage « fit », les bornes (clamp) et le zoom centré
 // pointeur. Le pan au drag et le pinch arrivent en phase 4.
 
-import { CELL_GAP, CELL_SIZE, FIT_PADDING, ZOOM_MAX_CELLS } from "./config.js";
+import { CELL_GAP, CELL_SIZE, VIEW_MARGIN, ZOOM_MAX_CELLS } from "./config.js";
 
 /** @typedef {import("pixi.js").Application} Application */
 /** @typedef {import("pixi.js").Container} Container */
 /** @typedef {{ x: number, y: number }} Vec2 */
 
 /**
- * Borne une coordonnée d'axe pour garder le viewport inclus dans la grille
- * projetée. Si la grille est plus petite que l'écran (cas du fit), on centre.
- * @param {number} pos     position monde de l'origine grille (px écran)
- * @param {number} screen  taille écran de l'axe (px)
+ * Borne la position (px écran) de l'origine grille sur un axe. On autorise la
+ * grille à glisser entre ses deux positions « au ras » (bord grille contre bord
+ * écran), plus un débattement `overshoot` au-delà de chaque côté. Aucun
+ * recentrage forcé : même plus petite que l'écran, la grille peut être poussée
+ * sur un côté (pour la dégager de l'interface) au lieu de rester centrée.
+ * @param {number} pos      position monde de l'origine grille (px écran)
+ * @param {number} screen   taille écran de l'axe (px)
  * @param {number} gridProj taille projetée de la grille sur l'axe (px)
+ * @param {number} overshoot débattement de pan au-delà du ras (px)
  * @returns {number}
  */
-function clampAxis(pos, screen, gridProj) {
-  const min = screen - gridProj; // bord bas/droit de la grille au ras de l'écran
-  const max = 0; // bord haut/gauche au ras de l'écran
-  if (min >= max) return (screen - gridProj) / 2; // grille plus étroite : centrage
-  return Math.min(max, Math.max(min, pos));
+function clampAxis(pos, screen, gridProj, overshoot) {
+  // Positions « au ras » : 0 (bord haut/gauche aligné) et screen - gridProj
+  // (bord bas/droit aligné). Selon la taille de la grille, l'une ou l'autre est
+  // la borne basse ; on élargit des deux côtés par overshoot.
+  const a = 0;
+  const b = screen - gridProj;
+  const lo = Math.min(a, b) - overshoot;
+  const hi = Math.max(a, b) + overshoot;
+  return Math.min(hi, Math.max(lo, pos));
 }
 
 export class Camera {
@@ -53,6 +61,8 @@ export class Camera {
     // (zoom max, jamais dépassé) ; fitScale ≤ 1 = grille entière visible.
     this.fitScale = 1;
     this.maxScale = 1;
+    // Marge de vue / débattement de pan (px), calculée dans recompute.
+    this.margin = 0;
     this.recompute();
     this.fit();
   }
@@ -67,15 +77,23 @@ export class Camera {
     this.baseScale = Math.min(sw, sh) / (ZOOM_MAX_CELLS * this.pitchDesign);
     this.gridW = this.gridWDesign * this.baseScale;
     this.gridH = this.gridHDesign * this.baseScale;
-    this.fitScale = Math.min(sw / this.gridW, sh / this.gridH) * FIT_PADDING;
+    // Marge de vue (px) réservée autour de la grille au dézoom max, et réutilisée
+    // comme débattement de pan (voir clampAxis / VIEW_MARGIN).
+    this.margin = VIEW_MARGIN * Math.min(sw, sh);
+    // fitScale : la grille entière tient dans l'écran diminué de 2·margin →
+    // dézoom max avec de la marge tout autour.
+    this.fitScale = Math.min(
+      (sw - 2 * this.margin) / this.gridW,
+      (sh - 2 * this.margin) / this.gridH,
+    );
     this.maxScale = 1;
     // Garde-fou : sur une grille tenant en moins de ZOOM_MAX_CELLS cases,
     // fitScale pourrait dépasser 1.
     if (this.maxScale < this.fitScale) this.maxScale = this.fitScale;
   }
 
-  // Contraint un état : scale dans [fitScale, maxScale] et position telle que
-  // le viewport reste inclus dans la grille (centrage si plus petite).
+  // Contraint un état : scale dans [fitScale, maxScale] et position bornée par
+  // clampAxis (glissement bord à bord + débattement margin, sans recentrage).
   /**
    * @param {number} scale
    * @param {number} x
@@ -88,8 +106,8 @@ export class Camera {
     const sh = this.app.screen.height;
     return {
       scale: s,
-      x: clampAxis(x, sw, this.gridW * s),
-      y: clampAxis(y, sh, this.gridH * s),
+      x: clampAxis(x, sw, this.gridW * s, this.margin),
+      y: clampAxis(y, sh, this.gridH * s, this.margin),
     };
   }
 
@@ -133,9 +151,16 @@ export class Camera {
     return { x: wx * this.scale + this.x, y: wy * this.scale + this.y };
   }
 
-  // Cadrage « tout voir » : scale minimum, grille centrée.
+  // Cadrage « tout voir » : scale minimum, grille centrée. clampAxis ne recentre
+  // plus (pan libre), donc on vise explicitement le centre ici.
   fit() {
-    this.set(this.fitScale, 0, 0);
+    const sw = this.app.screen.width;
+    const sh = this.app.screen.height;
+    this.set(
+      this.fitScale,
+      (sw - this.gridW * this.fitScale) / 2,
+      (sh - this.gridH * this.fitScale) / 2,
+    );
   }
 
   // Zoom centré sur un point écran : le point monde sous le pointeur reste
