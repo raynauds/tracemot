@@ -13,6 +13,7 @@ import { buildFiveLetterSets, loadDictionaries } from "./dictionary.js";
 import { generateFiveGrid } from "./solver.js";
 import { wordRejectReason } from "./rules.js";
 import { attachInputHandlers, clearPath } from "./input.js";
+import { initScene, renderSceneGrid } from "./scene.js";
 import {
   bindDifficultyBar,
   buildBoard,
@@ -54,6 +55,7 @@ function startGame() {
   state.solution = grid.solution;
 
   renderNewGame();
+  renderSceneGrid(); // rendu Pixi de la grille (lettres + fonds)
   if (debug) debug.renderDebugPanel();
 
   state.ready = true;
@@ -128,6 +130,7 @@ async function init() {
   renderDifficultyBar();
   bindDifficultyBar(setDifficulty);
   attachInputHandlers({ onCommit: commitPath, onReplay: startGame });
+  await initScene(); // Application Pixi + graphe de scène (canvas de fond)
 
   try {
     const { full, tiers } = await loadDictionaries(DEBUG);

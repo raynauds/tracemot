@@ -39,6 +39,16 @@ body {
   display: flex;
   flex-direction: column;
   padding: 52px 72px 36px;
+  /* Chrome au-dessus du canvas Pixi (rendu en fond, position: fixed). */
+  position: relative;
+  z-index: 1;
+}
+
+/* La grille est désormais rendue par PixiJS (js/scene.js) en fond plein
+   écran ; le plateau DOM est masqué pour éviter le doublon (nettoyage
+   complet du markup prévu en phase 7). */
+.board {
+  display: none;
 }
 
 /* ---------- Header ---------- */

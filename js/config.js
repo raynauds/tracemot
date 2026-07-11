@@ -99,6 +99,35 @@ export const LETTER_WEIGHTS = {
   Z: 2,
 };
 
+// --- Géométrie du monde Pixi (unités « monde », échelle 1) -----------------
+// Taille d'une case et espace inter-cases. La grille est rendue à cette
+// échelle puis cadrée par la caméra ; aucune valeur écran n'est figée ici.
+export const CELL_SIZE = 100;
+export const CELL_GAP = 10;
+// Marge du cadrage « fit » : la grille entière occupe FIT_PADDING de l'écran.
+export const FIT_PADDING = 0.92;
+// Zoom maximum : on ne voit jamais moins que ZOOM_MAX_CELLS cases de côté.
+export const ZOOM_MAX_CELLS = 3;
+// Facteur des boutons + / − (zoom discret).
+export const ZOOM_STEP = 1.25;
+// Pan clavier (flèches / ZQSD-WASD), en px/s.
+export const KEY_PAN_SPEED = 900;
+// Auto-pan pendant le tracé : bande de bord déclenchante (px) et vitesse
+// maximale atteinte au ras du bord (px/s).
+export const EDGE_PAN_MARGIN = 64;
+export const EDGE_PAN_MAX_SPEED = 700;
+
+// --- Palette numérique (0xRRGGBB) pour Pixi -------------------------------
+// Portée depuis style.css : Pixi attend des couleurs numériques.
+export const PAPER = 0xf6f1e7;
+export const CARD = 0xfdfbf5;
+export const CARD_HOVER = 0xf3ecdc;
+export const INK = 0x26221c;
+export const VERMILION = 0xb3402a;
+export const MUTED = 0x6e6656;
+export const LINE = 0xd8cfbc;
+export const GHOST = 0xb9af9c;
+
 /** @type {Record<number, string>} */
 export const FR_NUMBERS = {
   1: "un",
