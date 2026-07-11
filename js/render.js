@@ -8,7 +8,6 @@ import {
   DIFFICULTY_TOAST_MS,
   ENABLED_DIFFICULTIES,
   FIVE_WORD_LENGTH,
-  FR_NUMBERS,
   REJECT_DISPLAY_MS,
   WORDS_TO_WIN,
 } from "./config.js";
@@ -51,9 +50,7 @@ function formatTime(ms) {
 // de la config (mises en capitales par le CSS). La phrase serif au-dessus est
 // générique (sans nombres) et vit dans le HTML.
 function renderRuleSpec() {
-  const l5 = FR_NUMBERS[FIVE_WORD_LENGTH] || String(FIVE_WORD_LENGTH);
-  ruleSpecEl.textContent =
-    `${WORDS_TO_WIN} mots · ${l5} lettres · toute la grille`;
+  ruleSpecEl.textContent = `${WORDS_TO_WIN} mots · ${FIVE_WORD_LENGTH} lettres`;
 }
 
 // --- Sélecteur de difficulté (chip + popover / feuille + toast) ------------
