@@ -50,7 +50,11 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 10;
+  /* Contexte d'empilement du header : il englobe la modale de difficulté
+     (diff-overlay/panel, imbriqués). Placé au-dessus du registre (16), du zoom
+     (15) et de la règle (10) pour que le voile et le panneau couvrent bien tout
+     — mais sous le statut/victoire (30). */
+  z-index: 25;
   pointer-events: none;
   display: flex;
   align-items: baseline;
@@ -548,7 +552,9 @@ body {
   position: fixed;
   top: 96px;
   right: max(20px, env(safe-area-inset-right));
-  z-index: 10;
+  /* Au-dessus des boutons zoom (15) : déplié, l'encart couvre le bouton « fit »
+     au lieu de le laisser dépasser. */
+  z-index: 16;
   width: 300px;
   max-height: calc(100vh - 120px);
   display: flex;
