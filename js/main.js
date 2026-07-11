@@ -14,16 +14,17 @@ import { generateFiveGrid } from "./solver.js";
 import { wordRejectReason } from "./rules.js";
 import { attachInputHandlers, clearPath } from "./input.js";
 import {
+  flashPath,
   initScene,
-  renderFoundTraces,
   renderSceneGrid,
   renderUsedCells,
+  shakeGrid,
+  stampWord,
 } from "./scene.js";
 import {
   bindDifficultyBar,
   buildBoard,
   fillListRow,
-  flashPath,
   hideStatus,
   renderCounter,
   renderDifficultyBar,
@@ -79,7 +80,9 @@ function commitPath() {
 
   const reason = wordRejectReason(word);
   if (reason) {
+    // Refus : flash vermillon des cases + secousse écran (Pixi-natif).
     flashPath(traced);
+    shakeGrid();
     showReject(word, reason);
     return;
   }
@@ -90,8 +93,8 @@ function commitPath() {
   // sont retirées du jeu.
   for (const i of traced) state.usedCells.add(i);
   state.foundPaths.push(traced);
-  renderUsedCells();
-  renderFoundTraces();
+  renderUsedCells(); // repeint les cases en disabled
+  stampWord(traced); // tampon : tassement des cases + fondu du tracé fantôme
   renderCounter();
   if (state.found.length >= WORDS_TO_WIN) triggerWin();
 }

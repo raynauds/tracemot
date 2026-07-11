@@ -22,6 +22,7 @@ import {
 } from "./config.js";
 import { Camera } from "./camera.js";
 import { state } from "./state.js";
+import { easeOutCubic, initTweens, tween } from "./tween.js";
 
 // Grille carrée dérivée de la config, sans hypothèse « 5 » en dur.
 const rows = GRID_SIZE;
@@ -31,6 +32,20 @@ const CELL_RADIUS = 8;
 const CELL_STROKE = 3; // unités monde
 const FONT_SIZE = 42; // ≈ rapport lettre/case du DOM
 const TRACE_WIDTH = 10; // largeur du trait, en unités monde (épaissit au zoom)
+
+// --- Réglages d'animation (Pixi-natif : alpha/scale/tint/position) ---------
+const DEAL_MS = 300; // distribution : durée d'apparition d'une case
+const DEAL_STAGGER = 18; // décalage par indice (cascade), repris du --i CSS
+const DEAL_SCALE = 1.18; // échelle de départ d'une case distribuée
+const POP_MS = 160; // case rejoignant le tracé : durée du rebond
+const POP_AMP = 0.09; // amplitude du rebond (scale 1→1+POP_AMP→1)
+const STAMP_MS = 220; // mot validé : durée du tassement des cases
+const STAMP_SCALE = 1.12; // échelle de départ du tampon
+const FLASH_MS = 400; // refus : durée du flash vermillon d'une case
+const GHOST_FADE_MS = 300; // fondu d'apparition d'un tracé fantôme validé
+const SHAKE_MS = 400; // refus : durée de la secousse
+const SHAKE_AMP = 14; // amplitude écran de la secousse (px)
+const SHAKE_FREQ = 22; // pulsation de la secousse (rad/unité de temps normalisée)
 
 /** @type {Application} */
 let app;
@@ -111,10 +126,42 @@ function paintCell(i) {
   }
   const g = cellBgs[i];
   g.clear();
-  g.roundRect(0, 0, CELL_SIZE, CELL_SIZE, CELL_RADIUS)
+  // Géométrie centrée sur (0,0) local : le fond est placé au centre de la case
+  // (buildGrid), donc scale/pop grandissent autour du centre, sans dérive.
+  g.roundRect(-CELL_SIZE / 2, -CELL_SIZE / 2, CELL_SIZE, CELL_SIZE, CELL_RADIUS)
     .fill(fill)
     .stroke({ width: CELL_STROKE, color: stroke, alignment: 0.5 });
   cellTexts[i].style.fill = textFill;
+}
+
+// Applique scale + alpha à une case (fond + lettre ensemble). Base des
+// animations deal/pop/stamp ; les couleurs restent gérées par paintCell.
+/**
+ * @param {number} i
+ * @param {number} scale
+ * @param {number} alpha
+ */
+function setCellTransform(i, scale, alpha) {
+  cellBgs[i].scale.set(scale);
+  cellBgs[i].alpha = alpha;
+  cellTexts[i].scale.set(scale);
+  cellTexts[i].alpha = alpha;
+}
+
+// Interpolation linéaire entre deux couleurs 0xRRGGBB (pour le flash de refus).
+/**
+ * @param {number} a
+ * @param {number} b
+ * @param {number} t
+ */
+function lerpColor(a, b, t) {
+  const ar = (a >> 16) & 0xff;
+  const ag = (a >> 8) & 0xff;
+  const ab = a & 0xff;
+  const r = Math.round(ar + (((b >> 16) & 0xff) - ar) * t);
+  const g = Math.round(ag + (((b >> 8) & 0xff) - ag) * t);
+  const bl = Math.round(ab + ((b & 0xff) - ab) * t);
+  return (r << 16) | (g << 8) | bl;
 }
 
 // Repeint toutes les cases (25 petits roundRect : bon marché, appelé aux
@@ -140,7 +187,8 @@ function buildGrid() {
     const { x, y } = cellOrigin(i);
 
     const bg = new Graphics();
-    bg.position.set(x, y);
+    // Centré : géométrie dessinée autour de (0,0), placée au centre de la case.
+    bg.position.set(x + CELL_SIZE / 2, y + CELL_SIZE / 2);
     cellsLayer.addChild(bg);
     cellBgs.push(bg);
 
@@ -166,13 +214,14 @@ function buildGrid() {
 
 // --- Tracé (espace monde) --------------------------------------------------
 
-// Trace la polyligne d'un chemin sur un Graphics (largeur/couleur donnés).
+// Trace la polyligne d'un chemin sur un Graphics (largeur/couleur/alpha donnés).
 /**
  * @param {Graphics} g
  * @param {number[]} path
  * @param {number} color
+ * @param {number} [alpha]
  */
-function strokePath(g, path, color) {
+function strokePath(g, path, color, alpha = 1) {
   if (path.length < 2) return;
   const p0 = cellCenter(path[0]);
   g.moveTo(p0.x, p0.y);
@@ -180,7 +229,7 @@ function strokePath(g, path, color) {
     const p = cellCenter(path[k]);
     g.lineTo(p.x, p.y);
   }
-  g.stroke({ width: TRACE_WIDTH, color, cap: "round", join: "round" });
+  g.stroke({ width: TRACE_WIDTH, color, alpha, cap: "round", join: "round" });
 }
 
 // Redessine le tracé en cours (ligne d'encre continue).
@@ -189,16 +238,133 @@ export function renderTrace() {
   strokePath(activeTrace, state.path, INK);
 }
 
+// Dessine tous les tracés fantômes, le dernier avec un alpha donné (fondu du
+// mot qu'on vient de valider). lastAlpha = 1 → tous pleinement visibles.
+/** @param {number} lastAlpha */
+function drawFoundTraces(lastAlpha) {
+  ghostTrace.clear();
+  const paths = state.foundPaths;
+  for (let k = 0; k < paths.length; k++) {
+    const a = k === paths.length - 1 ? lastAlpha : 1;
+    strokePath(ghostTrace, paths[k], GHOST, a);
+  }
+}
+
 // Tracés fantômes : les traits des mots validés restent affichés, dans les
 // tons des cases désactivées, pour relire les mots sur la grille.
 export function renderFoundTraces() {
-  ghostTrace.clear();
-  for (const path of state.foundPaths) strokePath(ghostTrace, path, GHOST);
+  drawFoundTraces(1);
 }
 
-// Repeint les cases selon la sélection courante (tint sel/head).
+// Longueur du tracé à la dernière peinture : sert à détecter qu'une case
+// vient de rejoindre la tête (croissance) pour déclencher le « pop ».
+let prevPathLen = 0;
+
+// Repeint les cases selon la sélection courante (tint sel/head) et anime d'un
+// petit rebond la case qui vient de rejoindre le tracé.
 export function updateSelection() {
   repaintCells();
+  const len = state.path.length;
+  if (len > prevPathLen && len > 0) popCell(state.path[len - 1]);
+  prevPathLen = len;
+}
+
+// --- Animations ------------------------------------------------------------
+
+// « Pop » : la case qui rejoint la tête du tracé rebondit brièvement.
+/** @param {number} i */
+function popCell(i) {
+  tween({
+    id: `cell-${i}`,
+    duration: POP_MS,
+    onUpdate: (k) => setCellTransform(i, 1 + POP_AMP * Math.sin(Math.PI * k), 1),
+    onComplete: () => setCellTransform(i, 1, 1),
+  });
+}
+
+// « Deal » : distribution en cascade des cases (fondu + léger tassement),
+// décalée par indice comme l'impression CSS d'origine.
+function dealCells() {
+  prevPathLen = 0;
+  for (let i = 0; i < CELL_COUNT; i++) {
+    cellBgs[i].tint = 0xffffff; // efface un éventuel flash en cours
+    setCellTransform(i, DEAL_SCALE, 0);
+    tween({
+      id: `cell-${i}`,
+      delay: i * DEAL_STAGGER,
+      duration: DEAL_MS,
+      ease: easeOutCubic,
+      onUpdate: (k) =>
+        setCellTransform(i, DEAL_SCALE + (1 - DEAL_SCALE) * k, k),
+      onComplete: () => setCellTransform(i, 1, 1),
+    });
+  }
+}
+
+// « Flash » de refus : les cases du tracé virent au vermillon puis reviennent
+// (tint multiplicatif : les fonds clairs prennent la teinte, le noir résiste).
+/** @param {number[]} indices */
+export function flashPath(indices) {
+  for (const i of indices) {
+    tween({
+      id: `flash-${i}`,
+      duration: FLASH_MS,
+      onUpdate: (k) => {
+        cellBgs[i].tint = lerpColor(0xffffff, VERMILION, Math.sin(Math.PI * k));
+      },
+      onComplete: () => {
+        cellBgs[i].tint = 0xffffff;
+      },
+    });
+  }
+}
+
+// « Stamp » : un mot validé tasse ses cases (scale 1.12→1, déjà repeintes en
+// disabled par renderUsedCells) et fait apparaître son tracé fantôme en fondu.
+/** @param {number[]} traced */
+export function stampWord(traced) {
+  for (const i of traced) {
+    setCellTransform(i, STAMP_SCALE, 1);
+    tween({
+      id: `cell-${i}`,
+      duration: STAMP_MS,
+      ease: easeOutCubic,
+      onUpdate: (k) => setCellTransform(i, STAMP_SCALE + (1 - STAMP_SCALE) * k, 1),
+      onComplete: () => setCellTransform(i, 1, 1),
+    });
+  }
+  tween({
+    id: "ghost-fade",
+    duration: GHOST_FADE_MS,
+    ease: easeOutCubic,
+    onUpdate: (k) => drawFoundTraces(k),
+    onComplete: () => renderFoundTraces(),
+  });
+}
+
+// « Shake » de refus : secousse écran amortie (sinus décroissant) ajoutée à
+// world.position APRÈS le clamp caméra, chaque frame. N'altère jamais l'état
+// caméra : quand la secousse est finie, on recale world sur la caméra.
+let shakeElapsed = 0;
+let shaking = false;
+
+export function shakeGrid() {
+  shakeElapsed = 0;
+  shaking = true;
+}
+
+/** @param {import("pixi.js").Ticker} ticker */
+function applyShake(ticker) {
+  if (!shaking || !camera) return;
+  shakeElapsed += ticker.deltaMS;
+  const t = shakeElapsed / SHAKE_MS;
+  if (t >= 1) {
+    shaking = false;
+    world.position.set(camera.x, camera.y); // retour à la position caméra pure
+    return;
+  }
+  const off = SHAKE_AMP * (1 - t) * Math.sin(t * SHAKE_FREQ);
+  world.position.set(camera.x + off, camera.y);
 }
 
 // Repeint les cases consommées par les mots trouvés (état disabled).
@@ -302,6 +468,9 @@ export async function initScene() {
     resolution: window.devicePixelRatio || 1,
   });
 
+  // Moteur de tweens branché sur le Ticker de l'app (animations Pixi-natives).
+  initTweens(app.ticker);
+
   // Canvas en fond plein écran, sous le chrome DOM. touch-action: none pour
   // que le tracé tactile ne déclenche pas scroll/zoom du navigateur.
   const canvas = app.canvas;
@@ -342,6 +511,9 @@ export async function initScene() {
   camera = new Camera(app, world, { rows, cols });
   app.renderer.on("resize", () => camera.resize());
 
+  // Secousse de refus : offset écran ajouté chaque frame après le clamp caméra.
+  app.ticker.add(applyShake);
+
   // Zoom molette (vers le pointeur) + boutons flottants.
   app.canvas.addEventListener("wheel", onWheel, { passive: false });
   buildZoomControls();
@@ -357,6 +529,7 @@ export function renderSceneGrid() {
   repaintCells();
   renderTrace(); // state.path vide → efface le tracé actif
   renderFoundTraces(); // state.foundPaths vide → efface les fantômes
+  dealCells(); // distribution en cascade des cases (fondu + tassement)
   // Nouvelle partie : on revient au cadrage « tout voir ».
   if (camera) camera.fit();
 }
