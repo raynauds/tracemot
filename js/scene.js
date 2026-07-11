@@ -11,6 +11,7 @@ import {
   CELL_GAP,
   CELL_SIZE,
   CARD,
+  CARD_HOVER,
   GHOST,
   GRID_SIZE,
   INK,
@@ -67,6 +68,8 @@ let activeTrace;
 const cellBgs = [];
 /** @type {Text[]} Lettres des cases, dans l'ordre des indices. */
 const cellTexts = [];
+/** @type {Set<number>} Cases du tracé survolé dans le panneau debug. */
+const debugHint = new Set();
 
 /**
  * Coin haut-gauche (monde) d'une case selon son indice.
@@ -123,6 +126,13 @@ function paintCell(i) {
       fill = CARD;
       stroke = INK;
       textFill = INK;
+  }
+  // Survol d'un mot du panneau debug : la case prend l'apparence « hover »
+  // (fond CARD_HOVER, bord et lettre encre), quel que soit son état.
+  if (debugHint.has(i)) {
+    fill = CARD_HOVER;
+    stroke = INK;
+    textFill = INK;
   }
   const g = cellBgs[i];
   g.clear();
@@ -369,6 +379,17 @@ function applyShake(ticker) {
 
 // Repeint les cases consommées par les mots trouvés (état disabled).
 export function renderUsedCells() {
+  repaintCells();
+}
+
+// Survol d'un mot du panneau debug : surligne les cases de son tracé (apparence
+// « hover »), ou efface le surlignage si path est null. Sans effet hors debug
+// (setDebugHint n'est appelé que par debug.js, chargé si DEBUG).
+/** @param {number[]|null} path */
+export function setDebugHint(path) {
+  if (!app) return;
+  debugHint.clear();
+  if (path) for (const i of path) debugHint.add(i);
   repaintCells();
 }
 

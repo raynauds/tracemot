@@ -5,7 +5,7 @@
 
 import { state } from "./state.js";
 import { findAllWords } from "./solver.js";
-import { setDebugHint } from "./render.js";
+import { setDebugHint } from "./scene.js";
 
 /** @type {HTMLElement|null} */
 let debugPanelEl = null;

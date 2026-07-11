@@ -335,14 +335,6 @@ export function buzz() {
   if (navigator.vibrate) navigator.vibrate(8);
 }
 
-// Survol d'un mot du panneau debug : mettra en évidence son tracé dans la
-// grille Pixi (portage prévu en phase 8). Stub inerte pour l'instant : le
-// plateau DOM qui portait le surlignage n'existe plus.
-/** @param {number[]|null} path */
-export function setDebugHint(path) {
-  void path;
-}
-
 // --- Chrono ------------------------------------------------------------
 
 export function startTimer() {

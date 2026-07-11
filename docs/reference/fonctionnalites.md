@@ -6,14 +6,18 @@ Découpe en pavage (backtracking randomisé) puis vérification d'exclusivité c
 
 ## Dictionnaires
 
-Cinq fichiers de mots dans `docs/dictionnaires/` :
+Cinq fichiers de mots dans `public/dictionnaires/` :
 
 - `dictionnaire.txt` - dictionnaire complet, valide les mots joués.
 - `1_dico_entree_enfant.txt`, `2_dico_entree_ado.txt`, `3_dico_entree_adulte.txt`, `4_dico_entree_non_connu.txt` - quatre paliers de vocabulaire, disjoints entre eux, d'où sont tirés les mots cachés selon la difficulté.
 
 ## Tracé
 
-Au doigt ou à la souris (Pointer Events), avec backtrack, vibration sur mobile et ligne SVG suivant le tracé.
+Au doigt ou à la souris (events fédérés Pixi), avec backtrack, vibration sur mobile et ligne d'encre suivant le tracé, rendue en WebGL par PixiJS. Feedbacks Pixi-natifs : distribution en cascade, rebond d'une case rejoignant le tracé, flash et secousse au refus, tampon à la validation.
+
+## Caméra : zoom & pan
+
+La grille est rendue plein écran par Pixi et cadrée par une caméra. Zoom à la molette (centré sur le pointeur), au pinch tactile ou via les boutons flottants + / − / tout voir ; pan par glissé hors case, au clavier (flèches, ZQSD/WASD) et auto-pan quand le tracé approche un bord. Le zoom est borné entre le cadrage « tout voir » et 3×3 cases.
 
 ## Registre des mots
 
