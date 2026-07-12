@@ -6,11 +6,10 @@ import {
   DEBUG,
   DEFAULT_DIFFICULTY,
   ENABLED_DIFFICULTIES,
-  WORDS_TO_WIN,
 } from "./config.js";
 import { state } from "./state.js";
-import { buildFiveLetterSets, loadDictionaries } from "./dictionary.js";
-import { generateFiveGrid } from "./solver.js";
+import { buildLengthSets, loadDictionaries } from "./dictionary.js";
+import { createGridGenerator } from "./solver.js";
 import { wordRejectReason } from "./rules.js";
 import { attachInputHandlers, clearPath } from "./input.js";
 import {
@@ -43,6 +42,11 @@ const DIFFICULTY_STORAGE_KEY = "tracemot.difficulty";
 /** @type {typeof import("./debug.js")|null} Module debug, chargé si DEBUG. */
 let debug = null;
 
+/** @type {ReturnType<typeof createGridGenerator>|null} Générateur du mode
+ *  actif, fermé sur la géométrie et les dictionnaires (créé au premier
+ *  lancement de partie, après le chargement des dictionnaires). */
+let generator = null;
+
 function startGame() {
   state.won = false;
   state.found = [];
@@ -51,10 +55,15 @@ function startGame() {
   state.path = [];
   state.pointerId = null;
 
-  if (!state.five) {
-    state.five = buildFiveLetterSets(state.words, state.tierWords);
+  if (!generator) {
+    const sets = buildLengthSets(
+      state.words,
+      state.tierWords,
+      state.mode.wordLength,
+    );
+    generator = createGridGenerator(state.geometry, state.mode, sets);
   }
-  const grid = generateFiveGrid(state.five, state.difficulty);
+  const grid = generator.generate(state.difficulty);
   state.letters = grid.letters;
   state.gridTries = grid.tries;
   state.solution = grid.solution;
@@ -103,7 +112,7 @@ function commitPath() {
   renderUsedCells(); // repeint les cases en disabled
   stampWord(traced); // tampon : tassement des cases + fondu du tracé fantôme
   renderCounter();
-  if (state.found.length >= WORDS_TO_WIN) triggerWin();
+  if (state.found.length >= state.mode.wordCount) triggerWin();
 }
 
 /** @param {number} difficulty */
@@ -147,7 +156,11 @@ async function init() {
   attachInputHandlers({ onCommit: commitPath, onReplay: startGame });
 
   try {
-    const { full, tiers } = await loadDictionaries(DEBUG);
+    // Préfixes du dictionnaire complet : mode debug uniquement, plafonnés à
+    // la longueur maximale d'un tracé (le nombre de cases de la grille).
+    const { full, tiers } = await loadDictionaries(
+      DEBUG ? state.geometry.cellCount : 0,
+    );
     state.words = full.words;
     state.fullPrefixes = full.prefixes;
     state.tierWords = {

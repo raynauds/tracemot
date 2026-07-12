@@ -1,18 +1,22 @@
 // @ts-check
 // Tirage des lettres et solveur. Logique pure : aucune dépendance au DOM
-// ni à l'état de la partie, les dictionnaires sont passés en paramètres.
+// ni à l'état de la partie. La géométrie de la grille, le mode de jeu et
+// les dictionnaires sont passés en paramètres — createGridGenerator
+// fabrique un générateur fermé sur ces réglages.
 
 import {
-  CELL_COUNT,
   DIFFICULTY_QUOTAS,
-  FIVE_WORD_LENGTH,
-  GRID_SIZE,
   LETTER_WEIGHTS,
-  MAX_FIVE_GRID_TRIES,
+  MAX_GRID_TRIES,
   MAX_GRID_REPAIRS,
   MIN_WORD_LENGTH,
-  WORDS_TO_WIN,
+  REPAIR_CANDIDATES,
 } from "./config.js";
+
+/** @typedef {import("./geometry.js").Geometry} Geometry */
+/** @typedef {import("./config.js").GameMode} GameMode */
+/** @typedef {import("./config.js").Tier} Tier */
+/** @typedef {import("./config.js").Difficulty} Difficulty */
 
 // --- Tirage pondéré des lettres ---------------------------------------
 
@@ -31,35 +35,12 @@ function drawLetter() {
   return "E";
 }
 
-function drawLetters() {
-  return Array.from({ length: CELL_COUNT }, drawLetter);
+/** @param {number} count */
+function drawLetters(count) {
+  return Array.from({ length: count }, drawLetter);
 }
 
-// --- Grille -------------------------------------------------------------
-
-// Voisins orthogonaux précalculés pour chaque case.
-const NEIGHBORS = Array.from({ length: CELL_COUNT }, (_, i) => {
-  const row = Math.floor(i / GRID_SIZE);
-  const col = i % GRID_SIZE;
-  const out = [];
-  if (row > 0) out.push(i - GRID_SIZE);
-  if (row < GRID_SIZE - 1) out.push(i + GRID_SIZE);
-  if (col > 0) out.push(i - 1);
-  if (col < GRID_SIZE - 1) out.push(i + 1);
-  return out;
-});
-
-// --- Pavage parfait ------------------------------------------------------
-//
-// La grille garantit qu'exactement WORDS_TO_WIN mots de FIVE_WORD_LENGTH
-// lettres sont traçables - ceux de la solution, choisis dans les paliers
-// de vocabulaire dosés par la difficulté - vérifié contre le dictionnaire
-// complet, chaque mot n'ayant qu'un seul tracé possible. Génération par
-// tirage + vérification : on découpe un pavage, on y pose les mots, on
-// contrôle l'exclusivité et on remplace un mot impliqué dans un tracé
-// parasite jusqu'à obtenir une grille propre.
-
-const ALL_CELLS = Array.from({ length: CELL_COUNT }, (_, i) => i);
+// --- Utilitaires --------------------------------------------------------
 
 /**
  * @template T
@@ -79,7 +60,7 @@ function shuffled(arr) {
 // est identique dans les deux sens (évite de compter deux fois les
 // palindromes, et permet de comparer un tracé trouvé au tracé posé).
 /** @param {number[]} path */
-function canonKey(path) {
+export function canonKey(path) {
   const fwd = path.join(",");
   const rev = [...path].reverse().join(",");
   return fwd < rev ? fwd : rev;
@@ -104,349 +85,462 @@ function randInt(lo, hi) {
   return lo + ((Math.random() * (hi - lo + 1)) | 0);
 }
 
-/**
- * Tire la composition des mots cachés pour une difficulté : nombre de mots
- * par palier, dans les bornes des quotas, le reste en mots enfant. Les
- * paliers les plus contraints (inconnu, adulte) sont tirés d'abord, les
- * quotas suivants sont plafonnés aux places restantes.
- * @param {import("./config.js").Difficulty} difficulty
- * @returns {Record<import("./config.js").Tier, number>}
- */
-function drawTierCounts(difficulty) {
-  const q = DIFFICULTY_QUOTAS[difficulty];
-  let left = WORDS_TO_WIN;
-  const inconnu = randInt(q.inconnu[0], Math.min(q.inconnu[1], left));
-  left -= inconnu;
-  const adulte = randInt(q.adulte[0], Math.min(q.adulte[1], left));
-  left -= adulte;
-  const ado = randInt(Math.min(q.ado[0], left), Math.min(q.ado[1], left));
-  left -= ado;
-  return { enfant: left, ado, adulte, inconnu };
-}
+// --- Générateur de grilles « pavage parfait » -----------------------------
+//
+// La grille garantit qu'exactement wordCount mots de wordLength lettres
+// sont traçables - ceux de la solution, choisis dans les paliers de
+// vocabulaire dosés par la difficulté - vérifié contre le dictionnaire
+// complet, chaque mot n'ayant qu'un seul tracé possible. Génération par
+// tirage + vérification : on découpe un pavage, on y pose les mots, on
+// contrôle l'exclusivité et on remplace un mot impliqué dans un tracé
+// parasite jusqu'à obtenir une grille propre.
 
 /**
- * Tire WORDS_TO_WIN mots candidats respectant la composition de la
- * difficulté, deux à deux distants d'au moins 2 lettres (pas de
- * SALLE/BALLE dans la même solution). `tiers[i]` est le palier du mot
- * `words[i]` : un remplacement (réparation) se fait dans le même palier
- * pour préserver la composition.
- * @param {Record<import("./config.js").Tier, string[]>} candidates
- * @param {import("./config.js").Difficulty} difficulty
- * @returns {{words: string[], tiers: import("./config.js").Tier[]}|null}
+ * @param {Geometry} geometry
+ * @param {GameMode} mode
+ * @param {{candidates: Record<Tier, string[]>, words: Set<string>, prefixes: Set<string>}} sets
+ *   Sous-ensembles « wordLength lettres » des dictionnaires : mots candidats
+ *   par palier (les mots à cacher) et mots/préfixes du dictionnaire complet
+ *   (vérification qu'aucun mot parasite n'est traçable).
  */
-function pickSolutionWords(candidates, difficulty) {
-  for (let t = 0; t < 50; t++) {
-    const counts = drawTierCounts(difficulty);
-    /** @type {import("./config.js").Tier[]} */
-    const tiers = [];
-    for (const tier of /** @type {import("./config.js").Tier[]} */ (
-      Object.keys(counts)
-    )) {
-      if (candidates[tier].length < counts[tier]) break; // palier trop pauvre
-      for (let k = 0; k < counts[tier]; k++) tiers.push(tier);
-    }
-    if (tiers.length !== WORDS_TO_WIN) continue;
-    /** @type {string[]} */
-    const chosen = [];
-    for (let g = 0; g < 200 && chosen.length < WORDS_TO_WIN; g++) {
-      const pool = candidates[tiers[chosen.length]];
-      const w = pool[(Math.random() * pool.length) | 0];
-      if (chosen.every((c) => hamming(c, w) >= 2)) chosen.push(w);
-    }
-    if (chosen.length === WORDS_TO_WIN) return { words: chosen, tiers };
-  }
-  return null;
-}
-
-/**
- * Énumère tous les mots de FIVE_WORD_LENGTH lettres de `words5` traçables
- * dans la grille, avec leurs tracés canoniques.
- * @param {string[]} letters
- * @param {Set<string>} words5
- * @param {Set<string>} prefixes5
- * @returns {Map<string, Map<string, number[]>>} mot → (clé canonique → tracé)
- */
-function findFivePaths(letters, words5, prefixes5) {
-  /** @type {Map<string, Map<string, number[]>>} */
-  const found = new Map();
+export function createGridGenerator(geometry, mode, sets) {
+  const { cellCount, neighbors, allCells } = geometry;
+  const { wordLength, wordCount } = mode;
+  const { candidates, words: fullWords, prefixes } = sets;
 
   /**
-   * @param {number} idx
-   * @param {number} mask
-   * @param {string} prefix
-   * @param {number[]} path
+   * Tire la composition des mots cachés pour une difficulté : nombre de mots
+   * par palier, dans les bornes des quotas (fractions de wordCount arrondies
+   * au plus proche), le reste en mots enfant. Les paliers les plus contraints
+   * (inconnu, adulte) sont tirés d'abord, les quotas suivants sont plafonnés
+   * aux places restantes.
+   * @param {Difficulty} difficulty
+   * @returns {Record<Tier, number>}
    */
-  function dfs(idx, mask, prefix, path) {
-    const next = prefix + letters[idx];
-    if (!prefixes5.has(next)) return;
-    path.push(idx);
-    if (path.length === FIVE_WORD_LENGTH) {
-      if (words5.has(next)) {
-        let paths = found.get(next);
-        if (!paths) found.set(next, (paths = new Map()));
-        const key = canonKey(path);
-        if (!paths.has(key)) paths.set(key, path.slice());
-      }
-    } else {
-      for (const nb of NEIGHBORS[idx]) {
-        const bit = 1 << nb;
-        if (!(mask & bit)) dfs(nb, mask | bit, next, path);
-      }
-    }
-    path.pop();
-  }
-
-  for (let i = 0; i < CELL_COUNT; i++) dfs(i, 1 << i, "", []);
-  return found;
-}
-
-/**
- * Tracés fautifs d'une grille : tout tracé d'un mot hors solution, et tout
- * tracé d'un mot de la solution autre que celui posé. Une grille est valide
- * quand cette liste est vide.
- * @param {Map<string, Map<string, number[]>>} found
- * @param {Map<string, string>} intended mot de la solution → clé canonique du tracé posé
- * @returns {number[][]}
- */
-function collectIssues(found, intended) {
-  /** @type {number[][]} */
-  const issues = [];
-  for (const [word, paths] of found) {
-    const wanted = intended.get(word);
-    for (const [key, path] of paths) {
-      if (key !== wanted) issues.push(path);
-    }
-  }
-  return issues;
-}
-
-/**
- * Mot de remplacement pour la position `i` de la solution : distinct des
- * mots en place et à distance de Hamming ≥ 2 de chacun des autres.
- * `candidates` est le vivier du palier du mot remplacé (la composition de
- * la difficulté est ainsi préservée).
- * @param {string[]} candidates
- * @param {string[]} words
- * @param {number} i
- * @returns {string|null}
- */
-function pickReplacementWord(candidates, words, i) {
-  for (let g = 0; g < 100; g++) {
-    const w = candidates[(Math.random() * candidates.length) | 0];
-    if (words.includes(w)) continue;
-    if (words.every((c, j) => j === i || hamming(c, w) >= 2)) return w;
-  }
-  return null;
-}
-
-/**
- * Tous les tracés de FIVE_WORD_LENGTH cases passant par `cell` dans les
- * cases libres : bras gauche + cell + bras droit, dédoublonnés (un tracé
- * et son inverse comptent pour un).
- * @param {number} cell
- * @param {Set<number>} free
- * @returns {number[][]}
- */
-function pathsThrough(cell, free) {
-  /** @type {Map<string, number[]>} */
-  const out = new Map();
-  const used = new Set([cell]);
-  /** @type {number[]} */
-  const left = [];
-  /** @type {number[]} */
-  const right = [];
-
-  /** @param {number} need */
-  function growRight(need) {
-    if (need === 0) {
-      const path = [...left].reverse().concat(cell, right);
-      const key = canonKey(path);
-      if (!out.has(key)) out.set(key, path);
-      return;
-    }
-    const last = right.length > 0 ? right[right.length - 1] : cell;
-    for (const nb of NEIGHBORS[last]) {
-      if (!free.has(nb) || used.has(nb)) continue;
-      used.add(nb);
-      right.push(nb);
-      growRight(need - 1);
-      right.pop();
-      used.delete(nb);
-    }
-  }
-
-  /**
-   * @param {number} need
-   * @param {number} rightNeed
-   */
-  function growLeft(need, rightNeed) {
-    if (need === 0) {
-      growRight(rightNeed);
-      return;
-    }
-    const last = left.length > 0 ? left[left.length - 1] : cell;
-    for (const nb of NEIGHBORS[last]) {
-      if (!free.has(nb) || used.has(nb)) continue;
-      used.add(nb);
-      left.push(nb);
-      growLeft(need - 1, rightNeed);
-      left.pop();
-      used.delete(nb);
-    }
-  }
-
-  for (let i = 0; i < FIVE_WORD_LENGTH; i++) {
-    growLeft(i, FIVE_WORD_LENGTH - 1 - i);
-  }
-  return [...out.values()];
-}
-
-/**
- * Découpe la grille en WORDS_TO_WIN tracés de FIVE_WORD_LENGTH cases
- * couvrant les 25 cases (backtracking randomisé sur la plus petite case
- * libre). Un pavage existe toujours (les 5 lignes en sont un).
- * @returns {number[][]}
- */
-function carveTiling() {
-  const free = new Set(ALL_CELLS);
-  /** @type {number[][]} */
-  const paths = [];
-
-  function carve() {
-    if (free.size === 0) return true;
-    let lowest = -1;
-    for (const c of free) if (lowest < 0 || c < lowest) lowest = c;
-    for (const path of shuffled(pathsThrough(lowest, free))) {
-      for (const c of path) free.delete(c);
-      paths.push(path);
-      if (carve()) return true;
-      paths.pop();
-      for (const c of path) free.add(c);
-    }
-    return false;
-  }
-
-  carve();
-  return paths;
-}
-
-/**
- * Tentative de grille « pavage parfait » : un pavage est découpé, les mots
- * y sont posés dans un sens aléatoire. Pas de case de remplissage, donc la
- * réparation locale remplace un mot impliqué dans un tracé parasite (les
- * tracés étant disjoints, changer un mot ne touche pas les autres).
- * @param {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}} five
- * @param {import("./config.js").Difficulty} difficulty
- * @returns {{letters: string[], solution: string[], issues: number}|null}
- */
-function attemptTilingGrid(five, difficulty) {
-  const picked = pickSolutionWords(five.candidates, difficulty);
-  if (!picked) return null;
-  const { words, tiers } = picked;
-
-  const paths = carveTiling().map((p) =>
-    Math.random() < 0.5 ? [...p].reverse() : p,
-  );
-  const letters = new Array(CELL_COUNT).fill("");
-  /** @type {number[]} case → index du mot qui l'occupe */
-  const owner = new Array(CELL_COUNT).fill(0);
-  /** @param {number} i */
-  function writeWord(i) {
-    for (let k = 0; k < paths[i].length; k++) {
-      letters[paths[i][k]] = words[i][k];
-      owner[paths[i][k]] = i;
-    }
-  }
-  for (let i = 0; i < words.length; i++) writeWord(i);
-
-  const verify = () =>
-    collectIssues(
-      findFivePaths(letters, five.words5, five.prefixes5),
-      new Map(words.map((w, i) => [w, canonKey(paths[i])])),
+  function drawTierCounts(difficulty) {
+    const q = DIFFICULTY_QUOTAS[difficulty];
+    /** @param {number} f */
+    const scale = (f) => Math.round(f * wordCount);
+    let left = wordCount;
+    const inconnu = randInt(
+      scale(q.inconnu[0]),
+      Math.min(scale(q.inconnu[1]), left),
     );
-
-  let issues = verify();
-  for (let r = 0; r < MAX_GRID_REPAIRS && issues.length > 0; r++) {
-    /** @type {Set<number>} */
-    const involved = new Set();
-    for (const path of issues) for (const c of path) involved.add(owner[c]);
-    const list = [...involved];
-    const i = list[(Math.random() * list.length) | 0];
-    const repl = pickReplacementWord(five.candidates[tiers[i]], words, i);
-    if (repl === null) break;
-    words[i] = repl;
-    if (Math.random() < 0.5) paths[i] = [...paths[i]].reverse();
-    writeWord(i);
-    issues = verify();
+    left -= inconnu;
+    const adulte = randInt(
+      scale(q.adulte[0]),
+      Math.min(scale(q.adulte[1]), left),
+    );
+    left -= adulte;
+    const ado = randInt(
+      Math.min(scale(q.ado[0]), left),
+      Math.min(scale(q.ado[1]), left),
+    );
+    left -= ado;
+    return { enfant: left, ado, adulte, inconnu };
   }
-  return { letters, solution: words.slice(), issues: issues.length };
-}
 
-/**
- * Génère une grille de pavage parfait : tirages successifs jusqu'à une
- * grille sans tracé fautif. Au-delà de MAX_FIVE_GRID_TRIES tentatives, la
- * grille la moins fautive rencontrée est rendue (avertissement en console).
- * @param {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}} five
- * @param {import("./config.js").Difficulty} difficulty
- * @returns {{ letters: string[], solution: string[], tries: number }}
- */
-export function generateFiveGrid(five, difficulty) {
-  /** @type {{letters: string[], solution: string[], issues: number}|null} */
-  let best = null;
-  for (let t = 0; t < MAX_FIVE_GRID_TRIES; t++) {
-    const result = attemptTilingGrid(five, difficulty);
-    if (!result) continue;
-    if (result.issues === 0) {
-      return { letters: result.letters, solution: result.solution, tries: t + 1 };
+  /**
+   * Tire wordCount mots candidats respectant la composition de la
+   * difficulté, deux à deux distants d'au moins 2 lettres (pas de
+   * SALLE/BALLE dans la même solution). `tiers[i]` est le palier du mot
+   * `words[i]` : un remplacement (réparation) se fait dans le même palier
+   * pour préserver la composition.
+   * @param {Difficulty} difficulty
+   * @returns {{words: string[], tiers: Tier[]}|null}
+   */
+  function pickSolutionWords(difficulty) {
+    for (let t = 0; t < 50; t++) {
+      const counts = drawTierCounts(difficulty);
+      /** @type {Tier[]} */
+      const tiers = [];
+      for (const tier of /** @type {Tier[]} */ (Object.keys(counts))) {
+        if (candidates[tier].length < counts[tier]) break; // palier trop pauvre
+        for (let k = 0; k < counts[tier]; k++) tiers.push(tier);
+      }
+      if (tiers.length !== wordCount) continue;
+      /** @type {string[]} */
+      const chosen = [];
+      for (let g = 0; g < 40 * wordCount && chosen.length < wordCount; g++) {
+        const pool = candidates[tiers[chosen.length]];
+        const w = pool[(Math.random() * pool.length) | 0];
+        if (chosen.every((c) => hamming(c, w) >= 2)) chosen.push(w);
+      }
+      if (chosen.length === wordCount) return { words: chosen, tiers };
     }
-    if (!best || result.issues < best.issues) best = result;
+    return null;
   }
-  if (!best) {
-    // Paliers de vocabulaire trop pauvres pour composer la solution : ne
-    // devrait jamais arriver avec les fichiers fournis.
-    console.warn("Tracemot : génération du pavage impossible, grille aléatoire.");
-    return { letters: drawLetters(), solution: [], tries: MAX_FIVE_GRID_TRIES };
+
+  /**
+   * Énumère tous les mots de wordLength lettres du dictionnaire complet
+   * traçables dans la grille, avec leurs tracés canoniques.
+   * @param {string[]} letters
+   * @returns {Map<string, Map<string, number[]>>} mot → (clé canonique → tracé)
+   */
+  function findWordPaths(letters) {
+    /** @type {Map<string, Map<string, number[]>>} */
+    const found = new Map();
+    const visited = new Uint8Array(cellCount);
+
+    /**
+     * @param {number} idx
+     * @param {string} prefix
+     * @param {number[]} path
+     */
+    function dfs(idx, prefix, path) {
+      const next = prefix + letters[idx];
+      if (!prefixes.has(next)) return;
+      visited[idx] = 1;
+      path.push(idx);
+      if (path.length === wordLength) {
+        if (fullWords.has(next)) {
+          let paths = found.get(next);
+          if (!paths) found.set(next, (paths = new Map()));
+          const key = canonKey(path);
+          if (!paths.has(key)) paths.set(key, path.slice());
+        }
+      } else {
+        for (const nb of neighbors[idx]) {
+          if (!visited[nb]) dfs(nb, next, path);
+        }
+      }
+      path.pop();
+      visited[idx] = 0;
+    }
+
+    for (let i = 0; i < cellCount; i++) dfs(i, "", []);
+    return found;
   }
-  console.warn(
-    `Tracemot : plafond de ${MAX_FIVE_GRID_TRIES} tentatives atteint - ` +
-      `meilleure grille conservée (${best.issues} tracé(s) parasite(s)).`,
-  );
-  return { letters: best.letters, solution: best.solution, tries: MAX_FIVE_GRID_TRIES };
+
+  /**
+   * Tracés fautifs d'une grille : tout tracé d'un mot hors solution, et tout
+   * tracé d'un mot de la solution autre que celui posé. Une grille est valide
+   * quand cette liste est vide.
+   * @param {Map<string, Map<string, number[]>>} found
+   * @param {Map<string, string>} intended mot de la solution → clé canonique du tracé posé
+   * @returns {number[][]}
+   */
+  function collectIssues(found, intended) {
+    /** @type {number[][]} */
+    const issues = [];
+    for (const [word, paths] of found) {
+      const wanted = intended.get(word);
+      for (const [key, path] of paths) {
+        if (key !== wanted) issues.push(path);
+      }
+    }
+    return issues;
+  }
+
+  /**
+   * Mot de remplacement pour la position `i` de la solution : distinct des
+   * mots en place et à distance de Hamming ≥ 2 de chacun des autres.
+   * `pool` est le vivier du palier du mot remplacé (la composition de la
+   * difficulté est ainsi préservée).
+   * @param {string[]} pool
+   * @param {string[]} words
+   * @param {number} i
+   * @returns {string|null}
+   */
+  function pickReplacementWord(pool, words, i) {
+    for (let g = 0; g < 100; g++) {
+      const w = pool[(Math.random() * pool.length) | 0];
+      if (words.includes(w)) continue;
+      if (words.every((c, j) => j === i || hamming(c, w) >= 2)) return w;
+    }
+    return null;
+  }
+
+  /**
+   * Tous les tracés de wordLength cases passant par `cell` dans les cases
+   * libres : bras gauche + cell + bras droit, dédoublonnés (un tracé et son
+   * inverse comptent pour un).
+   * @param {number} cell
+   * @param {Set<number>} free
+   * @returns {number[][]}
+   */
+  function pathsThrough(cell, free) {
+    /** @type {Map<string, number[]>} */
+    const out = new Map();
+    const used = new Set([cell]);
+    /** @type {number[]} */
+    const left = [];
+    /** @type {number[]} */
+    const right = [];
+
+    /** @param {number} need */
+    function growRight(need) {
+      if (need === 0) {
+        const path = [...left].reverse().concat(cell, right);
+        const key = canonKey(path);
+        if (!out.has(key)) out.set(key, path);
+        return;
+      }
+      const last = right.length > 0 ? right[right.length - 1] : cell;
+      for (const nb of neighbors[last]) {
+        if (!free.has(nb) || used.has(nb)) continue;
+        used.add(nb);
+        right.push(nb);
+        growRight(need - 1);
+        right.pop();
+        used.delete(nb);
+      }
+    }
+
+    /**
+     * @param {number} need
+     * @param {number} rightNeed
+     */
+    function growLeft(need, rightNeed) {
+      if (need === 0) {
+        growRight(rightNeed);
+        return;
+      }
+      const last = left.length > 0 ? left[left.length - 1] : cell;
+      for (const nb of neighbors[last]) {
+        if (!free.has(nb) || used.has(nb)) continue;
+        used.add(nb);
+        left.push(nb);
+        growLeft(need - 1, rightNeed);
+        left.pop();
+        used.delete(nb);
+      }
+    }
+
+    for (let i = 0; i < wordLength; i++) {
+      growLeft(i, wordLength - 1 - i);
+    }
+    return [...out.values()];
+  }
+
+  /**
+   * Découpe la grille en wordCount tracés de wordLength cases couvrant
+   * toutes les cases (backtracking randomisé sur la plus petite case libre).
+   * Un pavage existe toujours dès que wordLength divise rows ou cols (les
+   * lignes ou colonnes en sont un).
+   * @returns {number[][]}
+   */
+  function carveTiling() {
+    const free = new Set(allCells);
+    /** @type {number[][]} */
+    const paths = [];
+
+    // Élagage : un pavage n'est possible que si chaque composante connexe
+    // de cases libres a une taille multiple de wordLength. Sans ce test, un
+    // tracé qui enclave une poche impossible à paver n'est découvert que
+    // bien plus tard, et le backtracking explose sur les grandes grilles
+    // (le 8×8 en serpents de 8 passait de quelques ms à plusieurs minutes).
+    const seen = new Uint8Array(cellCount);
+    function componentsOk() {
+      seen.fill(0);
+      for (const start of free) {
+        if (seen[start]) continue;
+        seen[start] = 1;
+        let size = 0;
+        const queue = [start];
+        while (queue.length > 0) {
+          const c = /** @type {number} */ (queue.pop());
+          size++;
+          for (const nb of neighbors[c]) {
+            if (free.has(nb) && !seen[nb]) {
+              seen[nb] = 1;
+              queue.push(nb);
+            }
+          }
+        }
+        if (size % wordLength !== 0) return false;
+      }
+      return true;
+    }
+
+    function carve() {
+      if (free.size === 0) return true;
+      let lowest = -1;
+      for (const c of free) if (lowest < 0 || c < lowest) lowest = c;
+      for (const path of shuffled(pathsThrough(lowest, free))) {
+        for (const c of path) free.delete(c);
+        if (componentsOk()) {
+          paths.push(path);
+          if (carve()) return true;
+          paths.pop();
+        }
+        for (const c of path) free.add(c);
+      }
+      return false;
+    }
+
+    carve();
+    return paths;
+  }
+
+  /**
+   * Tentative de grille « pavage parfait » : un pavage est découpé, les mots
+   * y sont posés dans un sens aléatoire. Pas de case de remplissage, donc la
+   * réparation locale remplace un mot impliqué dans un tracé parasite (les
+   * tracés étant disjoints, changer un mot ne touche pas les autres).
+   * @param {Difficulty} difficulty
+   * @returns {{letters: string[], solution: string[], issues: number}|null}
+   */
+  function attemptTilingGrid(difficulty) {
+    const picked = pickSolutionWords(difficulty);
+    if (!picked) return null;
+    const { words, tiers } = picked;
+
+    const paths = carveTiling().map((p) =>
+      Math.random() < 0.5 ? [...p].reverse() : p,
+    );
+    const letters = new Array(cellCount).fill("");
+    /** @type {number[]} case → index du mot qui l'occupe */
+    const owner = new Array(cellCount).fill(0);
+    /** @param {number} i */
+    function writeWord(i) {
+      for (let k = 0; k < paths[i].length; k++) {
+        letters[paths[i][k]] = words[i][k];
+        owner[paths[i][k]] = i;
+      }
+    }
+    for (let i = 0; i < words.length; i++) writeWord(i);
+
+    const verify = () =>
+      collectIssues(
+        findWordPaths(letters),
+        new Map(words.map((w, i) => [w, canonKey(paths[i])])),
+      );
+
+    // Réparation par hill-climbing : à chaque ronde, un mot impliqué dans un
+    // tracé parasite est mis en concurrence avec REPAIR_CANDIDATES
+    // remplaçants (sens de pose aléatoire) ; le candidat laissant le moins
+    // de tracés parasites est retenu, à égalité comprise (mouvement latéral,
+    // pour ne pas rester coincé sur un plateau), sinon on revient au mot en
+    // place. Un remplacement aveugle suffit sur 25 cases mais ne converge
+    // pas sur les grandes grilles, où les tracés parasites abondent.
+    let issues = verify();
+    for (let r = 0; r < MAX_GRID_REPAIRS && issues.length > 0; r++) {
+      /** @type {Set<number>} */
+      const involved = new Set();
+      for (const path of issues) for (const c of path) involved.add(owner[c]);
+      const list = [...involved];
+      const i = list[(Math.random() * list.length) | 0];
+      const origWord = words[i];
+      const origPath = paths[i];
+      /** @type {{word: string, path: number[], issues: number[][]}|null} */
+      let best = null;
+      for (let k = 0; k < REPAIR_CANDIDATES; k++) {
+        const repl = pickReplacementWord(candidates[tiers[i]], words, i);
+        if (repl === null) break;
+        words[i] = repl;
+        paths[i] = Math.random() < 0.5 ? [...origPath].reverse() : origPath;
+        writeWord(i);
+        const cand = verify();
+        if (!best || cand.length < best.issues.length) {
+          best = { word: repl, path: paths[i], issues: cand };
+        }
+        if (cand.length < issues.length) break; // amélioration : adoptée
+      }
+      if (!best) {
+        // Vivier épuisé : on restaure le mot en place et on s'arrête là.
+        words[i] = origWord;
+        paths[i] = origPath;
+        writeWord(i);
+        break;
+      }
+      if (best.issues.length <= issues.length) {
+        words[i] = best.word;
+        paths[i] = best.path;
+        issues = best.issues;
+      } else {
+        words[i] = origWord;
+        paths[i] = origPath;
+      }
+      writeWord(i);
+    }
+    return { letters, solution: words.slice(), issues: issues.length };
+  }
+
+  /**
+   * Génère une grille de pavage parfait : tirages successifs jusqu'à une
+   * grille sans tracé fautif. Au-delà de MAX_GRID_TRIES tentatives, la
+   * grille la moins fautive rencontrée est rendue (avertissement en console).
+   * @param {Difficulty} difficulty
+   * @returns {{ letters: string[], solution: string[], tries: number }}
+   */
+  function generate(difficulty) {
+    /** @type {{letters: string[], solution: string[], issues: number}|null} */
+    let best = null;
+    for (let t = 0; t < MAX_GRID_TRIES; t++) {
+      const result = attemptTilingGrid(difficulty);
+      if (!result) continue;
+      if (result.issues === 0) {
+        return {
+          letters: result.letters,
+          solution: result.solution,
+          tries: t + 1,
+        };
+      }
+      if (!best || result.issues < best.issues) best = result;
+    }
+    if (!best) {
+      // Paliers de vocabulaire trop pauvres pour composer la solution : ne
+      // devrait jamais arriver avec les fichiers fournis.
+      console.warn(
+        "Tracemot : génération du pavage impossible, grille aléatoire.",
+      );
+      return {
+        letters: drawLetters(cellCount),
+        solution: [],
+        tries: MAX_GRID_TRIES,
+      };
+    }
+    console.warn(
+      `Tracemot : plafond de ${MAX_GRID_TRIES} tentatives atteint - ` +
+        `meilleure grille conservée (${best.issues} tracé(s) parasite(s)).`,
+    );
+    return {
+      letters: best.letters,
+      solution: best.solution,
+      tries: MAX_GRID_TRIES,
+    };
+  }
+
+  return { generate };
 }
 
 /**
  * Énumère tous les mots de `words` trouvables dans la grille, avec un tracé
  * (le premier rencontré) pour chacun. Même DFS que le solveur, sans arrêt
  * anticipé. Utilisé par le mode debug uniquement.
+ * @param {Geometry} geometry
  * @param {string[]} letters
  * @param {Set<string>} words
  * @param {Set<string>} prefixes
  * @returns {Map<string, number[]>} mot → tracé (indices de cases)
  */
-export function findAllWords(letters, words, prefixes) {
+export function findAllWords(geometry, letters, words, prefixes) {
+  const { cellCount, neighbors } = geometry;
   /** @type {Map<string, number[]>} */
   const found = new Map();
+  const visited = new Uint8Array(cellCount);
 
   /**
    * @param {number} idx
-   * @param {number} mask
    * @param {string} prefix
    * @param {number[]} path
    */
-  function dfs(idx, mask, prefix, path) {
+  function dfs(idx, prefix, path) {
     const next = prefix + letters[idx];
     if (!prefixes.has(next)) return;
+    visited[idx] = 1;
     path.push(idx);
     if (next.length >= MIN_WORD_LENGTH && words.has(next) && !found.has(next)) {
       found.set(next, path.slice());
     }
-    for (const nb of NEIGHBORS[idx]) {
-      const bit = 1 << nb;
-      if (!(mask & bit)) dfs(nb, mask | bit, next, path);
+    for (const nb of neighbors[idx]) {
+      if (!visited[nb]) dfs(nb, next, path);
     }
     path.pop();
+    visited[idx] = 0;
   }
 
-  for (let i = 0; i < CELL_COUNT; i++) dfs(i, 1 << i, "", []);
+  for (let i = 0; i < cellCount; i++) dfs(i, "", []);
   return found;
 }

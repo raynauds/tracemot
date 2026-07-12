@@ -1,17 +1,24 @@
 // @ts-check
 // État centralisé de la partie. main.js écrit le déroulement, render.js
 // et input.js le lisent (input.js ne modifie que path et pointerId).
+// Le mode de jeu (forme de grille + puzzle) et sa géométrie sont figés au
+// chargement depuis la config : tout le reste en dérive.
+
+import { ACTIVE_MODE, GAME_MODES } from "./config.js";
+import { createGeometry } from "./geometry.js";
+
+const mode = GAME_MODES[ACTIVE_MODE];
 
 export const state = {
   ready: false, // dictionnaires chargés et partie en place
+  /** @type {import("./config.js").GameMode} Mode de jeu actif. */
+  mode,
+  /** @type {import("./geometry.js").Geometry} Géométrie de la grille du mode. */
+  geometry: createGeometry(mode.rows, mode.cols),
   /** @type {import("./config.js").Difficulty} Difficulté courante (étoiles). */
   difficulty: 1,
   /** @type {string[]} Mots cachés de la grille. */
   solution: [],
-  /** @type {{candidates: Record<import("./config.js").Tier, string[]>, words5: Set<string>, prefixes5: Set<string>}|null}
-   *  Sous-ensembles « 5 lettres » des dictionnaires, construits au premier
-   *  lancement de partie. */
-  five: null,
   /** @type {Set<string>} Tous les mots (validation des tracés). */
   words: new Set(),
   /** @type {Set<string>} Préfixes du dictionnaire complet (mode debug uniquement). */
@@ -24,7 +31,7 @@ export const state = {
     adulte: new Set(),
     inconnu: new Set(),
   },
-  /** @type {string[]} Les 25 lettres de la grille courante. */
+  /** @type {string[]} Les lettres de la grille courante (une par case). */
   letters: [],
   /** @type {number[]} Indices des cases du tracé en cours. */
   path: [],

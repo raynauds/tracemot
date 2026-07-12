@@ -19,7 +19,12 @@ export function buildDebugPanel() {
 
 export function renderDebugPanel() {
   if (!debugPanelEl) return;
-  const all = findAllWords(state.letters, state.words, state.fullPrefixes);
+  const all = findAllWords(
+    state.geometry,
+    state.letters,
+    state.words,
+    state.fullPrefixes,
+  );
   const entries = [...all.entries()].sort(([a], [b]) => a.localeCompare(b));
   const childCount = entries.filter(([w]) =>
     state.tierWords.enfant.has(w),

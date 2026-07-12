@@ -7,13 +7,11 @@
 
 import { Application, Container, Graphics, Text } from "pixi.js";
 import {
-  CELL_COUNT,
   CELL_GAP,
   CELL_SIZE,
   CARD,
   CARD_HOVER,
   GHOST,
-  GRID_SIZE,
   INK,
   LINE,
   PAPER,
@@ -24,9 +22,8 @@ import { Camera } from "./camera.js";
 import { state } from "./state.js";
 import { easeOutCubic, initTweens, tween } from "./tween.js";
 
-// Grille carrée dérivée de la config, sans hypothèse « 5 » en dur.
-const rows = GRID_SIZE;
-const cols = CELL_COUNT / GRID_SIZE;
+// Géométrie de la grille, tirée du mode actif (figé au chargement).
+const { rows, cols, cellCount } = state.geometry;
 
 // Constantes de design (proportions), en « unités design ». Elles sont
 // multipliées par baseScale (caméra) pour donner les métriques de rendu.
@@ -210,7 +207,7 @@ function lerpColor(a, b, t) {
 // Repeint toutes les cases (25 petits roundRect : bon marché, appelé aux
 // changements de tracé et de cases consommées).
 function repaintCells() {
-  for (let i = 0; i < CELL_COUNT; i++) paintCell(i);
+  for (let i = 0; i < cellCount; i++) paintCell(i);
 }
 
 // Résolution de texture des lettres. Le glyphe est déjà gravé à la taille du
@@ -223,11 +220,11 @@ function letterResolution() {
   return Math.min(4, dpr * 1.5);
 }
 
-// Construit les CELL_COUNT cases (fond + lettre vide) une fois pour toutes.
+// Construit les cellCount cases (fond + lettre vide) une fois pour toutes.
 // Positions, tailles et résolution sont posées par layoutCells (rappelée au
 // resize via relayout). Les lettres sont peuplées par renderSceneGrid.
 function buildGrid() {
-  for (let i = 0; i < CELL_COUNT; i++) {
+  for (let i = 0; i < cellCount; i++) {
     const bg = new Graphics();
     cellsLayer.addChild(bg);
     cellBgs.push(bg);
@@ -254,7 +251,7 @@ function buildGrid() {
 // centre de la case : scale/pop grandissent autour du centre, sans dérive.
 function layoutCells() {
   const resolution = letterResolution();
-  for (let i = 0; i < CELL_COUNT; i++) {
+  for (let i = 0; i < cellCount; i++) {
     const c = cellCenter(i);
     cellBgs[i].position.set(c.x, c.y);
     cellTexts[i].position.set(c.x, c.y);
@@ -348,7 +345,7 @@ function popCell(i) {
 // décalée par indice comme l'impression CSS d'origine.
 function dealCells() {
   prevPathLen = 0;
-  for (let i = 0; i < CELL_COUNT; i++) {
+  for (let i = 0; i < cellCount; i++) {
     cellBgs[i].tint = 0xffffff; // efface un éventuel flash en cours
     setCellTransform(i, DEAL_SCALE, 0);
     tween({
@@ -618,7 +615,7 @@ export async function initScene() {
 // cases à l'état normal, efface le tracé et les fantômes, recadre.
 export function renderSceneGrid() {
   if (!app) return;
-  for (let i = 0; i < CELL_COUNT; i++) {
+  for (let i = 0; i < cellCount; i++) {
     cellTexts[i].text = state.letters[i] ?? "";
   }
   repaintCells();

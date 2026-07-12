@@ -7,12 +7,15 @@ import {
   DIFFICULTY_LABELS,
   DIFFICULTY_TOAST_MS,
   ENABLED_DIFFICULTIES,
-  FIVE_WORD_LENGTH,
   REJECT_DISPLAY_MS,
-  WORDS_TO_WIN,
 } from "./config.js";
 import { state } from "./state.js";
 import { wordRejectReason } from "./rules.js";
+
+// Dimensions du puzzle, tirées du mode actif (figé au chargement).
+const { wordCount, wordLength } = state.mode;
+// Ligne vide du registre : un point par lettre attendue.
+const WORD_DOTS = Array.from({ length: wordLength }, () => "·").join(" ");
 
 /**
  * @param {string} id
@@ -34,7 +37,7 @@ const wordListEl = byId("word-list");
 const ruleSpecEl = byId("rule-spec");
 
 /** @type {HTMLElement[]} */
-const listRows = []; // les WORDS_TO_WIN lignes du registre
+const listRows = []; // les wordCount lignes du registre
 
 // --- Utilitaires --------------------------------------------------------
 
@@ -50,7 +53,7 @@ function formatTime(ms) {
 // (mises en capitales par le CSS). La phrase serif au-dessus est générique
 // (sans nombres) et vit dans le HTML.
 function renderRuleSpec() {
-  ruleSpecEl.textContent = `${WORDS_TO_WIN} mots · ${FIVE_WORD_LENGTH} lettres`;
+  ruleSpecEl.textContent = `${wordCount} mots · ${wordLength} lettres`;
 }
 
 // --- Sélecteur de difficulté (chip + popover / feuille + toast) ------------
@@ -242,11 +245,12 @@ export function showRuleOnFirstVisit() {
 
 export function buildBoard() {
   // Les lignes du registre sont pré-rendues dans le HTML (anti-shift au
-  // chargement) : on les adopte, et on n'ajuste que si WORDS_TO_WIN diffère.
-  while (wordListEl.children.length > WORDS_TO_WIN) {
+  // chargement, calées sur le mode par défaut) : on les adopte, et on
+  // n'ajuste que si le mode actif diffère.
+  while (wordListEl.children.length > wordCount) {
     wordListEl.lastElementChild?.remove();
   }
-  for (let i = 0; i < WORDS_TO_WIN; i++) {
+  for (let i = 0; i < wordCount; i++) {
     const existing = /** @type {HTMLElement|undefined} */ (
       wordListEl.children[i]
     );
@@ -261,7 +265,7 @@ export function buildBoard() {
     num.textContent = String(i + 1).padStart(2, "0");
     const content = document.createElement("span");
     content.className = "word-dots";
-    content.textContent = "· · · · ·";
+    content.textContent = WORD_DOTS;
     li.append(num, content);
     wordListEl.appendChild(li);
     listRows.push(li);
@@ -284,7 +288,7 @@ function resetListRow(row) {
   row.className = "word-row empty";
   const content = row.children[1];
   content.className = "word-dots";
-  content.textContent = "· · · · ·";
+  content.textContent = WORD_DOTS;
   const reason = row.querySelector(".word-reason");
   if (reason) reason.remove();
 }
@@ -350,7 +354,7 @@ export function fillListRow(index, word, animate) {
 }
 
 export function renderCounter() {
-  counterEl.innerHTML = `<span class="count">${state.found.length}</span> / ${WORDS_TO_WIN}`;
+  counterEl.innerHTML = `<span class="count">${state.found.length}</span> / ${wordCount}`;
 }
 
 // --- Grille (feedbacks portés en Pixi) -------------------------------------
@@ -403,7 +407,7 @@ export function renderWin() {
   chronoEl.textContent = `${time} ■`;
   chronoEl.classList.add("won");
   counterEl.classList.add("full");
-  winSubEl.textContent = `${WORDS_TO_WIN} MOT${WORDS_TO_WIN > 1 ? "S" : ""} EN ${time}`;
+  winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} EN ${time}`;
   winEl.hidden = false;
 }
 
