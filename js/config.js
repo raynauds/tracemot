@@ -12,8 +12,8 @@
 /** @type {Record<string, GameMode>} */
 export const GAME_MODES = {
   classique: { rows: 5, cols: 5, wordLength: 5, wordCount: 5 },
-  double: { rows: 5, cols: 10, wordLength: 5, wordCount: 10 },
-  grand: { rows: 8, cols: 8, wordLength: 8, wordCount: 8 },
+  maxi: { rows: 10, cols: 10, wordLength: 5, wordCount: 20 },
+  longs: { rows: 8, cols: 8, wordLength: 8, wordCount: 8 },
 };
 
 for (const [id, m] of Object.entries(GAME_MODES)) {
@@ -32,16 +32,17 @@ export const DEFAULT_MODE = "classique";
 // pour restreindre le jeu. Avec un seul mode accessible, le sélecteur
 // (chip du header) disparaît entièrement.
 /** @type {(keyof typeof GAME_MODES)[]} */
-export const ENABLED_MODES = ["classique", "double", "grand"];
+export const ENABLED_MODES = ["classique", "maxi", "longs"];
 
 // Nom et description de chaque mode : chip du header, lignes de la feuille
-// de sélection et toast de confirmation. Le nom décrit la grille
-// (largeur × hauteur), la description le puzzle.
+// de sélection et toast de confirmation. Le nom décrit le puzzle
+// (nombre de mots × nombre de lettres, PAS la grille), la description le
+// développe en toutes lettres.
 /** @type {Record<keyof typeof GAME_MODES, {name: string, desc: string}>} */
 export const MODE_LABELS = {
   classique: { name: "5×5", desc: "5 mots de 5 lettres" },
-  double: { name: "10×5", desc: "10 mots de 5 lettres" },
-  grand: { name: "8×8", desc: "8 mots de 8 lettres" },
+  maxi: { name: "20×5", desc: "20 mots de 5 lettres" },
+  longs: { name: "8×8", desc: "8 mots de 8 lettres" },
 };
 
 // Mode debug : affiche en bas de l'écran tous les mots trouvables dans la
@@ -91,9 +92,10 @@ export const TOAST_MS = 2000;
 // Tentatives complètes (choix des mots + placement + réparations +
 // vérification) avant de rendre la meilleure grille imparfaite rencontrée.
 export const MAX_GRID_TRIES = 250;
-// Rondes de réparation locale par tentative : remplacement d'un mot
-// impliqué dans un tracé parasite.
-export const MAX_GRID_REPAIRS = 60;
+// Rondes de réparation locale par tentative, PAR MOT de la solution
+// (remplacement d'un mot impliqué dans un tracé parasite) : le budget total
+// suit le nombre de mots du mode — 12 × 5 = 60 rondes en 5×5, 240 en 10×10.
+export const GRID_REPAIRS_PER_WORD = 12;
 // Mots de remplacement essayés par ronde de réparation : celui qui laisse
 // le moins de tracés parasites est retenu (hill-climbing). Indispensable
 // aux grandes grilles, où un remplacement aveugle ne converge pas.

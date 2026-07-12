@@ -8,7 +8,7 @@ import {
   DIFFICULTY_QUOTAS,
   LETTER_WEIGHTS,
   MAX_GRID_TRIES,
-  MAX_GRID_REPAIRS,
+  GRID_REPAIRS_PER_WORD,
   MIN_WORD_LENGTH,
   REPAIR_CANDIDATES,
 } from "./config.js";
@@ -415,7 +415,8 @@ export function createGridGenerator(geometry, mode, sets) {
     // place. Un remplacement aveugle suffit sur 25 cases mais ne converge
     // pas sur les grandes grilles, où les tracés parasites abondent.
     let issues = verify();
-    for (let r = 0; r < MAX_GRID_REPAIRS && issues.length > 0; r++) {
+    const maxRepairs = GRID_REPAIRS_PER_WORD * wordCount;
+    for (let r = 0; r < maxRepairs && issues.length > 0; r++) {
       /** @type {Set<number>} */
       const involved = new Set();
       for (const path of issues) for (const c of path) involved.add(owner[c]);

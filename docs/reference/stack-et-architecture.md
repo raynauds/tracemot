@@ -28,7 +28,7 @@ Tous les réglages sont dans `js/config.js` :
 - `GAME_MODES` / `DEFAULT_MODE` / `ENABLED_MODES` / `MODE_LABELS` - modes de jeu : forme de la grille (`rows` × `cols`) et puzzle (`wordCount` mots de `wordLength` lettres), avec l'invariant `wordCount × wordLength = rows × cols` validé au chargement. Le mode se change à chaud depuis la chip du header (grille Pixi, caméra et registre reconstruits) ; tout le reste (solveur, registre, compteur, victoire, caméra) dérive du mode actif.
 - `DEBUG` - active le mode debug (voir [fonctionnalites.md](fonctionnalites.md)).
 - Difficultés : `ENABLED_DIFFICULTIES`, `DEFAULT_DIFFICULTY`, quotas par palier dans `DIFFICULTY_QUOTAS` (bornes en fraction du nombre de mots du mode).
-- Génération : `MAX_GRID_TRIES`, `MAX_GRID_REPAIRS`, `REPAIR_CANDIDATES` (réparation hill-climbing).
+- Génération : `MAX_GRID_TRIES`, `GRID_REPAIRS_PER_WORD` (budget de réparation ∝ nombre de mots du mode), `REPAIR_CANDIDATES` (réparation hill-climbing).
 - Monde Pixi et caméra : `CELL_SIZE`, `CELL_GAP`, `VIEW_MARGIN` (jusqu'où on peut dézoomer et écarter la grille de l'interface), `FIT_MARGIN_PX` (marge visée par le cadrage d'ouverture), `ZOOM_MAX_CELLS`, `ZOOM_STEP`, `KEY_PAN_SPEED`, `EDGE_PAN_MARGIN`, `EDGE_PAN_MAX_SPEED`, plus la palette numérique (`PAPER`, `CARD`, `INK`…).
 
 ## Persistance
