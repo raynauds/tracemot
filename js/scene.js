@@ -66,7 +66,8 @@ function updateMetrics(base) {
 
 // --- Réglages d'animation (Pixi-natif : alpha/scale/tint/position) ---------
 const DEAL_MS = 300; // distribution : durée d'apparition d'une case
-const DEAL_STAGGER = 18; // décalage par indice (cascade), repris du --i CSS
+const DEAL_WAVE_MS = 380; // durée du front de vague (coin haut-gauche → bas-droit)
+const DEAL_JITTER_MS = 40; // amplitude du micro-décalage par case (±20 ms)
 const DEAL_SCALE = 1.18; // échelle de départ d'une case distribuée
 const POP_MS = 160; // case rejoignant le tracé : durée du rebond
 const POP_AMP = 0.09; // amplitude du rebond (scale 1→1+POP_AMP→1)
@@ -347,16 +348,20 @@ function popCell(i) {
   });
 }
 
-// « Deal » : distribution en cascade des cases (fondu + léger tassement),
-// décalée par indice comme l'impression CSS d'origine.
+// « Deal » : distribution des cases (fondu + léger tassement) en vague
+// circulaire depuis le coin haut-gauche — délai proportionnel à la distance
+// euclidienne, plus un micro-jitter déterministe qui casse le lockstep.
 function dealCells() {
   prevPathLen = 0;
+  const norm = Math.hypot(rows - 1, cols - 1) || 1;
   for (let i = 0; i < cellCount; i++) {
     cellBgs[i].tint = 0xffffff; // efface un éventuel flash en cours
     setCellTransform(i, DEAL_SCALE, 0);
+    const d = Math.hypot(Math.floor(i / cols), i % cols) / norm;
+    const jitter = (((i * 2654435761) >>> 16) & 0xff) / 255 - 0.5;
     tween({
       id: `cell-${i}`,
-      delay: i * DEAL_STAGGER,
+      delay: Math.max(0, d * DEAL_WAVE_MS + jitter * DEAL_JITTER_MS),
       duration: DEAL_MS,
       ease: easeOutCubic,
       onUpdate: (k) =>
