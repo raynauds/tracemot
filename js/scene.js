@@ -6,31 +6,34 @@
 // s'appuie sur cellAtGlobal / getStage exposés ici.
 
 import { Application, Container, Graphics, Text } from "pixi.js";
+import { Camera } from "./camera.js";
 import {
-  CELL_COUNT,
-  CELL_GAP,
-  CELL_SIZE,
   CARD,
   CARD_HOVER,
+  CELL_GAP,
+  CELL_SIZE,
   GHOST,
-  GRID_SIZE,
   INK,
   LINE,
   PAPER,
   VERMILION,
   ZOOM_STEP,
 } from "./config.js";
-import { Camera } from "./camera.js";
 import { state } from "./state.js";
-import { easeOutCubic, initTweens, tween } from "./tween.js";
+import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.js";
 
-// Grille carrée dérivée de la config, sans hypothèse « 5 » en dur.
-const rows = GRID_SIZE;
-const cols = CELL_COUNT / GRID_SIZE;
+// Géométrie de la grille, tirée du mode actif. Réadoptée au changement de
+// mode par rebuildGrid (les fonctions du module la lisent à l'appel).
+let rows = 0;
+let cols = 0;
+let cellCount = 0;
+function adoptGeometry() {
+  ({ rows, cols, cellCount } = state.geometry);
+}
 
 // Constantes de design (proportions), en « unités design ». Elles sont
 // multipliées par baseScale (caméra) pour donner les métriques de rendu.
-const CELL_RADIUS = 8;
+const CELL_RADIUS = 0;
 const CELL_STROKE = 3;
 const FONT_SIZE = 42; // ≈ rapport lettre/case du DOM
 const TRACE_WIDTH = 10; // largeur du trait
@@ -63,7 +66,8 @@ function updateMetrics(base) {
 
 // --- Réglages d'animation (Pixi-natif : alpha/scale/tint/position) ---------
 const DEAL_MS = 300; // distribution : durée d'apparition d'une case
-const DEAL_STAGGER = 18; // décalage par indice (cascade), repris du --i CSS
+const DEAL_WAVE_MS = 380; // durée du front de vague (coin haut-gauche → bas-droit)
+const DEAL_JITTER_MS = 40; // amplitude du micro-décalage par case (±20 ms)
 const DEAL_SCALE = 1.18; // échelle de départ d'une case distribuée
 const POP_MS = 160; // case rejoignant le tracé : durée du rebond
 const POP_AMP = 0.09; // amplitude du rebond (scale 1→1+POP_AMP→1)
@@ -72,7 +76,8 @@ const STAMP_SCALE = 1.12; // échelle de départ du tampon
 const FLASH_MS = 400; // refus : durée du flash vermillon d'une case
 const GHOST_FADE_MS = 300; // fondu d'apparition d'un tracé fantôme validé
 const SHAKE_MS = 400; // refus : durée de la secousse
-const SHAKE_AMP = 14; // amplitude écran de la secousse (px)
+const SHAKE_AMP = 0.08; // amplitude de la secousse (fraction de la largeur d'une case à l'écran)
+const SHAKE_MIN_PX = 6; // plancher écran (px) : garde la secousse perceptible très dézoomé
 const SHAKE_FREQ = 22; // pulsation de la secousse (rad/unité de temps normalisée)
 
 /** @type {Application} */
@@ -210,7 +215,7 @@ function lerpColor(a, b, t) {
 // Repeint toutes les cases (25 petits roundRect : bon marché, appelé aux
 // changements de tracé et de cases consommées).
 function repaintCells() {
-  for (let i = 0; i < CELL_COUNT; i++) paintCell(i);
+  for (let i = 0; i < cellCount; i++) paintCell(i);
 }
 
 // Résolution de texture des lettres. Le glyphe est déjà gravé à la taille du
@@ -223,11 +228,11 @@ function letterResolution() {
   return Math.min(4, dpr * 1.5);
 }
 
-// Construit les CELL_COUNT cases (fond + lettre vide) une fois pour toutes.
+// Construit les cellCount cases (fond + lettre vide) une fois pour toutes.
 // Positions, tailles et résolution sont posées par layoutCells (rappelée au
 // resize via relayout). Les lettres sont peuplées par renderSceneGrid.
 function buildGrid() {
-  for (let i = 0; i < CELL_COUNT; i++) {
+  for (let i = 0; i < cellCount; i++) {
     const bg = new Graphics();
     cellsLayer.addChild(bg);
     cellBgs.push(bg);
@@ -254,7 +259,7 @@ function buildGrid() {
 // centre de la case : scale/pop grandissent autour du centre, sans dérive.
 function layoutCells() {
   const resolution = letterResolution();
-  for (let i = 0; i < CELL_COUNT; i++) {
+  for (let i = 0; i < cellCount; i++) {
     const c = cellCenter(i);
     cellBgs[i].position.set(c.x, c.y);
     cellTexts[i].position.set(c.x, c.y);
@@ -339,21 +344,26 @@ function popCell(i) {
   tween({
     id: `cell-${i}`,
     duration: POP_MS,
-    onUpdate: (k) => setCellTransform(i, 1 + POP_AMP * Math.sin(Math.PI * k), 1),
+    onUpdate: (k) =>
+      setCellTransform(i, 1 + POP_AMP * Math.sin(Math.PI * k), 1),
     onComplete: () => setCellTransform(i, 1, 1),
   });
 }
 
-// « Deal » : distribution en cascade des cases (fondu + léger tassement),
-// décalée par indice comme l'impression CSS d'origine.
+// « Deal » : distribution des cases (fondu + léger tassement) en vague
+// circulaire depuis le coin haut-gauche — délai proportionnel à la distance
+// euclidienne, plus un micro-jitter déterministe qui casse le lockstep.
 function dealCells() {
   prevPathLen = 0;
-  for (let i = 0; i < CELL_COUNT; i++) {
+  const norm = Math.hypot(rows - 1, cols - 1) || 1;
+  for (let i = 0; i < cellCount; i++) {
     cellBgs[i].tint = 0xffffff; // efface un éventuel flash en cours
     setCellTransform(i, DEAL_SCALE, 0);
+    const d = Math.hypot(Math.floor(i / cols), i % cols) / norm;
+    const jitter = (((i * 2654435761) >>> 16) & 0xff) / 255 - 0.5;
     tween({
       id: `cell-${i}`,
-      delay: i * DEAL_STAGGER,
+      delay: Math.max(0, d * DEAL_WAVE_MS + jitter * DEAL_JITTER_MS),
       duration: DEAL_MS,
       ease: easeOutCubic,
       onUpdate: (k) =>
@@ -391,7 +401,8 @@ export function stampWord(traced) {
       id: `cell-${i}`,
       duration: STAMP_MS,
       ease: easeOutCubic,
-      onUpdate: (k) => setCellTransform(i, STAMP_SCALE + (1 - STAMP_SCALE) * k, 1),
+      onUpdate: (k) =>
+        setCellTransform(i, STAMP_SCALE + (1 - STAMP_SCALE) * k, 1),
       onComplete: () => setCellTransform(i, 1, 1),
     });
   }
@@ -425,7 +436,10 @@ function applyShake(ticker) {
     world.position.set(camera.x, camera.y); // retour à la position caméra pure
     return;
   }
-  const off = SHAKE_AMP * (1 - t) * Math.sin(t * SHAKE_FREQ);
+  // Amplitude proportionnelle à la taille écran d'une case (constante perçue
+  // quel que soit le zoom), avec un plancher en px écran très dézoomé.
+  const amp = Math.max(SHAKE_AMP * metrics.cell * camera.scale, SHAKE_MIN_PX);
+  const off = amp * (1 - t) * Math.sin(t * SHAKE_FREQ);
   world.position.set(camera.x + off, camera.y);
 }
 
@@ -586,6 +600,7 @@ export async function initScene() {
   // Caméra : calcule baseScale (px natifs par unité design au zoom max) et le
   // cadrage initial « fit ». Créée AVANT la grille : celle-ci est gravée à
   // baseScale (taille du zoom max) pour que la caméra ne fasse que dézoomer.
+  adoptGeometry();
   camera = new Camera(app, world, { rows, cols });
   updateMetrics(camera.baseScale);
 
@@ -614,11 +629,33 @@ export async function initScene() {
   buildZoomControls();
 }
 
+// Reconstruit la grille Pixi pour le mode actif (changement de mode à
+// chaud) : annule les animations en cours, détruit cases et lettres, recadre
+// la caméra sur la nouvelle forme, recrée la grille. Les lettres sont
+// reposées par renderSceneGrid (startGame).
+export function rebuildGrid() {
+  if (!app) return;
+  cancelTweens(); // aucun onUpdate ne doit toucher une case détruite
+  shaking = false; // fin de secousse : la caméra recale world via fit
+  debugHint.clear();
+  prevPathLen = 0;
+  for (const g of cellBgs) g.destroy();
+  for (const t of cellTexts) t.destroy();
+  cellBgs.length = 0;
+  cellTexts.length = 0;
+  ghostTrace.clear();
+  activeTrace.clear();
+  adoptGeometry();
+  camera.setGrid({ rows, cols }); // bornes + cadrage « tout voir »
+  updateMetrics(camera.baseScale); // baseScale inchangé, par principe
+  buildGrid();
+}
+
 // Réaffiche la grille pour la partie courante : pose les lettres, remet les
 // cases à l'état normal, efface le tracé et les fantômes, recadre.
 export function renderSceneGrid() {
   if (!app) return;
-  for (let i = 0; i < CELL_COUNT; i++) {
+  for (let i = 0; i < cellCount; i++) {
     cellTexts[i].text = state.letters[i] ?? "";
   }
   repaintCells();

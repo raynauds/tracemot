@@ -104,11 +104,12 @@ body {
   color: var(--vermilion);
 }
 
-/* ---------- Sélecteur de difficulté (chip + popover / feuille) ---------- */
+/* ---------- Sélecteurs du header (chip + popover / feuille) ---------- */
 
-/* Chip nommée dans le header : « ★ 3 · Moyen ». Un tap ouvre le popover
-   sous la chip (desktop) ou la feuille en bas d'écran (mobile) ; choisir
-   un niveau ferme aussitôt et confirme par un toast d'environ 2 s. */
+/* Composant partagé par la difficulté (« ★ 1 · Doux ») et le mode
+   (« ▦ 5×5 »). Un tap ouvre le popover sous la chip (desktop) ou la
+   feuille en bas d'écran (mobile) ; choisir une ligne ferme aussitôt et
+   confirme par un toast d'environ 2 s. */
 .difficulty {
   position: relative;
   align-self: center;
@@ -868,6 +869,9 @@ body {
   }
   .header-left {
     gap: 10px;
+    /* Titre + chips mode/difficulté + « ? » : sur très petit écran, les
+       chips passent à la ligne plutôt que de déborder du header. */
+    flex-wrap: wrap;
   }
   .title {
     font-size: 19px;

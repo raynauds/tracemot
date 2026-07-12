@@ -8,14 +8,15 @@ JS + HTML + CSS, modules ES natifs. Build **Vite**, une seule dépendance runtim
 
 Tout le code vit sous `js/` :
 
-- `config.js` - réglages (dont géométrie du monde Pixi et palette numérique).
-- `state.js` - état partagé.
-- `dictionary.js` et `solver.js` - logique pure, sans DOM (chargement des dictionnaires, génération et résolution de la grille).
+- `config.js` - réglages (dont modes de jeu, géométrie du monde Pixi et palette numérique).
+- `geometry.js` - géométrie d'une grille rows × cols (indices, voisins orthogonaux), partagée par le solveur, la scène et l'input.
+- `state.js` - état partagé (dont le mode actif et sa géométrie, changés à chaud via `applyMode`).
+- `dictionary.js` et `solver.js` - logique pure, sans DOM ni état (chargement des dictionnaires, génération et résolution de la grille) ; réutilisée telle quelle par le harnais Node `tools/solver-check.mjs`.
 - `rules.js` - validation d'un mot.
 - `scene.js` - scène Pixi : `Application`, couches, cases, lettres, tracé, tracés fantômes, animations et feedbacks (deal, pop, flash, shake, stamp).
 - `camera.js` - modèle caméra (scale + position du container monde) : fit, clamp, zoom, pan, conversions écran ↔ monde.
 - `tween.js` - petit moteur d'interpolations sur le Ticker Pixi.
-- `render.js` - chrome DOM (registre, difficulté, règle, chrono, statut, victoire).
+- `render.js` - chrome DOM (registre, mode, difficulté, règle, chrono, statut, victoire).
 - `input.js` - arbitrage des gestes (tracé / pan / pinch / molette / clavier / auto-pan) via les events fédérés Pixi.
 - `debug.js` - chargé si `DEBUG`.
 - `main.js` - orchestration (dont `await` de l'init Pixi).
@@ -24,13 +25,12 @@ Tout le code vit sous `js/` :
 
 Tous les réglages sont dans `js/config.js` :
 
-- `WORDS_TO_WIN` - nombre de mots pour gagner.
-- `GRID_SIZE` - taille de la grille.
+- `GAME_MODES` / `DEFAULT_MODE` / `ENABLED_MODES` / `MODE_LABELS` - modes de jeu : forme de la grille (`rows` × `cols`) et puzzle (`wordCount` mots de `wordLength` lettres), avec l'invariant `wordCount × wordLength = rows × cols` validé au chargement. Le mode se change à chaud depuis la chip du header (grille Pixi, caméra et registre reconstruits) ; tout le reste (solveur, registre, compteur, victoire, caméra) dérive du mode actif.
 - `DEBUG` - active le mode debug (voir [fonctionnalites.md](fonctionnalites.md)).
-- Difficultés : `ENABLED_DIFFICULTIES`, `DEFAULT_DIFFICULTY`, quotas par palier dans `DIFFICULTY_QUOTAS`.
-- Génération : `FIVE_WORD_LENGTH`, `MAX_FIVE_GRID_TRIES`, `MAX_GRID_REPAIRS`.
+- Difficultés : `ENABLED_DIFFICULTIES`, `DEFAULT_DIFFICULTY`, quotas par palier dans `DIFFICULTY_QUOTAS` (bornes en fraction du nombre de mots du mode).
+- Génération : `MAX_GRID_TRIES`, `GRID_REPAIRS_PER_WORD` (budget de réparation ∝ nombre de mots du mode), `REPAIR_CANDIDATES` (réparation hill-climbing).
 - Monde Pixi et caméra : `CELL_SIZE`, `CELL_GAP`, `VIEW_MARGIN` (jusqu'où on peut dézoomer et écarter la grille de l'interface), `FIT_MARGIN_PX` (marge visée par le cadrage d'ouverture), `ZOOM_MAX_CELLS`, `ZOOM_STEP`, `KEY_PAN_SPEED`, `EDGE_PAN_MARGIN`, `EDGE_PAN_MAX_SPEED`, plus la palette numérique (`PAPER`, `CARD`, `INK`…).
 
 ## Persistance
 
-Deux clés `localStorage`, en lecture/écriture tolérante aux échecs : `tracemot.difficulty` (niveau choisi) et `tracemot.rule-seen` (la règle a déjà été présentée). Le repli du registre, lui, n'est pas mémorisé : il dépend de la largeur d'écran.
+Trois clés `localStorage`, en lecture/écriture tolérante aux échecs : `tracemot.mode` (grille choisie), `tracemot.difficulty` (niveau choisi) et `tracemot.rule-seen` (la règle a déjà été présentée). Le repli du registre, lui, n'est pas mémorisé : il dépend de la largeur d'écran.

@@ -49,9 +49,10 @@ export class Camera {
     this.app = app;
     this.world = world;
     this.pitchDesign = CELL_SIZE + CELL_GAP;
-    // Géométrie de la grille en unités design (avant baseScale).
-    this.gridWDesign = grid.cols * CELL_SIZE + (grid.cols - 1) * CELL_GAP;
-    this.gridHDesign = grid.rows * CELL_SIZE + (grid.rows - 1) * CELL_GAP;
+    // Géométrie de la grille en unités design (avant baseScale), posée par
+    // setGrid (fin du constructeur).
+    this.gridWDesign = 0;
+    this.gridHDesign = 0;
     // baseScale : px natifs par unité design au zoom max (ZOOM_MAX_CELLS cases
     // remplissent le petit côté). La scène est gravée à cette taille ; la caméra
     // ne fait plus que dézoomer (world.scale ≤ 1). Recalculé au resize.
@@ -72,6 +73,15 @@ export class Camera {
     this.defaultScale = 1;
     // Marge de vue / débattement de pan (px), calculée dans recompute.
     this.margin = 0;
+    this.setGrid(grid);
+  }
+
+  // Adopte une forme de grille (constructeur et changement de mode à chaud) :
+  // géométrie design, bornes recalculées, retour au cadrage « tout voir ».
+  /** @param {{ rows: number, cols: number }} grid */
+  setGrid(grid) {
+    this.gridWDesign = grid.cols * CELL_SIZE + (grid.cols - 1) * CELL_GAP;
+    this.gridHDesign = grid.rows * CELL_SIZE + (grid.rows - 1) * CELL_GAP;
     this.recompute();
     this.fit();
   }

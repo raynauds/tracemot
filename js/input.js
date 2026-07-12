@@ -19,7 +19,6 @@
 import {
   EDGE_PAN_MARGIN,
   EDGE_PAN_MAX_SPEED,
-  GRID_SIZE,
   KEY_PAN_SPEED,
 } from "./config.js";
 import { state } from "./state.js";
@@ -71,16 +70,13 @@ export function clearPath() {
   renderPendingWord();
 }
 
+// Adjacence orthogonale : voisins précalculés de la géométrie du mode.
 /**
  * @param {number} a
  * @param {number} b
  */
 function isOrthAdjacent(a, b) {
-  const ra = Math.floor(a / GRID_SIZE);
-  const ca = a % GRID_SIZE;
-  const rb = Math.floor(b / GRID_SIZE);
-  const cb = b % GRID_SIZE;
-  return Math.abs(ra - rb) + Math.abs(ca - cb) === 1;
+  return state.geometry.neighbors[a].includes(b);
 }
 
 // Dernière position écran du pointeur de tracé (event ou auto-pan), lue par la
@@ -214,8 +210,9 @@ function pinchMove() {
 
 // --- Dispatch pointeurs ----------------------------------------------------
 
-// Réinitialise tout arbitrage (pointerup manqué, perte de focus).
-function cancelAllGestures() {
+// Réinitialise tout arbitrage (pointerup manqué, perte de focus, changement
+// de mode : un geste en vol référencerait les cases de l'ancienne grille).
+export function cancelAllGestures() {
   if (mode === "trace") {
     state.pointerId = null;
     clearPath();
