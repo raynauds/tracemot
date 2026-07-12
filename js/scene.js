@@ -6,11 +6,12 @@
 // s'appuie sur cellAtGlobal / getStage exposés ici.
 
 import { Application, Container, Graphics, Text } from "pixi.js";
+import { Camera } from "./camera.js";
 import {
-  CELL_GAP,
-  CELL_SIZE,
   CARD,
   CARD_HOVER,
+  CELL_GAP,
+  CELL_SIZE,
   GHOST,
   INK,
   LINE,
@@ -18,7 +19,6 @@ import {
   VERMILION,
   ZOOM_STEP,
 } from "./config.js";
-import { Camera } from "./camera.js";
 import { state } from "./state.js";
 import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.js";
 
@@ -33,7 +33,7 @@ function adoptGeometry() {
 
 // Constantes de design (proportions), en « unités design ». Elles sont
 // multipliées par baseScale (caméra) pour donner les métriques de rendu.
-const CELL_RADIUS = 8;
+const CELL_RADIUS = 0;
 const CELL_STROKE = 3;
 const FONT_SIZE = 42; // ≈ rapport lettre/case du DOM
 const TRACE_WIDTH = 10; // largeur du trait
@@ -76,7 +76,8 @@ const STAMP_SCALE = 1.12; // échelle de départ du tampon
 const FLASH_MS = 400; // refus : durée du flash vermillon d'une case
 const GHOST_FADE_MS = 300; // fondu d'apparition d'un tracé fantôme validé
 const SHAKE_MS = 400; // refus : durée de la secousse
-const SHAKE_AMP = 14; // amplitude écran de la secousse (px)
+const SHAKE_AMP = 0.08; // amplitude de la secousse (fraction de la largeur d'une case à l'écran)
+const SHAKE_MIN_PX = 6; // plancher écran (px) : garde la secousse perceptible très dézoomé
 const SHAKE_FREQ = 22; // pulsation de la secousse (rad/unité de temps normalisée)
 
 /** @type {Application} */
@@ -343,7 +344,8 @@ function popCell(i) {
   tween({
     id: `cell-${i}`,
     duration: POP_MS,
-    onUpdate: (k) => setCellTransform(i, 1 + POP_AMP * Math.sin(Math.PI * k), 1),
+    onUpdate: (k) =>
+      setCellTransform(i, 1 + POP_AMP * Math.sin(Math.PI * k), 1),
     onComplete: () => setCellTransform(i, 1, 1),
   });
 }
@@ -399,7 +401,8 @@ export function stampWord(traced) {
       id: `cell-${i}`,
       duration: STAMP_MS,
       ease: easeOutCubic,
-      onUpdate: (k) => setCellTransform(i, STAMP_SCALE + (1 - STAMP_SCALE) * k, 1),
+      onUpdate: (k) =>
+        setCellTransform(i, STAMP_SCALE + (1 - STAMP_SCALE) * k, 1),
       onComplete: () => setCellTransform(i, 1, 1),
     });
   }
@@ -433,7 +436,10 @@ function applyShake(ticker) {
     world.position.set(camera.x, camera.y); // retour à la position caméra pure
     return;
   }
-  const off = SHAKE_AMP * (1 - t) * Math.sin(t * SHAKE_FREQ);
+  // Amplitude proportionnelle à la taille écran d'une case (constante perçue
+  // quel que soit le zoom), avec un plancher en px écran très dézoomé.
+  const amp = Math.max(SHAKE_AMP * metrics.cell * camera.scale, SHAKE_MIN_PX);
+  const off = amp * (1 - t) * Math.sin(t * SHAKE_FREQ);
   world.position.set(camera.x + off, camera.y);
 }
 
