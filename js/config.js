@@ -1,6 +1,6 @@
 // @ts-check
-// Réglages du jeu. ACTIVE_MODE et DEBUG sont faits pour être modifiés,
-// le reste décrit la grille et l'interface.
+// Réglages du jeu. GAME_MODES, DEFAULT_MODE et DEBUG sont faits pour être
+// modifiés, le reste décrit la grille et l'interface.
 
 /** @typedef {{ rows: number, cols: number, wordLength: number, wordCount: number }} GameMode */
 
@@ -25,9 +25,24 @@ for (const [id, m] of Object.entries(GAME_MODES)) {
   }
 }
 
-// Mode actif. Modifiez cette valeur pour expérimenter.
+// Mode par défaut (première visite, ou mode mémorisé invalide).
 /** @type {keyof typeof GAME_MODES} */
-export const ACTIVE_MODE = "classique";
+export const DEFAULT_MODE = "classique";
+// Modes accessibles dans l'interface (au moins un). Retirez des entrées
+// pour restreindre le jeu. Avec un seul mode accessible, le sélecteur
+// (chip du header) disparaît entièrement.
+/** @type {(keyof typeof GAME_MODES)[]} */
+export const ENABLED_MODES = ["classique", "double", "grand"];
+
+// Nom et description de chaque mode : chip du header, lignes de la feuille
+// de sélection et toast de confirmation. Le nom décrit la grille
+// (largeur × hauteur), la description le puzzle.
+/** @type {Record<keyof typeof GAME_MODES, {name: string, desc: string}>} */
+export const MODE_LABELS = {
+  classique: { name: "5×5", desc: "5 mots de 5 lettres" },
+  double: { name: "10×5", desc: "10 mots de 5 lettres" },
+  grand: { name: "8×8", desc: "8 mots de 8 lettres" },
+};
 
 // Mode debug : affiche en bas de l'écran tous les mots trouvables dans la
 // grille courante - ceux du dictionnaire enfant en vert et en gras.
@@ -70,8 +85,8 @@ export const DIFFICULTY_LABELS = {
   5: { name: "Brûlant", desc: "Une ou deux perles rares dans le lot" },
 };
 
-// Durée d'affichage du toast confirmant un changement de difficulté.
-export const DIFFICULTY_TOAST_MS = 2000;
+// Durée d'affichage des toasts de confirmation (difficulté, mode).
+export const TOAST_MS = 2000;
 
 // Tentatives complètes (choix des mots + placement + réparations +
 // vérification) avant de rendre la meilleure grille imparfaite rencontrée.

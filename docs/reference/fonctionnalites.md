@@ -1,5 +1,9 @@
 # Fonctionnalités
 
+## Modes de jeu
+
+Trois grilles prédéfinies (`GAME_MODES`) : 5×5 (5 mots de 5 lettres), 10×5 (10 mots de 5 lettres) et 8×8 (8 mots de 8 lettres). Le mode se change à chaud depuis la chip « ▦ » du header (même feuille/popover que la difficulté) : la grille Pixi, la caméra et le registre sont reconstruits et une partie est relancée, confirmé par un toast. Le mode choisi est mémorisé (`localStorage`).
+
 ## Génération de la grille
 
 Découpe en pavage (backtracking randomisé) puis vérification d'exclusivité contre le dictionnaire complet, avec remplacement d'un mot impliqué tant qu'un tracé parasite subsiste. ~30-50 ms par grille en pratique.

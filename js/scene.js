@@ -20,10 +20,16 @@ import {
 } from "./config.js";
 import { Camera } from "./camera.js";
 import { state } from "./state.js";
-import { easeOutCubic, initTweens, tween } from "./tween.js";
+import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.js";
 
-// Géométrie de la grille, tirée du mode actif (figé au chargement).
-const { rows, cols, cellCount } = state.geometry;
+// Géométrie de la grille, tirée du mode actif. Réadoptée au changement de
+// mode par rebuildGrid (les fonctions du module la lisent à l'appel).
+let rows = 0;
+let cols = 0;
+let cellCount = 0;
+function adoptGeometry() {
+  ({ rows, cols, cellCount } = state.geometry);
+}
 
 // Constantes de design (proportions), en « unités design ». Elles sont
 // multipliées par baseScale (caméra) pour donner les métriques de rendu.
@@ -583,6 +589,7 @@ export async function initScene() {
   // Caméra : calcule baseScale (px natifs par unité design au zoom max) et le
   // cadrage initial « fit ». Créée AVANT la grille : celle-ci est gravée à
   // baseScale (taille du zoom max) pour que la caméra ne fasse que dézoomer.
+  adoptGeometry();
   camera = new Camera(app, world, { rows, cols });
   updateMetrics(camera.baseScale);
 
@@ -609,6 +616,28 @@ export async function initScene() {
   // Zoom molette (vers le pointeur) + boutons flottants.
   app.canvas.addEventListener("wheel", onWheel, { passive: false });
   buildZoomControls();
+}
+
+// Reconstruit la grille Pixi pour le mode actif (changement de mode à
+// chaud) : annule les animations en cours, détruit cases et lettres, recadre
+// la caméra sur la nouvelle forme, recrée la grille. Les lettres sont
+// reposées par renderSceneGrid (startGame).
+export function rebuildGrid() {
+  if (!app) return;
+  cancelTweens(); // aucun onUpdate ne doit toucher une case détruite
+  shaking = false; // fin de secousse : la caméra recale world via fit
+  debugHint.clear();
+  prevPathLen = 0;
+  for (const g of cellBgs) g.destroy();
+  for (const t of cellTexts) t.destroy();
+  cellBgs.length = 0;
+  cellTexts.length = 0;
+  ghostTrace.clear();
+  activeTrace.clear();
+  adoptGeometry();
+  camera.setGrid({ rows, cols }); // bornes + cadrage « tout voir »
+  updateMetrics(camera.baseScale); // baseScale inchangé, par principe
+  buildGrid();
 }
 
 // Réaffiche la grille pour la partie courante : pose les lettres, remet les

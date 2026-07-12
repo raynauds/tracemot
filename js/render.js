@@ -1,21 +1,23 @@
 // @ts-check
 // Chrome DOM en surimpression : registre repliable des mots trouvés,
-// sélecteur de difficulté, consigne, chrono, statut et victoire. La grille,
-// le tracé et leurs animations sont rendus par PixiJS (js/scene.js).
+// sélecteurs de mode et de difficulté, consigne, chrono, statut et victoire.
+// La grille, le tracé et leurs animations sont rendus par PixiJS (js/scene.js).
 
 import {
   DIFFICULTY_LABELS,
-  DIFFICULTY_TOAST_MS,
   ENABLED_DIFFICULTIES,
+  ENABLED_MODES,
+  MODE_LABELS,
   REJECT_DISPLAY_MS,
+  TOAST_MS,
 } from "./config.js";
 import { state } from "./state.js";
 import { wordRejectReason } from "./rules.js";
 
-// Dimensions du puzzle, tirées du mode actif (figé au chargement).
-const { wordCount, wordLength } = state.mode;
-// Ligne vide du registre : un point par lettre attendue.
-const WORD_DOTS = Array.from({ length: wordLength }, () => "·").join(" ");
+// Ligne vide du registre : un point par lettre attendue (mode actif).
+function wordDots() {
+  return Array.from({ length: state.mode.wordLength }, () => "·").join(" ");
+}
 
 /**
  * @param {string} id
@@ -49,17 +51,17 @@ function formatTime(ms) {
   return `${m}:${s}`;
 }
 
-// Bande « specs » du panneau règle : dimensions du puzzle, tirées de la config
-// (mises en capitales par le CSS). La phrase serif au-dessus est générique
-// (sans nombres) et vit dans le HTML.
+// Bande « specs » du panneau règle : dimensions du puzzle, tirées du mode
+// actif (mises en capitales par le CSS). La phrase serif au-dessus est
+// générique (sans nombres) et vit dans le HTML.
 function renderRuleSpec() {
+  const { wordCount, wordLength } = state.mode;
   ruleSpecEl.textContent = `${wordCount} mots · ${wordLength} lettres`;
 }
 
 // --- Sélecteur de difficulté (chip + popover / feuille + toast) ------------
 
-/** @type {HTMLElement|null} */
-const difficultyNav = document.querySelector(".difficulty");
+const difficultyNav = byId("difficulty-nav");
 const diffChipEl = byId("diff-chip");
 const diffChipLabelEl = byId("diff-chip-label");
 const diffPanelEl = byId("diff-panel");
@@ -116,8 +118,11 @@ for (const [levelStr, { name, desc }] of Object.entries(DIFFICULTY_LABELS)) {
 
 /** @param {boolean} open */
 function setDifficultyPanelOpen(open) {
-  // Les deux panneaux partagent le voile : jamais ouverts en même temps.
-  if (open) setRulePanelOpen(false);
+  // Les trois panneaux partagent le voile : jamais ouverts en même temps.
+  if (open) {
+    setRulePanelOpen(false);
+    setModePanelOpen(false);
+  }
   diffPanelEl.hidden = !open;
   diffOverlayEl.hidden = !open;
   diffChipEl.classList.toggle("open", open);
@@ -127,12 +132,12 @@ function setDifficultyPanelOpen(open) {
 export function renderDifficultyBar() {
   // Une seule difficulté accessible : le sélecteur disparaît, le jeu se
   // présente sans notion de difficulté.
-  if (difficultyNav) difficultyNav.hidden = ENABLED_DIFFICULTIES.length <= 1;
+  difficultyNav.hidden = ENABLED_DIFFICULTIES.length <= 1;
   const label = DIFFICULTY_LABELS[state.difficulty];
   diffChipLabelEl.textContent = `${state.difficulty} · ${label.name}`;
   // La chip démarre en visibility:hidden (CSS) : dévoilée maintenant que
   // le niveau affiché est le vrai.
-  if (difficultyNav) difficultyNav.classList.add("ready");
+  difficultyNav.classList.add("ready");
   for (const row of diffRows) {
     const level = Number(row.dataset.difficulty);
     row.classList.toggle("selected", level === state.difficulty);
@@ -151,7 +156,7 @@ export function showDifficultyToast() {
   diffToastTimer = setTimeout(() => {
     diffToastTimer = null;
     diffToastEl.hidden = true;
-  }, DIFFICULTY_TOAST_MS);
+  }, TOAST_MS);
 }
 
 /** @param {(difficulty: number) => void} onSelect */
@@ -171,6 +176,118 @@ export function bindDifficultyBar(onSelect) {
       setDifficultyPanelOpen(false);
       const level = Number(row.dataset.difficulty);
       if (level !== state.difficulty) onSelect(level);
+    });
+  }
+}
+
+// --- Sélecteur de mode (chip + popover / feuille + toast) -------------------
+
+// Même composant que la difficulté : chip du header ouvrant une feuille de
+// choix, toast de confirmation. Les classes CSS .diff-* sont réutilisées
+// (comme le panneau règle) ; seules les lignes diffèrent (pas d'étoiles).
+const modeNav = byId("mode-nav");
+const modeChipEl = byId("mode-chip");
+const modeChipLabelEl = byId("mode-chip-label");
+const modePanelEl = byId("mode-panel");
+const modeListEl = byId("mode-list");
+const modeOverlayEl = byId("mode-overlay");
+const modeCloseEl = byId("mode-close");
+const modeToastEl = byId("mode-toast");
+const modeToastTitleEl = byId("mode-toast-title");
+const modeToastSubEl = byId("mode-toast-sub");
+
+/** @type {HTMLButtonElement[]} Lignes du panneau, une par mode. */
+const modeRows = [];
+/** @type {ReturnType<typeof setTimeout>|null} */
+let modeToastTimer = null;
+
+// Lignes du panneau générées depuis MODE_LABELS : nom de la grille
+// (largeur × hauteur), description du puzzle, coche sur le mode courant.
+for (const [id, { name, desc }] of Object.entries(MODE_LABELS)) {
+  const row = document.createElement("button");
+  row.type = "button";
+  row.className = "diff-level";
+  row.dataset.mode = id;
+
+  const bar = document.createElement("span");
+  bar.className = "diff-level-bar";
+  const text = document.createElement("span");
+  text.className = "diff-level-text";
+  const nameEl = document.createElement("span");
+  nameEl.className = "diff-level-name";
+  nameEl.textContent = name;
+  const descEl = document.createElement("span");
+  descEl.className = "diff-level-desc";
+  descEl.textContent = desc;
+  text.append(nameEl, descEl);
+  const check = document.createElement("span");
+  check.className = "diff-level-check";
+  check.textContent = "✓";
+
+  row.append(bar, text, check);
+  modeListEl.appendChild(row);
+  modeRows.push(row);
+}
+
+/** @param {boolean} open */
+function setModePanelOpen(open) {
+  // Les trois panneaux partagent le voile : jamais ouverts en même temps.
+  if (open) {
+    setDifficultyPanelOpen(false);
+    setRulePanelOpen(false);
+  }
+  modePanelEl.hidden = !open;
+  modeOverlayEl.hidden = !open;
+  modeChipEl.classList.toggle("open", open);
+  modeChipEl.setAttribute("aria-expanded", String(open));
+}
+
+export function renderModeBar() {
+  // Un seul mode accessible : le sélecteur disparaît, le jeu se présente
+  // sans notion de mode.
+  modeNav.hidden = ENABLED_MODES.length <= 1;
+  modeChipLabelEl.textContent = MODE_LABELS[state.modeId].name;
+  // La chip démarre en visibility:hidden (CSS) : dévoilée maintenant que
+  // le mode affiché est le vrai.
+  modeNav.classList.add("ready");
+  for (const row of modeRows) {
+    const id = row.dataset.mode ?? "";
+    row.classList.toggle("selected", id === state.modeId);
+    row.disabled = !ENABLED_MODES.includes(id);
+  }
+}
+
+// Confirmation d'un changement de mode : la feuille s'est refermée, le toast
+// rappelle la grille choisie et qu'une partie est relancée.
+export function showModeToast() {
+  const label = MODE_LABELS[state.modeId];
+  modeToastTitleEl.textContent = `Grille ${label.name}`;
+  modeToastSubEl.textContent = `${label.desc} · Nouvelle grille`;
+  modeToastEl.hidden = false;
+  if (modeToastTimer !== null) clearTimeout(modeToastTimer);
+  modeToastTimer = setTimeout(() => {
+    modeToastTimer = null;
+    modeToastEl.hidden = true;
+  }, TOAST_MS);
+}
+
+/** @param {(id: string) => void} onSelect */
+export function bindModeBar(onSelect) {
+  modeChipEl.addEventListener("click", () =>
+    setModePanelOpen(modePanelEl.hidden),
+  );
+  modeCloseEl.addEventListener("click", () => setModePanelOpen(false));
+  modeOverlayEl.addEventListener("click", () => setModePanelOpen(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modePanelEl.hidden) setModePanelOpen(false);
+  });
+  for (const row of modeRows) {
+    row.addEventListener("click", () => {
+      // Sélection = fermeture immédiate ; re-choisir le mode courant
+      // referme simplement, sans relancer de grille.
+      setModePanelOpen(false);
+      const id = row.dataset.mode ?? "";
+      if (id !== state.modeId) onSelect(id);
     });
   }
 }
@@ -208,8 +325,11 @@ const ruleCloseEl = byId("rule-close");
 
 /** @param {boolean} open */
 function setRulePanelOpen(open) {
-  // Les deux panneaux partagent le voile : jamais ouverts en même temps.
-  if (open) setDifficultyPanelOpen(false);
+  // Les trois panneaux partagent le voile : jamais ouverts en même temps.
+  if (open) {
+    setDifficultyPanelOpen(false);
+    setModePanelOpen(false);
+  }
   rulePanelEl.hidden = !open;
   ruleOverlayEl.hidden = !open;
   ruleChipEl.classList.toggle("open", open);
@@ -246,7 +366,10 @@ export function showRuleOnFirstVisit() {
 export function buildBoard() {
   // Les lignes du registre sont pré-rendues dans le HTML (anti-shift au
   // chargement, calées sur le mode par défaut) : on les adopte, et on
-  // n'ajuste que si le mode actif diffère.
+  // ajuste leur nombre au mode actif. Rappelée au changement de mode :
+  // listRows est reconstruit de zéro (les lignes adoptées restent valides).
+  const { wordCount } = state.mode;
+  listRows.length = 0;
   while (wordListEl.children.length > wordCount) {
     wordListEl.lastElementChild?.remove();
   }
@@ -265,7 +388,7 @@ export function buildBoard() {
     num.textContent = String(i + 1).padStart(2, "0");
     const content = document.createElement("span");
     content.className = "word-dots";
-    content.textContent = WORD_DOTS;
+    content.textContent = wordDots();
     li.append(num, content);
     wordListEl.appendChild(li);
     listRows.push(li);
@@ -288,7 +411,7 @@ function resetListRow(row) {
   row.className = "word-row empty";
   const content = row.children[1];
   content.className = "word-dots";
-  content.textContent = WORD_DOTS;
+  content.textContent = wordDots();
   const reason = row.querySelector(".word-reason");
   if (reason) reason.remove();
 }
@@ -354,7 +477,7 @@ export function fillListRow(index, word, animate) {
 }
 
 export function renderCounter() {
-  counterEl.innerHTML = `<span class="count">${state.found.length}</span> / ${wordCount}`;
+  counterEl.innerHTML = `<span class="count">${state.found.length}</span> / ${state.mode.wordCount}`;
 }
 
 // --- Grille (feedbacks portés en Pixi) -------------------------------------
@@ -407,6 +530,7 @@ export function renderWin() {
   chronoEl.textContent = `${time} ■`;
   chronoEl.classList.add("won");
   counterEl.classList.add("full");
+  const { wordCount } = state.mode;
   winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} EN ${time}`;
   winEl.hidden = false;
 }

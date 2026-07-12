@@ -5,16 +5,20 @@
 import {
   DEBUG,
   DEFAULT_DIFFICULTY,
+  DEFAULT_MODE,
   ENABLED_DIFFICULTIES,
+  ENABLED_MODES,
+  GAME_MODES,
 } from "./config.js";
-import { state } from "./state.js";
+import { applyMode, state } from "./state.js";
 import { buildLengthSets, loadDictionaries } from "./dictionary.js";
 import { createGridGenerator } from "./solver.js";
 import { wordRejectReason } from "./rules.js";
-import { attachInputHandlers, clearPath } from "./input.js";
+import { attachInputHandlers, cancelAllGestures, clearPath } from "./input.js";
 import {
   flashPath,
   initScene,
+  rebuildGrid,
   renderSceneGrid,
   renderUsedCells,
   shakeGrid,
@@ -22,15 +26,18 @@ import {
 } from "./scene.js";
 import {
   bindDifficultyBar,
+  bindModeBar,
   buildBoard,
   fillListRow,
   hideStatus,
   renderCounter,
   renderDifficultyBar,
   renderLoadError,
+  renderModeBar,
   renderNewGame,
   renderWin,
   showDifficultyToast,
+  showModeToast,
   showReject,
   showRuleOnFirstVisit,
   startTimer,
@@ -38,13 +45,15 @@ import {
 } from "./render.js";
 
 const DIFFICULTY_STORAGE_KEY = "tracemot.difficulty";
+const MODE_STORAGE_KEY = "tracemot.mode";
 
 /** @type {typeof import("./debug.js")|null} Module debug, chargé si DEBUG. */
 let debug = null;
 
 /** @type {ReturnType<typeof createGridGenerator>|null} Générateur du mode
  *  actif, fermé sur la géométrie et les dictionnaires (créé au premier
- *  lancement de partie, après le chargement des dictionnaires). */
+ *  lancement de partie, après le chargement des dictionnaires ; invalidé
+ *  — remis à null — au changement de mode). */
 let generator = null;
 
 function startGame() {
@@ -130,6 +139,43 @@ function setDifficulty(difficulty) {
   startGame();
 }
 
+// Changement de mode à chaud : la partie en cours est abandonnée, la grille
+// Pixi et le registre sont reconstruits à la forme du nouveau mode, et une
+// partie est relancée (le générateur, fermé sur l'ancienne géométrie et les
+// anciens sets de longueur, est invalidé — startGame le recrée).
+/** @param {string} id */
+function setMode(id) {
+  const valid = ENABLED_MODES.find((m) => m === id);
+  if (!valid || valid === state.modeId || !state.ready) return;
+  cancelAllGestures(); // un geste en vol référencerait l'ancienne grille
+  applyMode(valid);
+  try {
+    localStorage.setItem(MODE_STORAGE_KEY, valid);
+  } catch (_) {
+    /* stockage indisponible : le mode ne survivra pas au rechargement */
+  }
+  generator = null;
+  buildBoard(); // registre : wordCount lignes du nouveau mode
+  rebuildGrid(); // scène Pixi : cases recréées, caméra recadrée
+  renderModeBar();
+  showModeToast();
+  startGame();
+}
+
+function restoreMode() {
+  let stored = null;
+  try {
+    stored = localStorage.getItem(MODE_STORAGE_KEY);
+  } catch (_) {
+    /* stockage indisponible */
+  }
+  const valid = ENABLED_MODES.find((m) => m === stored);
+  applyMode(
+    valid ??
+      (ENABLED_MODES.includes(DEFAULT_MODE) ? DEFAULT_MODE : ENABLED_MODES[0]),
+  );
+}
+
 function restoreDifficulty() {
   let stored = NaN;
   try {
@@ -146,9 +192,12 @@ function restoreDifficulty() {
 }
 
 async function init() {
+  restoreMode(); // avant tout lecteur de state.mode/geometry (board, scène)
   restoreDifficulty();
   buildBoard();
   renderCounter();
+  renderModeBar();
+  bindModeBar(setMode);
   renderDifficultyBar();
   bindDifficultyBar(setDifficulty);
   await initScene(); // Application Pixi + graphe de scène (canvas de fond)
@@ -157,10 +206,12 @@ async function init() {
 
   try {
     // Préfixes du dictionnaire complet : mode debug uniquement, plafonnés à
-    // la longueur maximale d'un tracé (le nombre de cases de la grille).
-    const { full, tiers } = await loadDictionaries(
-      DEBUG ? state.geometry.cellCount : 0,
+    // la longueur maximale d'un tracé sur le plus grand des modes accessibles
+    // (le mode peut changer à chaud sans recharger les dictionnaires).
+    const maxCellCount = Math.max(
+      ...ENABLED_MODES.map((m) => GAME_MODES[m].rows * GAME_MODES[m].cols),
     );
+    const { full, tiers } = await loadDictionaries(DEBUG ? maxCellCount : 0);
     state.words = full.words;
     state.fullPrefixes = full.prefixes;
     state.tierWords = {

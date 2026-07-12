@@ -1,20 +1,22 @@
 // @ts-check
 // État centralisé de la partie. main.js écrit le déroulement, render.js
 // et input.js le lisent (input.js ne modifie que path et pointerId).
-// Le mode de jeu (forme de grille + puzzle) et sa géométrie sont figés au
-// chargement depuis la config : tout le reste en dérive.
+// Le mode de jeu (forme de grille + puzzle) et sa géométrie changent à
+// chaud via applyMode (main.js) : tout le reste en dérive.
 
-import { ACTIVE_MODE, GAME_MODES } from "./config.js";
+import { DEFAULT_MODE, GAME_MODES } from "./config.js";
 import { createGeometry } from "./geometry.js";
 
-const mode = GAME_MODES[ACTIVE_MODE];
+const defaultMode = GAME_MODES[DEFAULT_MODE];
 
 export const state = {
   ready: false, // dictionnaires chargés et partie en place
+  /** @type {keyof typeof GAME_MODES} Identifiant du mode actif. */
+  modeId: DEFAULT_MODE,
   /** @type {import("./config.js").GameMode} Mode de jeu actif. */
-  mode,
+  mode: defaultMode,
   /** @type {import("./geometry.js").Geometry} Géométrie de la grille du mode. */
-  geometry: createGeometry(mode.rows, mode.cols),
+  geometry: createGeometry(defaultMode.rows, defaultMode.cols),
   /** @type {import("./config.js").Difficulty} Difficulté courante (étoiles). */
   difficulty: 1,
   /** @type {string[]} Mots cachés de la grille. */
@@ -53,3 +55,13 @@ export const state = {
   /** @type {number|null} */
   timerId: null,
 };
+
+// Adopte un mode : identifiant, mode et géométrie dérivée. Seule écriture
+// autorisée de state.mode/geometry (main.js, au boot et au changement à
+// chaud — le rebuild de la scène et du registre incombe à l'appelant).
+/** @param {keyof typeof GAME_MODES} modeId */
+export function applyMode(modeId) {
+  state.modeId = modeId;
+  state.mode = GAME_MODES[modeId];
+  state.geometry = createGeometry(state.mode.rows, state.mode.cols);
+}

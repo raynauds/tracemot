@@ -210,8 +210,9 @@ function pinchMove() {
 
 // --- Dispatch pointeurs ----------------------------------------------------
 
-// Réinitialise tout arbitrage (pointerup manqué, perte de focus).
-function cancelAllGestures() {
+// Réinitialise tout arbitrage (pointerup manqué, perte de focus, changement
+// de mode : un geste en vol référencerait les cases de l'ancienne grille).
+export function cancelAllGestures() {
   if (mode === "trace") {
     state.pointerId = null;
     clearPath();

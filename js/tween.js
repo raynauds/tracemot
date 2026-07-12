@@ -73,6 +73,13 @@ function step(t) {
   }
 }
 
+// Annule tous les tweens en cours SANS appeler onComplete : utilisé au
+// rebuild de la grille (changement de mode), où les onUpdate/onComplete
+// capturés référenceraient des cases détruites.
+export function cancelTweens() {
+  tweens.length = 0;
+}
+
 /**
  * Programme un tween. Renvoie sans rien faire si le moteur n'est pas branché.
  * @param {TweenSpec} spec
