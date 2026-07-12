@@ -33,6 +33,7 @@ import {
   renderWin,
   showDifficultyToast,
   showReject,
+  showRuleOnFirstVisit,
   startTimer,
   stopTimer,
 } from "./render.js";
@@ -172,6 +173,9 @@ async function init() {
   }
 
   startGame();
+  // Première visite : on présente la règle d'emblée (le statut de chargement
+  // vient d'être masqué, le panneau est donc visible).
+  showRuleOnFirstVisit();
 }
 
 init();

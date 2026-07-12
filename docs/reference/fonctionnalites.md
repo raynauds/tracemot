@@ -17,11 +17,17 @@ Au doigt ou à la souris (events fédérés Pixi), avec backtrack, vibration sur
 
 ## Caméra : zoom & pan
 
-La grille est rendue plein écran par Pixi et cadrée par une caméra. Zoom à la molette (centré sur le pointeur), au pinch tactile ou via les boutons flottants + / − / tout voir ; pan par glissé hors case, au clavier (flèches, ZQSD/WASD) et auto-pan quand le tracé approche un bord. Le zoom est borné entre le cadrage « tout voir » et 3×3 cases.
+La grille est rendue plein écran par Pixi et cadrée par une caméra. Zoom à la molette (centré sur le pointeur), au pinch tactile ou via les boutons flottants + / − / tout voir ; pan par glissé hors case, au clavier (flèches, ZQSD/WASD) et auto-pan quand le tracé approche un bord. Sur écran tactile, les boutons + / − sont masqués (le pinch les remplace) ; seul « tout voir » reste.
+
+Le zoom est borné entre le dézoom maximum (grille entière plus une marge tout autour, `VIEW_MARGIN`) et 3×3 cases. Le zoom affiché au chargement est distinct de ces bornes : c'est le cadrage « tout voir », plus serré, qui vise `FIT_MARGIN_PX` de marge horizontale (la grille remplit la largeur sur mobile) tout en gardant la marge verticale du dézoom maximum (pour ne pas coller au header sur desktop).
 
 ## Registre des mots
 
 Aperçu du tracé en cours, motif de refus affiché (5 lettres requises, déjà trouvé, absent du dictionnaire), animations de validation.
+
+## Règle du jeu
+
+Un bouton « ? » dans le header ouvre le panneau de règle (même voile et même feuille/popover que la difficulté). Il s'ouvre automatiquement à la première visite seulement : la mécanique n'étant pas devinable, elle est présentée d'emblée, puis ne revient plus (`localStorage`).
 
 ## Mode debug
 

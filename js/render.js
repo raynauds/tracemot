@@ -46,9 +46,9 @@ function formatTime(ms) {
   return `${m}:${s}`;
 }
 
-// Bande « specs » de la règle : dimensions du puzzle en toutes lettres, tirées
-// de la config (mises en capitales par le CSS). La phrase serif au-dessus est
-// générique (sans nombres) et vit dans le HTML.
+// Bande « specs » du panneau règle : dimensions du puzzle, tirées de la config
+// (mises en capitales par le CSS). La phrase serif au-dessus est générique
+// (sans nombres) et vit dans le HTML.
 function renderRuleSpec() {
   ruleSpecEl.textContent = `${WORDS_TO_WIN} mots · ${FIVE_WORD_LENGTH} lettres`;
 }
@@ -113,6 +113,8 @@ for (const [levelStr, { name, desc }] of Object.entries(DIFFICULTY_LABELS)) {
 
 /** @param {boolean} open */
 function setDifficultyPanelOpen(open) {
+  // Les deux panneaux partagent le voile : jamais ouverts en même temps.
+  if (open) setRulePanelOpen(false);
   diffPanelEl.hidden = !open;
   diffOverlayEl.hidden = !open;
   diffChipEl.classList.toggle("open", open);
@@ -189,38 +191,52 @@ ledgerToggleEl.addEventListener("click", () =>
 // État initial : replié sur mobile (pastille), déplié sur desktop.
 setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 
-// --- Règle du jeu (colophon repliable) -------------------------------------
+// --- Règle du jeu (bouton « ? » du header) ---------------------------------
 
-// Ouverte par défaut ; l'utilisateur peut la minimiser en chip. Le choix
-// persiste : au retour on rouvre, sauf s'il avait minimisé (localStorage).
-const RULE_STORAGE_KEY = "tracemot.rule";
-const ruleEl = byId("rulecard");
-const ruleToggleEl = byId("rule-toggle");
+// La règle n'est plus affichée en permanence : elle vit dans le même panneau
+// que la difficulté, ouvert par le bouton « ? ». Comme la mécanique n'est pas
+// devinable, on l'ouvre d'office à la toute première visite (et seulement
+// celle-là) : le drapeau « vu » est mémorisé en localStorage.
+const RULE_SEEN_KEY = "tracemot.rule-seen";
+const ruleChipEl = byId("rule-chip");
+const rulePanelEl = byId("rule-panel");
+const ruleOverlayEl = byId("rule-overlay");
+const ruleCloseEl = byId("rule-close");
 
-/** @param {boolean} collapsed */
-function setRuleCollapsed(collapsed) {
-  ruleEl.classList.toggle("collapsed", collapsed);
-  ruleToggleEl.setAttribute("aria-expanded", String(!collapsed));
+/** @param {boolean} open */
+function setRulePanelOpen(open) {
+  // Les deux panneaux partagent le voile : jamais ouverts en même temps.
+  if (open) setDifficultyPanelOpen(false);
+  rulePanelEl.hidden = !open;
+  ruleOverlayEl.hidden = !open;
+  ruleChipEl.classList.toggle("open", open);
+  ruleChipEl.setAttribute("aria-expanded", String(open));
 }
 
-ruleToggleEl.addEventListener("click", () => {
-  const collapsed = !ruleEl.classList.contains("collapsed");
-  setRuleCollapsed(collapsed);
-  try {
-    localStorage.setItem(RULE_STORAGE_KEY, collapsed ? "collapsed" : "open");
-  } catch (_) {
-    /* stockage indisponible : le choix ne survivra pas au rechargement */
-  }
+ruleChipEl.addEventListener("click", () => setRulePanelOpen(rulePanelEl.hidden));
+ruleCloseEl.addEventListener("click", () => setRulePanelOpen(false));
+ruleOverlayEl.addEventListener("click", () => setRulePanelOpen(false));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !rulePanelEl.hidden) setRulePanelOpen(false);
 });
 
-// État initial : minimisé seulement si l'utilisateur l'avait choisi.
-let ruleStored = null;
-try {
-  ruleStored = localStorage.getItem(RULE_STORAGE_KEY);
-} catch (_) {
-  /* stockage indisponible */
+// Appelée une fois la partie prête (js/main.js) : avant, l'overlay de statut
+// (« chargement du dictionnaire ») couvrirait le panneau.
+export function showRuleOnFirstVisit() {
+  let seen = null;
+  try {
+    seen = localStorage.getItem(RULE_SEEN_KEY);
+  } catch (_) {
+    /* stockage indisponible */
+  }
+  if (seen) return;
+  setRulePanelOpen(true);
+  try {
+    localStorage.setItem(RULE_SEEN_KEY, "1");
+  } catch (_) {
+    /* stockage indisponible : la règle se rouvrira au prochain chargement */
+  }
 }
-setRuleCollapsed(ruleStored === "collapsed");
 
 // --- Registre : adoption des lignes pré-rendues ----------------------------
 

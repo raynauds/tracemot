@@ -72,38 +72,56 @@
             </div>
           </div>
         </nav>
+        <!-- Règle du jeu : bouton discret « ? » (subordonné à la difficulté).
+             Il ouvre le même composant voile + panneau que la difficulté
+             (popover desktop, feuille mobile). Ouvert automatiquement à la
+             première visite seulement (localStorage, js/render.js). -->
+        <div class="rule" id="rule">
+          <button
+            type="button"
+            class="rule-chip"
+            id="rule-chip"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-label="Règle du jeu"
+            title="Règle du jeu"
+          >
+            ?
+          </button>
+          <div class="diff-overlay" id="rule-overlay" hidden></div>
+          <div
+            class="diff-panel rule-panel"
+            id="rule-panel"
+            role="dialog"
+            aria-label="Règle du jeu"
+            hidden
+          >
+            <div class="diff-panel-head">
+              <span class="diff-panel-title">RÈGLE</span>
+              <button
+                type="button"
+                class="diff-close"
+                id="rule-close"
+                aria-label="Fermer"
+              >
+                ✕
+              </button>
+            </div>
+            <p class="rule-line">
+              Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
+              sert qu'une fois.
+            </p>
+            <!-- Nombres pré-remplis (config par défaut) pour éviter un shift ;
+                 js/render.js réécrit selon WORDS_TO_WIN / FIVE_WORD_LENGTH. -->
+            <p class="rule-spec" id="rule-spec">5 mots · 5 lettres</p>
+          </div>
+        </div>
       </div>
       <div class="header-right">
         <span class="chrono-label">CHRONO</span>
         <span class="chrono" id="chrono">00:00</span>
       </div>
     </header>
-
-    <!-- Règle du jeu : colophon repliable ancré en bas à gauche (chip une fois
-         minimisé). L'en-tête est un bouton plier/déplier ; l'état est mémorisé
-         en localStorage (js/render.js). Ouvert par défaut, sauf minimisation
-         antérieure. -->
-    <aside class="rulecard" id="rulecard">
-      <button
-        type="button"
-        class="rulecard-head"
-        id="rule-toggle"
-        aria-expanded="true"
-        aria-controls="rule-body"
-      >
-        <span class="rulecard-label">RÈGLE</span>
-        <span class="rulecard-caret" aria-hidden="true"></span>
-      </button>
-      <div class="rulecard-body" id="rule-body">
-        <p class="rulecard-line">
-          Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
-          sert qu'une fois.
-        </p>
-        <!-- Nombres pré-remplis (config par défaut) pour éviter un shift ;
-             js/render.js réécrit selon WORDS_TO_WIN / FIVE_WORD_LENGTH. -->
-        <p class="rulecard-spec" id="rule-spec">5 mots · 5 lettres</p>
-      </div>
-    </aside>
 
     <!-- Registre « Mots trouvés » : panneau flottant repliable ancré à droite.
          Ouvert par défaut sur desktop, replié en pastille (n / N) sur mobile
