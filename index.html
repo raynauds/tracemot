@@ -16,150 +16,175 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="page">
-      <header class="header">
-        <div class="header-left">
-          <h1 class="title">Tracemot</h1>
-          <nav class="difficulty" aria-label="Difficulté">
-            <button
-              type="button"
-              class="diff-chip"
-              id="diff-chip"
-              aria-haspopup="dialog"
-              aria-expanded="false"
-            >
-              <span class="diff-chip-star" aria-hidden="true">★</span>
-              <!-- Pré-rempli avec le niveau par défaut (config.js) pour éviter
-                   un shift ; js/render.js réécrit selon le niveau restauré. -->
-              <span class="diff-chip-label" id="diff-chip-label">1 · Doux</span>
-              <span class="diff-chip-caret" aria-hidden="true"></span>
-            </button>
-            <div class="diff-overlay" id="diff-overlay" hidden></div>
-            <div
-              class="diff-panel"
-              id="diff-panel"
-              role="dialog"
-              aria-label="Choix de la difficulté"
-              hidden
-            >
-              <div class="diff-panel-head">
-                <span class="diff-panel-title">DIFFICULTÉ</span>
-                <button
-                  type="button"
-                  class="diff-close"
-                  id="diff-close"
-                  aria-label="Fermer"
-                >
-                  ✕
-                </button>
-              </div>
-              <div class="diff-list" id="diff-list">
-                <!-- niveaux générés par js/render.js -->
-              </div>
-              <p class="diff-note">CHANGER DE NIVEAU RELANCE UNE GRILLE</p>
-            </div>
-            <div class="diff-toast" id="diff-toast" hidden>
-              <span class="diff-toast-bar" aria-hidden="true"></span>
-              <div class="diff-toast-text">
-                <span class="diff-toast-title" id="diff-toast-title"></span>
-                <span class="diff-toast-sub" id="diff-toast-sub"></span>
-              </div>
-            </div>
-          </nav>
-        </div>
-        <div class="header-right">
-          <span class="chrono-label">CHRONO</span>
-          <span class="chrono" id="chrono">00:00</span>
-        </div>
-      </header>
+    <!-- La grille et le tracé sont rendus par PixiJS (js/scene.js) sur un
+         canvas plein écran en fond (position: fixed, z-index: 0). Tout le
+         chrome ci-dessous est en surimpression (overlays position: fixed).
+         Les conteneurs d'overlay laissent passer les events de tracé
+         (pointer-events: none) ; seuls les contrôles interactifs les
+         réactivent (pointer-events: auto). -->
 
-      <main class="main">
-        <div class="board-zone">
-          <div class="board" id="board">
-            <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
-
-            <div class="grid" id="grid" hidden>
-              <svg class="trace" id="trace" aria-hidden="true">
-                <polyline
-                  id="trace-line"
-                  fill="none"
-                  stroke-linecap="butt"
-                  stroke-linejoin="miter"
-                  points=""
-                ></polyline>
-              </svg>
-              <!-- cases générées par js/render.js -->
-            </div>
-
-            <div class="win" id="win" hidden>
-              <span class="confetti c1"></span>
-              <span class="confetti c2 cream"></span>
-              <span class="confetti c3"></span>
-              <span class="confetti c4 cream"></span>
-              <span class="confetti c5"></span>
-              <span class="confetti c6"></span>
-              <div class="win-title">Gagné<span class="dot">.</span></div>
-              <div class="win-sub" id="win-sub"></div>
-              <button type="button" class="win-replay" id="replay">
-                REJOUER
+    <header class="header">
+      <div class="header-left">
+        <h1 class="title">Tracemot</h1>
+        <nav class="difficulty" aria-label="Difficulté">
+          <button
+            type="button"
+            class="diff-chip"
+            id="diff-chip"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+          >
+            <span class="diff-chip-star" aria-hidden="true">★</span>
+            <!-- Pré-rempli avec le niveau par défaut (config.js) pour éviter
+                 un shift ; js/render.js réécrit selon le niveau restauré. -->
+            <span class="diff-chip-label" id="diff-chip-label">1 · Doux</span>
+            <span class="diff-chip-caret" aria-hidden="true"></span>
+          </button>
+          <div class="diff-overlay" id="diff-overlay" hidden></div>
+          <div
+            class="diff-panel"
+            id="diff-panel"
+            role="dialog"
+            aria-label="Choix de la difficulté"
+            hidden
+          >
+            <div class="diff-panel-head">
+              <span class="diff-panel-title">DIFFICULTÉ</span>
+              <button
+                type="button"
+                class="diff-close"
+                id="diff-close"
+                aria-label="Fermer"
+              >
+                ✕
               </button>
             </div>
+            <div class="diff-list" id="diff-list">
+              <!-- niveaux générés par js/render.js -->
+            </div>
+            <p class="diff-note">CHANGER DE NIVEAU RELANCE UNE GRILLE</p>
+          </div>
+          <div class="diff-toast" id="diff-toast" hidden>
+            <span class="diff-toast-bar" aria-hidden="true"></span>
+            <div class="diff-toast-text">
+              <span class="diff-toast-title" id="diff-toast-title"></span>
+              <span class="diff-toast-sub" id="diff-toast-sub"></span>
+            </div>
+          </div>
+        </nav>
+        <!-- Règle du jeu : bouton discret « ? » (subordonné à la difficulté).
+             Il ouvre le même composant voile + panneau que la difficulté
+             (popover desktop, feuille mobile). Ouvert automatiquement à la
+             première visite seulement (localStorage, js/render.js). -->
+        <div class="rule" id="rule">
+          <button
+            type="button"
+            class="rule-chip"
+            id="rule-chip"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-label="Règle du jeu"
+            title="Règle du jeu"
+          >
+            ?
+          </button>
+          <div class="diff-overlay" id="rule-overlay" hidden></div>
+          <div
+            class="diff-panel rule-panel"
+            id="rule-panel"
+            role="dialog"
+            aria-label="Règle du jeu"
+            hidden
+          >
+            <div class="diff-panel-head">
+              <span class="diff-panel-title">RÈGLE</span>
+              <button
+                type="button"
+                class="diff-close"
+                id="rule-close"
+                aria-label="Fermer"
+              >
+                ✕
+              </button>
+            </div>
+            <p class="rule-line">
+              Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
+              sert qu'une fois.
+            </p>
+            <!-- Nombres pré-remplis (config par défaut) pour éviter un shift ;
+                 js/render.js réécrit selon WORDS_TO_WIN / FIVE_WORD_LENGTH. -->
+            <p class="rule-spec" id="rule-spec">5 mots · 5 lettres</p>
           </div>
         </div>
+      </div>
+      <div class="header-right">
+        <span class="chrono-label">CHRONO</span>
+        <span class="chrono" id="chrono">00:00</span>
+      </div>
+    </header>
 
-        <section class="ledger">
-          <div class="ledger-head">
-            <span class="ledger-label">MOTS TROUVÉS</span>
-            <!-- Pré-rempli (0 / WORDS_TO_WIN) pour éviter un shift ;
-                 js/render.js réécrit à l'identique puis à chaque mot. -->
-            <span class="counter" id="counter"
-              ><span class="count">0</span> / 5</span
-            >
-          </div>
-          <!-- Lignes pré-rendues (WORDS_TO_WIN, voir config.js) pour éviter
-               un shift au chargement ; js/render.js les adopte et ajuste
-               leur nombre si la config diffère. -->
-          <ol class="word-list" id="word-list">
-            <li class="word-row empty">
-              <span class="word-num">01</span>
-              <span class="word-dots">· · · · ·</span>
-            </li>
-            <li class="word-row empty">
-              <span class="word-num">02</span>
-              <span class="word-dots">· · · · ·</span>
-            </li>
-            <li class="word-row empty">
-              <span class="word-num">03</span>
-              <span class="word-dots">· · · · ·</span>
-            </li>
-            <li class="word-row empty">
-              <span class="word-num">04</span>
-              <span class="word-dots">· · · · ·</span>
-            </li>
-            <li class="word-row empty">
-              <span class="word-num">05</span>
-              <span class="word-dots">· · · · ·</span>
-            </li>
-          </ol>
-          <!-- Consigne pré-rendue (dérivée de WORDS_TO_WIN / FIVE_WORD_LENGTH,
-               voir playingRuleText dans js/render.js qui la réécrit) : sans
-               elle, le paragraphe apparaît après le chargement du dictionnaire
-               et fait sauter la mise en page, surtout sur mobile où il est
-               au-dessus de la grille. -->
-          <p class="rule-text" id="rule-text">
-            <span class="rule-desktop"
-              >Cinq mots de cinq lettres pavent la grille : chaque lettre sert
-              à exactement un mot. Reliez des lettres voisines pour les
-              retrouver.</span
-            >
-            <span class="rule-mobile"
-              >Trouvez les cinq mots de cinq lettres qui pavent la grille en
-              reliant les lettres adjacentes.</span
-            >
-          </p>
-        </section>
-      </main>
+    <!-- Registre « Mots trouvés » : panneau flottant repliable ancré à droite.
+         Ouvert par défaut sur desktop, replié en pastille (n / N) sur mobile
+         (js/render.js pose la classe .collapsed selon la largeur). -->
+    <section class="ledger" id="ledger">
+      <button
+        type="button"
+        class="ledger-head"
+        id="ledger-toggle"
+        aria-expanded="true"
+        aria-controls="word-list"
+      >
+        <span class="ledger-label">MOTS TROUVÉS</span>
+        <!-- Pré-rempli (0 / WORDS_TO_WIN) pour éviter un shift ;
+             js/render.js réécrit à l'identique puis à chaque mot. -->
+        <span class="counter" id="counter"
+          ><span class="count">0</span> / 5</span
+        >
+        <span class="ledger-caret" aria-hidden="true"></span>
+      </button>
+      <!-- Lignes pré-rendues (WORDS_TO_WIN, voir config.js) pour éviter un
+           shift au chargement ; js/render.js les adopte et ajuste leur nombre
+           si la config diffère. -->
+      <ol class="word-list" id="word-list">
+        <li class="word-row empty">
+          <span class="word-num">01</span>
+          <span class="word-dots">· · · · ·</span>
+        </li>
+        <li class="word-row empty">
+          <span class="word-num">02</span>
+          <span class="word-dots">· · · · ·</span>
+        </li>
+        <li class="word-row empty">
+          <span class="word-num">03</span>
+          <span class="word-dots">· · · · ·</span>
+        </li>
+        <li class="word-row empty">
+          <span class="word-num">04</span>
+          <span class="word-dots">· · · · ·</span>
+        </li>
+        <li class="word-row empty">
+          <span class="word-num">05</span>
+          <span class="word-dots">· · · · ·</span>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Statut (chargement/erreur) : overlay plein écran au-dessus du canvas. -->
+    <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
+
+    <!-- Victoire : overlay plein écran au-dessus du canvas. -->
+    <div class="win" id="win" hidden>
+      <span class="confetti c1"></span>
+      <span class="confetti c2 cream"></span>
+      <span class="confetti c3"></span>
+      <span class="confetti c4 cream"></span>
+      <span class="confetti c5"></span>
+      <span class="confetti c6"></span>
+      <div class="win-title">Gagné<span class="dot">.</span></div>
+      <div class="win-sub" id="win-sub"></div>
+      <button type="button" class="win-replay" id="replay">REJOUER</button>
     </div>
+
     <script type="module" src="js/main.js"></script>
   </body>
 </html>

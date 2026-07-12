@@ -1,14 +1,13 @@
 // @ts-check
-// Tout ce qui touche au DOM : construction de la grille et du registre,
-// tracé SVG, chrono, états de partie (aperçu, refus, victoire).
+// Chrome DOM en surimpression : registre repliable des mots trouvés,
+// sélecteur de difficulté, consigne, chrono, statut et victoire. La grille,
+// le tracé et leurs animations sont rendus par PixiJS (js/scene.js).
 
 import {
-  CELL_COUNT,
   DIFFICULTY_LABELS,
   DIFFICULTY_TOAST_MS,
   ENABLED_DIFFICULTIES,
   FIVE_WORD_LENGTH,
-  FR_NUMBERS,
   REJECT_DISPLAY_MS,
   WORDS_TO_WIN,
 } from "./config.js";
@@ -25,20 +24,15 @@ function byId(id) {
   return el;
 }
 
-export const gridEl = byId("grid");
 export const replayEl = byId("replay");
-const traceLineEl = byId("trace-line");
-const traceEl = byId("trace");
 const statusEl = byId("status");
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
 const chronoEl = byId("chrono");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
-const ruleTextEl = byId("rule-text");
+const ruleSpecEl = byId("rule-spec");
 
-/** @type {HTMLElement[]} */
-const cells = []; // les 25 divs .cell, dans l'ordre
 /** @type {HTMLElement[]} */
 const listRows = []; // les WORDS_TO_WIN lignes du registre
 
@@ -52,32 +46,11 @@ function formatTime(ms) {
   return `${m}:${s}`;
 }
 
-// Consigne en deux variantes : la phrase complète sur desktop, une version
-// resserrée sur mobile où la place verticale est comptée (bascule CSS).
-function playingRuleText() {
-  const n = FR_NUMBERS[WORDS_TO_WIN] || String(WORDS_TO_WIN);
-  const l5 = FR_NUMBERS[FIVE_WORD_LENGTH] || String(FIVE_WORD_LENGTH);
-  const N = `${n[0].toUpperCase()}${n.slice(1)}`;
-  return {
-    desktop:
-      `${N} mots de ${l5} lettres pavent la ` +
-      `grille : chaque lettre sert à exactement un mot. Reliez des lettres ` +
-      `voisines pour les retrouver.`,
-    mobile:
-      `Trouvez les ${n} mots de ${l5} lettres qui pavent la grille ` +
-      `en reliant les lettres adjacentes.`,
-  };
-}
-
-/** @param {{desktop: string, mobile: string}} rule */
-function renderRuleText(rule) {
-  const d = document.createElement("span");
-  d.className = "rule-desktop";
-  d.textContent = rule.desktop;
-  const m = document.createElement("span");
-  m.className = "rule-mobile";
-  m.textContent = rule.mobile;
-  ruleTextEl.replaceChildren(d, m);
+// Bande « specs » du panneau règle : dimensions du puzzle, tirées de la config
+// (mises en capitales par le CSS). La phrase serif au-dessus est générique
+// (sans nombres) et vit dans le HTML.
+function renderRuleSpec() {
+  ruleSpecEl.textContent = `${WORDS_TO_WIN} mots · ${FIVE_WORD_LENGTH} lettres`;
 }
 
 // --- Sélecteur de difficulté (chip + popover / feuille + toast) ------------
@@ -140,6 +113,8 @@ for (const [levelStr, { name, desc }] of Object.entries(DIFFICULTY_LABELS)) {
 
 /** @param {boolean} open */
 function setDifficultyPanelOpen(open) {
+  // Les deux panneaux partagent le voile : jamais ouverts en même temps.
+  if (open) setRulePanelOpen(false);
   diffPanelEl.hidden = !open;
   diffOverlayEl.hidden = !open;
   diffChipEl.classList.toggle("open", open);
@@ -197,24 +172,75 @@ export function bindDifficultyBar(onSelect) {
   }
 }
 
-// --- Construction du plateau ---------------------------------------------
+// --- Registre repliable ----------------------------------------------------
+
+// Panneau flottant ancré à droite : ouvert par défaut sur desktop, replié en
+// pastille (compteur n / N) sur mobile. Le bouton d'en-tête plie/déplie.
+const ledgerEl = byId("ledger");
+const ledgerToggleEl = byId("ledger-toggle");
+
+/** @param {boolean} collapsed */
+function setLedgerCollapsed(collapsed) {
+  ledgerEl.classList.toggle("collapsed", collapsed);
+  ledgerToggleEl.setAttribute("aria-expanded", String(!collapsed));
+}
+
+ledgerToggleEl.addEventListener("click", () =>
+  setLedgerCollapsed(!ledgerEl.classList.contains("collapsed")),
+);
+// État initial : replié sur mobile (pastille), déplié sur desktop.
+setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
+
+// --- Règle du jeu (bouton « ? » du header) ---------------------------------
+
+// La règle n'est plus affichée en permanence : elle vit dans le même panneau
+// que la difficulté, ouvert par le bouton « ? ». Comme la mécanique n'est pas
+// devinable, on l'ouvre d'office à la toute première visite (et seulement
+// celle-là) : le drapeau « vu » est mémorisé en localStorage.
+const RULE_SEEN_KEY = "tracemot.rule-seen";
+const ruleChipEl = byId("rule-chip");
+const rulePanelEl = byId("rule-panel");
+const ruleOverlayEl = byId("rule-overlay");
+const ruleCloseEl = byId("rule-close");
+
+/** @param {boolean} open */
+function setRulePanelOpen(open) {
+  // Les deux panneaux partagent le voile : jamais ouverts en même temps.
+  if (open) setDifficultyPanelOpen(false);
+  rulePanelEl.hidden = !open;
+  ruleOverlayEl.hidden = !open;
+  ruleChipEl.classList.toggle("open", open);
+  ruleChipEl.setAttribute("aria-expanded", String(open));
+}
+
+ruleChipEl.addEventListener("click", () => setRulePanelOpen(rulePanelEl.hidden));
+ruleCloseEl.addEventListener("click", () => setRulePanelOpen(false));
+ruleOverlayEl.addEventListener("click", () => setRulePanelOpen(false));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !rulePanelEl.hidden) setRulePanelOpen(false);
+});
+
+// Appelée une fois la partie prête (js/main.js) : avant, l'overlay de statut
+// (« chargement du dictionnaire ») couvrirait le panneau.
+export function showRuleOnFirstVisit() {
+  let seen = null;
+  try {
+    seen = localStorage.getItem(RULE_SEEN_KEY);
+  } catch (_) {
+    /* stockage indisponible */
+  }
+  if (seen) return;
+  setRulePanelOpen(true);
+  try {
+    localStorage.setItem(RULE_SEEN_KEY, "1");
+  } catch (_) {
+    /* stockage indisponible : la règle se rouvrira au prochain chargement */
+  }
+}
+
+// --- Registre : adoption des lignes pré-rendues ----------------------------
 
 export function buildBoard() {
-  for (let i = 0; i < CELL_COUNT; i++) {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    cell.dataset.index = String(i);
-    cell.style.setProperty("--i", String(i)); // cadence de l'animation d'impression
-    // Les classes d'animation one-shot se retirent d'elles-mêmes, sinon elles
-    // écraseraient les animations suivantes (pop du tracé, flash…).
-    cell.addEventListener("animationend", (e) => {
-      if (e.animationName === "cell-deal") cell.classList.remove("deal");
-      if (e.animationName === "cell-flash") cell.classList.remove("flash");
-    });
-    gridEl.appendChild(cell);
-    cells.push(cell);
-  }
-
   // Les lignes du registre sont pré-rendues dans le HTML (anti-shift au
   // chargement) : on les adopte, et on n'ajuste que si WORDS_TO_WIN diffère.
   while (wordListEl.children.length > WORDS_TO_WIN) {
@@ -294,7 +320,7 @@ export function renderPendingWord() {
 export function showReject(word, reason) {
   const row = listRows[state.found.length];
   if (!row) return;
-  shakeGrid();
+  // Le flash et la secousse de la grille sont rendus par js/scene.js (Pixi).
   row.className = "word-row rejected";
   const content = row.children[1];
   content.className = "word-text rejected";
@@ -327,115 +353,13 @@ export function renderCounter() {
   counterEl.innerHTML = `<span class="count">${state.found.length}</span> / ${WORDS_TO_WIN}`;
 }
 
-// --- Grille et tracé -------------------------------------------------------
-
-export function updateSelection() {
-  const last = state.path[state.path.length - 1];
-  const inPath = new Set(state.path);
-  // Pendant un tracé, le survol des autres cases est neutralisé (CSS).
-  gridEl.classList.toggle("tracing", state.path.length > 0);
-  cells.forEach((cell, i) => {
-    cell.classList.toggle("sel", inPath.has(i) && i !== last);
-    cell.classList.toggle("head", i === last);
-  });
-}
-
-/** @type {SVGElement[]} Polylines fantômes des mots trouvés. */
-const ghostLines = [];
-
-/** @param {number[]} path */
-function tracePoints(path) {
-  return path
-    .map((i) => {
-      const c = cells[i];
-      return `${c.offsetLeft + c.offsetWidth / 2},${c.offsetTop + c.offsetHeight / 2}`;
-    })
-    .join(" ");
-}
-
-function traceWidth() {
-  return cells[0].offsetWidth >= 80 ? "6" : "5";
-}
-
-// Tracés fantômes : le trait d'un mot validé reste affiché,
-// dans les tons des cases désactivées, pour relire les mots sur la grille.
-export function renderFoundTraces() {
-  while (ghostLines.length > state.foundPaths.length) {
-    const line = ghostLines.pop();
-    if (line) line.remove();
-  }
-  while (ghostLines.length < state.foundPaths.length) {
-    const line = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "polyline",
-    );
-    line.setAttribute("class", "trace-ghost");
-    line.setAttribute("fill", "none");
-    line.setAttribute("stroke-linecap", "butt");
-    line.setAttribute("stroke-linejoin", "miter");
-    traceEl.insertBefore(line, traceLineEl); // sous le tracé actif
-    ghostLines.push(line);
-  }
-  ghostLines.forEach((line, i) => {
-    line.setAttribute("points", tracePoints(state.foundPaths[i]));
-    line.setAttribute("stroke-width", traceWidth());
-  });
-}
-
-// Barres du tracé : polyline recalculée depuis la géométrie réelle des cases.
-export function updateTrace() {
-  traceEl.setAttribute(
-    "viewBox",
-    `0 0 ${gridEl.clientWidth} ${gridEl.clientHeight}`,
-  );
-  // Les fantômes suivent la même géométrie (utile au resize).
-  renderFoundTraces();
-  if (state.path.length < 2) {
-    traceLineEl.setAttribute("points", "");
-    return;
-  }
-  traceLineEl.setAttribute("points", tracePoints(state.path));
-  traceLineEl.setAttribute("stroke-width", traceWidth());
-}
-
-// Les cases consommées par un mot trouvé sortent du jeu.
-export function renderUsedCells() {
-  cells.forEach((cell, i) => {
-    cell.classList.toggle("disabled", state.usedCells.has(i));
-  });
-}
-
-function shakeGrid() {
-  gridEl.classList.remove("shake");
-  // Force le redémarrage de l'animation si un shake est déjà en cours.
-  void gridEl.offsetWidth;
-  gridEl.classList.add("shake");
-}
-
-// Flash rouge des cases d'un tracé refusé (accompagne le shake).
-/** @param {number[]} indices */
-export function flashPath(indices) {
-  for (const i of indices) {
-    const cell = cells[i];
-    cell.classList.remove("flash");
-    void cell.offsetWidth;
-    cell.classList.add("flash");
-  }
-}
+// --- Grille (feedbacks portés en Pixi) -------------------------------------
+// La sélection, le tracé, les fantômes, les cases consommées et les feedbacks
+// (deal, pop, flash, shake, stamp) sont désormais rendus par js/scene.js.
 
 // Retour haptique discret (mobile) quand une lettre rejoint le tracé.
 export function buzz() {
   if (navigator.vibrate) navigator.vibrate(8);
-}
-
-// Survol d'un mot du panneau debug : reproduit l'apparence du :hover sur
-// les cases de son tracé (classe .debug-hint).
-/** @param {number[]|null} path */
-export function setDebugHint(path) {
-  const inPath = path ? new Set(path) : null;
-  cells.forEach((cell, i) => {
-    cell.classList.toggle("debug-hint", inPath !== null && inPath.has(i));
-  });
 }
 
 // --- Chrono ------------------------------------------------------------
@@ -458,28 +382,20 @@ export function stopTimer() {
 
 // --- États de partie --------------------------------------------------------
 
-// Remet le plateau à neuf pour la grille courante (state.letters) :
-// impression des lettres en cascade, registre vidé, grille affichée.
+// Remet le chrome à neuf pour une nouvelle partie : registre vidé, compteur
+// et chrono réinitialisés, consigne rétablie, victoire masquée. La grille
+// Pixi est réaffichée par js/scene.js (renderSceneGrid).
 export function renderNewGame() {
   if (state.rejectTimer !== null) {
     clearTimeout(state.rejectTimer);
     state.rejectTimer = null;
   }
-  cells.forEach((cell, i) => {
-    cell.textContent = state.letters[i];
-    cell.classList.remove("sel", "head", "flash", "deal", "debug-hint", "disabled");
-  });
-  // Le reflow force le redémarrage de l'animation quand on rejoue.
-  void gridEl.offsetWidth;
-  cells.forEach((cell) => cell.classList.add("deal"));
   listRows.forEach(resetListRow);
   renderCounter();
   counterEl.classList.remove("full");
   chronoEl.classList.remove("won");
-  renderRuleText(playingRuleText());
+  renderRuleSpec();
   winEl.hidden = true;
-  gridEl.hidden = false;
-  updateTrace();
 }
 
 export function renderWin() {
@@ -488,9 +404,6 @@ export function renderWin() {
   chronoEl.classList.add("won");
   counterEl.classList.add("full");
   winSubEl.textContent = `${WORDS_TO_WIN} MOT${WORDS_TO_WIN > 1 ? "S" : ""} EN ${time}`;
-  ruleTextEl.textContent =
-    "Chrono arrêté - cette grille est résolue. Rejouer distribue de nouvelles lettres.";
-  gridEl.hidden = true;
   winEl.hidden = false;
 }
 

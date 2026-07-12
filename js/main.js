@@ -14,20 +14,26 @@ import { generateFiveGrid } from "./solver.js";
 import { wordRejectReason } from "./rules.js";
 import { attachInputHandlers, clearPath } from "./input.js";
 import {
+  flashPath,
+  initScene,
+  renderSceneGrid,
+  renderUsedCells,
+  shakeGrid,
+  stampWord,
+} from "./scene.js";
+import {
   bindDifficultyBar,
   buildBoard,
   fillListRow,
-  flashPath,
   hideStatus,
   renderCounter,
   renderDifficultyBar,
-  renderFoundTraces,
   renderLoadError,
   renderNewGame,
-  renderUsedCells,
   renderWin,
   showDifficultyToast,
   showReject,
+  showRuleOnFirstVisit,
   startTimer,
   stopTimer,
 } from "./render.js";
@@ -54,6 +60,7 @@ function startGame() {
   state.solution = grid.solution;
 
   renderNewGame();
+  renderSceneGrid(); // rendu Pixi de la grille (lettres + fonds)
   if (debug) debug.renderDebugPanel();
 
   state.ready = true;
@@ -67,14 +74,22 @@ function triggerWin() {
 }
 
 function commitPath() {
-  if (state.path.length === 0) return;
+  // Moins de 2 lettres : simple tap ou lettre unique relâchée → ce n'est pas
+  // une vraie soumission. On désélectionne (clearPath remet aussi la ligne du
+  // registre à vide) sans flow d'erreur (ni flash, ni secousse, ni « reject »).
+  if (state.path.length < 2) {
+    clearPath();
+    return;
+  }
   const word = state.path.map((i) => state.letters[i]).join("");
   const traced = state.path.slice();
   clearPath(); // libère la ligne d'aperçu avant de la remplir ou de la marquer refusée
 
   const reason = wordRejectReason(word);
   if (reason) {
+    // Refus : flash vermillon des cases + secousse écran (Pixi-natif).
     flashPath(traced);
+    shakeGrid();
     showReject(word, reason);
     return;
   }
@@ -85,8 +100,8 @@ function commitPath() {
   // sont retirées du jeu.
   for (const i of traced) state.usedCells.add(i);
   state.foundPaths.push(traced);
-  renderUsedCells();
-  renderFoundTraces();
+  renderUsedCells(); // repeint les cases en disabled
+  stampWord(traced); // tampon : tassement des cases + fondu du tracé fantôme
   renderCounter();
   if (state.found.length >= WORDS_TO_WIN) triggerWin();
 }
@@ -127,6 +142,8 @@ async function init() {
   renderCounter();
   renderDifficultyBar();
   bindDifficultyBar(setDifficulty);
+  await initScene(); // Application Pixi + graphe de scène (canvas de fond)
+  // Après initScene : le stage Pixi existe, cible des events fédérés du tracé.
   attachInputHandlers({ onCommit: commitPath, onReplay: startGame });
 
   try {
@@ -156,6 +173,9 @@ async function init() {
   }
 
   startGame();
+  // Première visite : on présente la règle d'emblée (le statut de chargement
+  // vient d'être masqué, le panneau est donc visible).
+  showRuleOnFirstVisit();
 }
 
 init();
