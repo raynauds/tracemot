@@ -67,46 +67,49 @@
         ></button>
         <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
         <span class="level-id" id="level-id"></span>
-        <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
-             Elle ouvre le composant voile + panneau (popover desktop, feuille
-             mobile) hérité du sélecteur de difficulté disparu — les classes
-             .diff-overlay / .diff-panel lui survivent et restent partagées. -->
-        <div class="rule" id="rule">
-          <button
-            type="button"
-            class="rule-chip"
-            id="rule-chip"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-            aria-label="Règle du jeu"
-            title="Règle du jeu"
-          ></button>
-          <div class="diff-overlay" id="rule-overlay" hidden></div>
-          <div
-            class="diff-panel rule-panel"
-            id="rule-panel"
-            role="dialog"
-            aria-label="Règle du jeu"
-            hidden
-          >
-            <div class="diff-panel-head">
-              <span class="diff-panel-title">RÈGLE</span>
-              <!-- La croix est une icône SVG posée par src/render/render.ts. -->
-              <button
-                type="button"
-                class="diff-close"
-                id="rule-close"
-                aria-label="Fermer"
-              ></button>
-            </div>
-            <p class="panel-line">
-              Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
-              sert qu'une fois.
-            </p>
-            <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
-                 src/render/render.ts réécrit selon le niveau lancé. -->
-            <p class="panel-spec" id="rule-spec">5 mots · 5 lettres</p>
+      </div>
+      <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
+           Seule au bord droit du header : la flèche dit d'où l'on sort, le
+           niveau dit où l'on est — deux faces d'une même chose, qui restent
+           groupées à gauche. Le « i », lui, n'appartient pas à cette paire.
+           Elle ouvre le composant voile + panneau (popover desktop, feuille
+           mobile) hérité du sélecteur de difficulté disparu — les classes
+           .diff-overlay / .diff-panel lui survivent et restent partagées. -->
+      <div class="rule" id="rule">
+        <button
+          type="button"
+          class="rule-chip"
+          id="rule-chip"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-label="Règle du jeu"
+          title="Règle du jeu"
+        ></button>
+        <div class="diff-overlay" id="rule-overlay" hidden></div>
+        <div
+          class="diff-panel rule-panel"
+          id="rule-panel"
+          role="dialog"
+          aria-label="Règle du jeu"
+          hidden
+        >
+          <div class="diff-panel-head">
+            <span class="diff-panel-title">RÈGLE</span>
+            <!-- La croix est une icône SVG posée par src/render/render.ts. -->
+            <button
+              type="button"
+              class="diff-close"
+              id="rule-close"
+              aria-label="Fermer"
+            ></button>
           </div>
+          <p class="panel-line">
+            Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
+            sert qu'une fois.
+          </p>
+          <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
+               src/render/render.ts réécrit selon le niveau lancé. -->
+          <p class="panel-spec" id="rule-spec">5 mots · 5 lettres</p>
         </div>
       </div>
     </header>

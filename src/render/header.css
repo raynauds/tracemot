@@ -3,8 +3,11 @@
 
 
 /* Barre en surimpression au-dessus du canvas. Le conteneur laisse passer les
-   events de tracé (pointer-events: none) ; seul le sélecteur de difficulté
-   est réactivé plus bas. Léger dégradé pour la lisibilité sur la grille. */
+   events de tracé (pointer-events: none) ; seuls ses boutons les réactivent.
+   Le dégradé fond le bord haut de la grille, qui passe dessous au zoom.
+
+   Deux pôles : à gauche la navigation (d'où l'on sort, où l'on est), à droite
+   la règle — une aide, qui n'a rien à faire dans cette paire. */
 .header {
   position: fixed;
   top: 0;
@@ -17,7 +20,7 @@
   z-index: 25;
   pointer-events: none;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
   padding: 24px max(24px, env(safe-area-inset-right)) 20px
@@ -28,10 +31,12 @@
   );
 }
 
+/* Flèche + niveau : une même phrase (« retour, depuis ici »), donc serrés.
+   L'écart au « i » est celui du header (24px + tout l'espace restant). */
 .header-left {
   display: flex;
-  align-items: baseline;
-  gap: 24px;
+  align-items: center;
+  gap: 14px;
 }
 
 /* Sortie de partie : une flèche nue (icône, cf. src/render/icons.ts). Le cadre
@@ -43,7 +48,6 @@
    la marge négative le reprend pour que la flèche s'aligne quand même sur le
    bord du header. */
 .back-map {
-  align-self: center;
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
@@ -71,7 +75,6 @@
 
 /* Étiquette du niveau en cours : information, pas commande — mono estompé. */
 .level-id {
-  align-self: center;
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 600;
@@ -88,10 +91,7 @@
       18px max(14px, env(safe-area-inset-left));
   }
   .header-left {
-    gap: 14px;
-    /* Flèche + niveau + « i » : sur très petit écran, ils passent à la ligne
-       plutôt que de déborder du header. */
-    flex-wrap: wrap;
+    gap: 10px;
   }
   .back-map {
     font-size: 22px;

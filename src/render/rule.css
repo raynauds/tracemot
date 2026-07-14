@@ -6,7 +6,6 @@
    .diff-panel), ici juste rétrécis et remplis d'un contenu propre. */
 .rule {
   position: relative;
-  align-self: center;
   /* Réactive les events : le header (overlay) les laisse passer par défaut. */
   pointer-events: auto;
 }
@@ -50,9 +49,14 @@
 }
 
 /* Le panneau règle tient en deux lignes : plus étroit que celui des niveaux.
-   Son corps (.panel-line, .panel-spec) vient du composant partagé. */
+   Son corps (.panel-line, .panel-spec) vient du composant partagé.
+
+   Le composant l'ancre à gauche de sa chip ; ici la chip est au bord droit du
+   header, il déborderait de l'écran. On le raccroche donc par la droite. */
 .rule-panel {
   width: 340px;
+  left: auto;
+  right: 0;
 }
 
 
@@ -64,9 +68,10 @@
     font-size: 18px;
   }
   /* Le panneau redevient la feuille pleine largeur du composant partagé : la
-     largeur du popover desktop, déclarée plus bas dans la cascade que
-     src/render/panel.css, l'écraserait sans ce rappel. */
+     largeur et l'ancrage droit du popover desktop, déclarés plus bas dans la
+     cascade que src/render/panel.css, l'écraseraient sans ce rappel. */
   .rule-panel {
     width: auto;
+    left: 0;
   }
 }
