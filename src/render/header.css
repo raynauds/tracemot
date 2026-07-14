@@ -34,30 +34,30 @@
   gap: 24px;
 }
 
-/* Sortie de partie. Filet encre plein : c'est l'action la plus structurante
-   du header, elle prime sur le « ? » (filet clair). */
+/* Sortie de partie : une flèche nue (icône, cf. src/render/icons.ts). Le cadre
+   et le mot « CARTE » pesaient leur poids de chrome pour une action que la
+   flèche seule dit déjà. Elle garde l'encre pleine — c'est l'action la plus
+   structurante du header, elle prime sur le « i » de la règle (estompé).
+
+   Le padding n'est là que pour la cible du doigt (44px de haut avec l'icône) ;
+   la marge négative le reprend pour que la flèche s'aligne quand même sur le
+   bord du header. */
 .back-map {
   align-self: center;
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  /* La flèche est une icône (src/render/icons.ts), pas une lettre : elle ne
-     porte pas son propre blanc comme le faisait le glyphe « ← ». */
-  gap: 7px;
-  padding: 8px 13px;
-  background: var(--card);
-  border: 1.5px solid var(--ink);
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
   color: var(--ink);
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 1px;
+  font-size: 24px; /* règle l'icône : .icon tient 1em de côté */
   cursor: pointer;
 }
 
 .back-map:hover {
-  background: var(--ink);
-  color: var(--paper);
+  color: var(--vermilion);
 }
 
 /* Étiquette du niveau en cours : information, pas commande — mono estompé. */
@@ -79,14 +79,13 @@
       18px max(14px, env(safe-area-inset-left));
   }
   .header-left {
-    gap: 10px;
-    /* « ← CARTE » + niveau + « ? » : sur très petit écran, ils passent à la
-       ligne plutôt que de déborder du header. */
+    gap: 14px;
+    /* Flèche + niveau + « i » : sur très petit écran, ils passent à la ligne
+       plutôt que de déborder du header. */
     flex-wrap: wrap;
   }
   .back-map {
-    padding: 7px 10px;
-    font-size: 12px;
+    font-size: 22px;
   }
   .level-id {
     font-size: 12px;

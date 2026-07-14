@@ -108,15 +108,12 @@ components:
     textColor: "{colors.vermilion}"
     height: 54px
     rounded: "{rounded.none}"
-  button-quiet: # « ? » de la règle — filet clair, action rare
-    backgroundColor: "{colors.card}"
-    textColor: "{colors.muted}"
-    typography: "{typography.action}"
-    size: 34px
-    rounded: "{rounded.none}"
-  button-quiet-hover:
-    backgroundColor: "{colors.card-hover}"
-    textColor: "{colors.ink}"
+  button-icon: # header : retour à la carte, règle du jeu — icône nue
+    backgroundColor: transparent
+    textColor: "{colors.ink}" # règle du jeu : {colors.muted}, action rare
+    size: 24px # règle du jeu : 20px
+  button-icon-hover:
+    textColor: "{colors.vermilion}" # règle du jeu : {colors.ink}
   panel: # règle du jeu, modales — filet encre 2px + ombre floue
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
@@ -285,9 +282,11 @@ La hiérarchie est portée par le remplissage, pas par la taille.
   retour à la carte, onglet de mode. Au survol comme à l'état sélectionné, il
   **s'inverse** (fond encre, texte papier) — c'est l'idiome d'interaction de
   l'application.
-- **`button-quiet`** — filet clair au lieu du filet encre, texte estompé. Pour
-  l'action rare et subordonnée (le « ? » de la règle, qu'on lit une fois). Au
-  survol, il gagne le filet encre : il monte d'un cran plutôt que de s'inverser.
+- **`button-icon`** — une icône, rien autour : ni fond, ni filet. Pour les deux
+  commandes du header, que leur dessin dit mieux qu'un mot (retour à la carte,
+  règle du jeu). Le rang se lit à l'encre, pas au cadre : la flèche du retour
+  est pleine, le « i » de la règle est estompé (action rare, qu'on lit une
+  fois) et ne prend l'encre qu'au survol.
 
 ### Panneaux
 

@@ -12,7 +12,13 @@ import { isDefi, levelLabel, type LevelId } from "../game/levels.ts";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
-import { arrowLeftIcon, chevronIcon, closeIcon, starIcon } from "./icons.ts";
+import {
+  arrowLeftIcon,
+  chevronIcon,
+  closeIcon,
+  infoIcon,
+  starIcon,
+} from "./icons.ts";
 
 // Ligne vide du registre : un point par lettre attendue (mode actif).
 function wordDots() {
@@ -54,9 +60,10 @@ function renderRuleSpec() {
 
 // --- Header de partie -------------------------------------------------------
 
-// Le HTML ne porte que le mot « CARTE » : la flèche est une icône, elle vient
+// Deux boutons muets dans le HTML (leur sens tient dans l'aria-label) : la
+// flèche du retour et le « i » de la règle sont des icônes, elles viennent
 // d'ici (cf. ./icons.ts).
-backMapEl.prepend(arrowLeftIcon());
+backMapEl.appendChild(arrowLeftIcon());
 
 // Identité du niveau en cours (« 5×5 · 1-12 ») : le seul repère du joueur une
 // fois la carte masquée.
@@ -94,13 +101,14 @@ ledgerToggleEl.addEventListener("click", () =>
 // État initial : replié sur mobile (pastille), déplié sur desktop.
 setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 
-// --- Règle du jeu (bouton « ? » du header) ---------------------------------
+// --- Règle du jeu (bouton « info » du header) ------------------------------
 
-// La règle vit dans un panneau ouvert par le bouton « ? ». Comme la mécanique
+// La règle vit dans un panneau ouvert par le bouton « info ». Comme la mécanique
 // n'est pas devinable, on l'ouvre d'office au tout premier niveau lancé (et
 // seulement celui-là) : le drapeau « vu » est mémorisé en localStorage.
 const RULE_SEEN_KEY = "tracemot.rule-seen";
 const ruleChipEl = byId("rule-chip");
+ruleChipEl.appendChild(infoIcon());
 const rulePanelEl = byId("rule-panel");
 const ruleOverlayEl = byId("rule-overlay");
 const ruleCloseEl = byId("rule-close");

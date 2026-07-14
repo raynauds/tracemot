@@ -55,15 +55,22 @@
 
     <header class="header">
       <div class="header-left">
-        <!-- Retour à la carte : sortie de partie, toujours disponible.
-             La flèche est une icône SVG posée par src/render/render.ts. -->
-        <button type="button" class="back-map" id="back-map">CARTE</button>
+        <!-- Retour à la carte : sortie de partie, toujours disponible. Une
+             flèche nue (icône SVG posée par src/render/render.ts) : le mot
+             « CARTE » et son cadre disaient deux fois la même chose. -->
+        <button
+          type="button"
+          class="back-map"
+          id="back-map"
+          aria-label="Retour à la carte"
+          title="Retour à la carte"
+        ></button>
         <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
         <span class="level-id" id="level-id"></span>
-        <!-- Règle du jeu : bouton discret « ? ». Il ouvre le composant voile +
-             panneau (popover desktop, feuille mobile) hérité du sélecteur de
-             difficulté disparu — les classes .diff-overlay / .diff-panel lui
-             survivent et restent partagées. -->
+        <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
+             Elle ouvre le composant voile + panneau (popover desktop, feuille
+             mobile) hérité du sélecteur de difficulté disparu — les classes
+             .diff-overlay / .diff-panel lui survivent et restent partagées. -->
         <div class="rule" id="rule">
           <button
             type="button"
@@ -73,9 +80,7 @@
             aria-expanded="false"
             aria-label="Règle du jeu"
             title="Règle du jeu"
-          >
-            ?
-          </button>
+          ></button>
           <div class="diff-overlay" id="rule-overlay" hidden></div>
           <div
             class="diff-panel rule-panel"

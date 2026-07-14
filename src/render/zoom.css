@@ -1,9 +1,9 @@
 /* Contrôles de zoom de la caméra Pixi. Injectés dans le body par
    buildZoomControls (src/render/scene.ts). */
 
-/* Boutons flottants + / − / tout voir, ancrés en coin, au-dessus du canvas.
-   Style « chip » : mono, bordure INK. Le conteneur laisse passer les events
-   de tracé ; seuls les boutons les interceptent. */
+/* Boutons flottants + / − / tout voir (icônes, cf. src/render/icons.ts), ancrés
+   en coin, au-dessus du canvas. Style « chip » : bordure INK. Le conteneur
+   laisse passer les events de tracé ; seuls les boutons les interceptent. */
 .zoom-controls {
   position: fixed;
   right: max(16px, env(safe-area-inset-right));
@@ -25,10 +25,9 @@
   border: 1.5px solid var(--ink);
   background: var(--card);
   color: var(--ink);
-  font-family: var(--mono);
+  /* Le bouton ne contient qu'une icône (src/render/icons.ts), qui tient 1em de
+     côté : sa taille se règle donc ici, par le font-size. */
   font-size: 18px;
-  font-weight: 600;
-  line-height: 1;
   cursor: pointer;
 }
 
