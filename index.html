@@ -15,7 +15,10 @@
     />
     <link rel="stylesheet" href="style.css" />
   </head>
-  <body>
+  <!-- .booting : au chargement, l'écran ne montre que le papier de la carte —
+       rien n'est peint tant que l'app n'est pas prête (style.css). src/main.ts
+       retire la classe une fois la carte en place. -->
+  <body class="booting">
     <!-- La grille et le tracé sont rendus par PixiJS (src/render/scene.ts) sur un
          canvas plein écran en fond (position: fixed, z-index: 0). Tout le
          chrome ci-dessous est en surimpression (overlays position: fixed).

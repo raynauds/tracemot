@@ -216,4 +216,8 @@ async function init() {
   // pas choisi de niveau.
 }
 
-init();
+// Rien n'est affiché tant que .booting est là (style.css) : on la retire une
+// fois la carte en place, donc après initScene — qui attend déjà les polices.
+// finally : un échec d'init ne doit pas laisser le joueur devant un écran vide
+// à jamais ; mieux vaut révéler un chrome incomplet qu'un mur de papier.
+init().finally(() => document.body.classList.remove("booting"));

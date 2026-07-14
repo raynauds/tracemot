@@ -45,6 +45,26 @@ body {
   overflow: hidden;
 }
 
+/* ---------- Boot ---------- */
+
+/* Au chargement, l'écran ne montre QUE le papier de la carte : le HTML peint
+   sinon le chrome de partie (header, chrono, registre) que showMap() escamote
+   aussitôt après, et les polices arrivent en swap — deux sauts pour rien.
+   Le fond est celui de la carte, seul écran possible au boot.
+
+   visibility (et non display) : la mise en page et les mesures de police se
+   font pendant ce temps, la révélation ne re-layoute donc rien. main.ts retire
+   .booting quand la carte est en place. */
+body.booting {
+  background: var(--map-paper);
+}
+
+/* Pas de fondu à la révélation : la carte s'ouvrirait en transparence sur le
+   canvas Pixi posé dessous, et on reverrait la grille passer. */
+body.booting > * {
+  visibility: hidden;
+}
+
 /* ---------- Header (overlay haut) ---------- */
 
 /* Barre en surimpression au-dessus du canvas. Le conteneur laisse passer les
