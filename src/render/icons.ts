@@ -1,7 +1,7 @@
-// Icônes de l'interface : étoile et coche, dessinées en SVG plutôt qu'en glyphe
-// (★ ☆ ✓). Un glyphe dépend de la fonte qui le rend — corps, graisse et
-// alignement varient d'une plateforme à l'autre —, alors que ces tracés tiennent
-// la même graisse que les filets de la carte, partout.
+// Icônes de l'interface, dessinées en SVG plutôt qu'en glyphe (★ ☆ ✓ ← ✕ ▾ ▸).
+// Un glyphe dépend de la fonte qui le rend — corps, graisse et alignement
+// varient d'une plateforme à l'autre —, alors que ces tracés tiennent la même
+// graisse que les filets de la carte, partout.
 //
 // Les fichiers (src/assets/icons, jeu Feather) sont la source unique du dessin :
 // `?raw` les inline dans le bundle à la compilation. On les pose donc en SVG
@@ -13,8 +13,11 @@
 // fill="none") — cf. src/theme/base.css. Le fichier reste donc modifiable sans
 // que le code ait à suivre.
 
+import arrowLeftSvg from "../assets/icons/arrow-left.svg?raw";
 import checkSvg from "../assets/icons/check.svg?raw";
+import chevronRightSvg from "../assets/icons/chevron-right.svg?raw";
 import starSvg from "../assets/icons/star.svg?raw";
+import xSvg from "../assets/icons/x.svg?raw";
 
 // Parsé une fois : chaque icône posée n'est qu'un clone du nœud modèle.
 function template(source: string, className: string): SVGSVGElement {
@@ -30,6 +33,9 @@ function template(source: string, className: string): SVGSVGElement {
 
 const STAR = template(starSvg, "icon-star");
 const CHECK = template(checkSvg, "icon-check");
+const ARROW_LEFT = template(arrowLeftSvg, "icon-arrow-left");
+const CLOSE = template(xSvg, "icon-close");
+const CHEVRON = template(chevronRightSvg, "icon-chevron");
 
 // filled : l'étoile gagnée est pleine, celle qui reste à gagner est creuse —
 // c'est le seul écart entre les deux, le contour est le même.
@@ -41,4 +47,20 @@ export function starIcon(filled = true): SVGSVGElement {
 
 export function checkIcon(): SVGSVGElement {
   return CHECK.cloneNode(true) as SVGSVGElement;
+}
+
+// Retour à la carte, dans le header de partie.
+export function arrowLeftIcon(): SVGSVGElement {
+  return ARROW_LEFT.cloneNode(true) as SVGSVGElement;
+}
+
+// Fermeture des panneaux (règle du jeu, décompte des étoiles).
+export function closeIcon(): SVGSVGElement {
+  return CLOSE.cloneNode(true) as SVGSVGElement;
+}
+
+// Un seul chevron pour les deux sens : celui du registre pointe à droite replié,
+// et le CSS le fait pivoter vers le bas quand la liste s'ouvre.
+export function chevronIcon(): SVGSVGElement {
+  return CHEVRON.cloneNode(true) as SVGSVGElement;
 }

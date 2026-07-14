@@ -12,7 +12,7 @@ import { isDefi, levelLabel, type LevelId } from "../game/levels.ts";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
-import { starIcon } from "./icons.ts";
+import { arrowLeftIcon, chevronIcon, closeIcon, starIcon } from "./icons.ts";
 
 // Ligne vide du registre : un point par lettre attendue (mode actif).
 function wordDots() {
@@ -54,6 +54,10 @@ function renderRuleSpec() {
 
 // --- Header de partie -------------------------------------------------------
 
+// Le HTML ne porte que le mot « CARTE » : la flèche est une icône, elle vient
+// d'ici (cf. ./icons.ts).
+backMapEl.prepend(arrowLeftIcon());
+
 // Identité du niveau en cours (« 5×5 · 1-12 ») : le seul repère du joueur une
 // fois la carte masquée.
 export function renderLevelHeader() {
@@ -76,6 +80,9 @@ export function bindMapReturn(onReturn: () => void) {
 const ledgerEl = byId("ledger");
 const ledgerToggleEl = byId("ledger-toggle");
 
+// Le chevron du repli : posé une fois ici, orienté par le CSS selon l'état.
+byId("ledger-caret").appendChild(chevronIcon());
+
 function setLedgerCollapsed(collapsed: boolean) {
   ledgerEl.classList.toggle("collapsed", collapsed);
   ledgerToggleEl.setAttribute("aria-expanded", String(!collapsed));
@@ -97,6 +104,7 @@ const ruleChipEl = byId("rule-chip");
 const rulePanelEl = byId("rule-panel");
 const ruleOverlayEl = byId("rule-overlay");
 const ruleCloseEl = byId("rule-close");
+ruleCloseEl.appendChild(closeIcon());
 
 function setRulePanelOpen(open: boolean) {
   rulePanelEl.hidden = !open;

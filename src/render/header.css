@@ -41,6 +41,9 @@
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
+  /* La flèche est une icône (src/render/icons.ts), pas une lettre : elle ne
+     porte pas son propre blanc comme le faisait le glyphe « ← ». */
+  gap: 7px;
   padding: 8px 13px;
   background: var(--card);
   border: 1.5px solid var(--ink);

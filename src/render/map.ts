@@ -32,7 +32,7 @@ import {
   defiOfRow,
   levelId,
 } from "../game/levels.ts";
-import { checkIcon, starIcon } from "./icons.ts";
+import { checkIcon, closeIcon, starIcon } from "./icons.ts";
 import {
   cellState,
   isModeSeen,
@@ -165,10 +165,11 @@ function buildStarsPanel(): DocumentFragment {
 
   const head = el("div", "diff-panel-head");
   head.appendChild(el("span", "diff-panel-title", "ÉTOILES"));
-  const close = el("button", "diff-close", "✕");
+  const close = el("button", "diff-close");
   close.type = "button";
   close.id = "map-stars-close";
   close.setAttribute("aria-label", "Fermer");
+  close.appendChild(closeIcon());
   head.appendChild(close);
   panel.appendChild(head);
 

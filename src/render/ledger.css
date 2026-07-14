@@ -41,18 +41,25 @@
   border-bottom: none;
 }
 
+/* Le chevron (src/render/icons.ts, posé par render.ts) tient 1em de côté : sa
+   taille se règle par le font-size. */
 .ledger-caret {
   flex: 0 0 auto;
-  font-size: 11px;
+  display: flex;
+  font-size: 15px;
   color: var(--muted);
 }
 
-.ledger-caret::before {
-  content: "▾";
+/* Un seul dessin pour les deux états : le chevron du fichier pointe à droite —
+   c'est le registre replié, le tiroir attend d'être ouvert. Déplié, il bascule
+   vers le bas et désigne la liste qu'il vient d'ouvrir. */
+.ledger-caret .icon {
+  transform: rotate(90deg);
+  transition: transform 0.2s ease;
 }
 
-.ledger.collapsed .ledger-caret::before {
-  content: "▸";
+.ledger.collapsed .ledger-caret .icon {
+  transform: rotate(0deg);
 }
 
 /* Repliée : seule la barre reste (pastille compteur n / N). */

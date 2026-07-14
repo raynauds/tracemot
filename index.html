@@ -55,8 +55,9 @@
 
     <header class="header">
       <div class="header-left">
-        <!-- Retour à la carte : sortie de partie, toujours disponible. -->
-        <button type="button" class="back-map" id="back-map">← CARTE</button>
+        <!-- Retour à la carte : sortie de partie, toujours disponible.
+             La flèche est une icône SVG posée par src/render/render.ts. -->
+        <button type="button" class="back-map" id="back-map">CARTE</button>
         <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
         <span class="level-id" id="level-id"></span>
         <!-- Règle du jeu : bouton discret « ? ». Il ouvre le composant voile +
@@ -85,14 +86,13 @@
           >
             <div class="diff-panel-head">
               <span class="diff-panel-title">RÈGLE</span>
+              <!-- La croix est une icône SVG posée par src/render/render.ts. -->
               <button
                 type="button"
                 class="diff-close"
                 id="rule-close"
                 aria-label="Fermer"
-              >
-                ✕
-              </button>
+              ></button>
             </div>
             <p class="panel-line">
               Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
@@ -124,7 +124,8 @@
         <span class="counter" id="counter"
           ><span class="count">0</span> / 5</span
         >
-        <span class="ledger-caret" aria-hidden="true"></span>
+        <!-- Le chevron est une icône SVG posée par src/render/render.ts. -->
+        <span class="ledger-caret" id="ledger-caret" aria-hidden="true"></span>
       </button>
       <!-- Lignes pré-rendues (mode par défaut, voir src/game/config.ts) pour éviter
            un shift au chargement ; src/render/render.ts les adopte et ajuste leur
