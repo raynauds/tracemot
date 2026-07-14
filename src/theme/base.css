@@ -46,7 +46,7 @@ body {
 
 
 /* Au chargement, l'écran ne montre QUE le papier du body : le HTML peint sinon
-   le chrome de partie (header, chrono, registre) que showMap() escamote aussitôt
+   le chrome de partie (header, registre) que showMap() escamote aussitôt
    après, et les polices arrivent en swap — deux sauts pour rien.
 
    visibility (et non display) : la mise en page et les mesures de police se

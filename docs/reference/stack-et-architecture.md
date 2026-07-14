@@ -17,7 +17,7 @@ Tout le code vit sous `src/`, découpé en couches — `src/game/` est le domain
 - `render/scene.ts` - scène Pixi : `Application`, couches, cases, lettres, tracé, tracés fantômes, animations et feedbacks (deal, pop, flash, shake, stamp).
 - `render/camera.ts` - modèle caméra (scale + position du container monde) : fit, clamp, zoom, pan, conversions écran ↔ monde.
 - `render/tween.ts` - petit moteur d'interpolations sur le Ticker Pixi.
-- `render/render.ts` - chrome DOM (registre, mode, difficulté, règle, chrono, statut, victoire).
+- `render/render.ts` - chrome DOM (registre, mode, difficulté, règle, statut, victoire).
 - `input/input.ts` - arbitrage des gestes (tracé / pan / pinch / molette / clavier / auto-pan) via les events fédérés Pixi.
 - `debug/debug.ts` - chargé si `DEBUG`.
 

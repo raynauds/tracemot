@@ -206,9 +206,10 @@ function buildStars(p: ModeProgress): HTMLElement | null {
   return box;
 }
 
+// Sans marque : le jeu n'a pas à se nommer sur son propre écran. Les onglets
+// ouvrent donc le header, le compteur d'étoiles le ferme.
 function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
-  head.appendChild(el("div", "map-brand", "Tracemot"));
   head.appendChild(buildTabs());
   head.appendChild(el("div", "map-spring"));
   const stars = buildStars(p);

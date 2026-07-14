@@ -1,5 +1,5 @@
-/* Header (overlay haut) : titre, retour à la carte, identifiant du niveau,
-   chrono. Écrit par src/render/render.ts. */
+/* Header (overlay haut) : titre, retour à la carte, identifiant du niveau.
+   Écrit par src/render/render.ts. */
 
 
 /* Barre en surimpression au-dessus du canvas. Le conteneur laisse passer les
@@ -33,37 +33,6 @@
   align-items: baseline;
   gap: 24px;
 }
-
-.title {
-  margin: 0;
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.header-right {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.chrono-label {
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 2px;
-  color: var(--muted);
-}
-
-.chrono {
-  font-family: var(--mono);
-  font-size: 26px;
-  font-weight: 600;
-}
-
-.chrono.won {
-  color: var(--vermilion);
-}
-
 
 /* Sortie de partie. Filet encre plein : c'est l'action la plus structurante
    du header, elle prime sur le « ? » (filet clair). */
@@ -108,20 +77,10 @@
   }
   .header-left {
     gap: 10px;
-    /* Titre + « ← CARTE » + niveau + « ? » : sur très petit écran, ils passent
-       à la ligne plutôt que de déborder du header. */
+    /* « ← CARTE » + niveau + « ? » : sur très petit écran, ils passent à la
+       ligne plutôt que de déborder du header. */
     flex-wrap: wrap;
   }
-  .title {
-    font-size: 19px;
-  }
-  .chrono-label {
-    display: none;
-  }
-  .chrono {
-    font-size: 17px;
-  }
-
   .back-map {
     padding: 7px 10px;
     font-size: 12px;

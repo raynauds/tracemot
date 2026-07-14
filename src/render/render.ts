@@ -1,5 +1,5 @@
-// Chrome DOM en surimpression : header de partie (chrono, niveau, retour
-// carte), registre repliable des mots trouvés, consigne, statut et victoire.
+// Chrome DOM en surimpression : header de partie (niveau, retour carte),
+// registre repliable des mots trouvés, consigne, statut et victoire.
 // La grille, le tracé et leurs animations sont rendus par PixiJS
 // (render/scene.ts) ; la carte de progression par render/map.ts.
 //
@@ -35,7 +35,6 @@ const winNextEl = byId("win-next");
 const winDefiEl = byId("win-defi");
 const winMapEl = byId("win-map");
 const backMapEl = byId("back-map");
-const chronoEl = byId("chrono");
 const levelIdEl = byId("level-id");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
@@ -44,13 +43,6 @@ const ruleSpecEl = byId("rule-spec");
 const listRows: HTMLElement[] = []; // les wordCount lignes du registre
 
 // --- Utilitaires --------------------------------------------------------
-
-function formatTime(ms: number) {
-  const total = Math.floor(ms / 1000);
-  const m = String(Math.floor(total / 60)).padStart(2, "0");
-  const s = String(total % 60).padStart(2, "0");
-  return `${m}:${s}`;
-}
 
 // Bande « specs » du panneau règle : dimensions du puzzle, tirées du mode
 // actif (mises en capitales par le CSS). La phrase serif au-dessus est
@@ -259,29 +251,11 @@ export function buzz() {
   if (navigator.vibrate) navigator.vibrate(8);
 }
 
-// --- Chrono ------------------------------------------------------------
-
-export function startTimer() {
-  stopTimer();
-  state.startTime = Date.now();
-  chronoEl.textContent = "00:00";
-  state.timerId = setInterval(() => {
-    chronoEl.textContent = formatTime(Date.now() - state.startTime);
-  }, 500);
-}
-
-export function stopTimer() {
-  if (state.timerId !== null) {
-    clearInterval(state.timerId);
-    state.timerId = null;
-  }
-}
-
 // --- États de partie --------------------------------------------------------
 
 // Remet le chrome à neuf pour un nouveau niveau : registre vidé, compteur
-// et chrono réinitialisés, consigne rétablie, victoire masquée. La grille
-// Pixi est réaffichée par render/scene.ts (renderSceneGrid).
+// réinitialisé, consigne rétablie, victoire masquée. La grille Pixi est
+// réaffichée par render/scene.ts (renderSceneGrid).
 export function renderNewGame() {
   if (state.rejectTimer !== null) {
     clearTimeout(state.rejectTimer);
@@ -290,7 +264,6 @@ export function renderNewGame() {
   listRows.forEach(resetListRow);
   renderCounter();
   counterEl.classList.remove("full");
-  chronoEl.classList.remove("won");
   renderRuleSpec();
   hideWin();
 }
@@ -349,12 +322,9 @@ export function renderWin(opts: {
   choices?: NextChoice[];
 } = {}) {
   const { star, choices = [] } = opts;
-  const time = formatTime(Date.now() - state.startTime);
-  chronoEl.textContent = `${time} ■`;
-  chronoEl.classList.add("won");
   counterEl.classList.add("full");
   const { wordCount } = state.mode;
-  winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} EN ${time}`;
+  winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} TROUVÉ${wordCount > 1 ? "S" : ""}`;
   winStarEl.hidden = !star;
   if (star) {
     winStarGainEl.textContent = "";

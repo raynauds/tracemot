@@ -32,17 +32,13 @@ body.map-open .win {
 
 /* --- En-tête de la carte --- */
 
+/* Aucun filet sous le header : les jalons de section découpent déjà la carte, un
+   trait de plus ne ferait que la refermer. Le header flotte sur le papier. */
 .map-header {
   display: flex;
   align-items: center;
   gap: 28px;
   padding: 18px 32px;
-  border-bottom: 2px solid var(--ink);
-}
-
-.map-brand {
-  font-size: 26px;
-  font-weight: 700;
 }
 
 /* Pousse le compteur à droite sans marge auto (le gap resterait appliqué). */
@@ -164,31 +160,41 @@ body.map-open .win {
   }
 }
 
-/* --- Corps : accroche, sections, brouillard --- */
+/* --- Corps : sections, brouillard --- */
 
-/* `position: relative` : le brouillard est un absolu ancré sur ce bloc. */
+/* Aucune marge haute : le padding du header tient seul l'écart avec la première
+   section, qui n'a donc pas à s'en occuper.
+
+   `position: relative` : le brouillard est un absolu ancré sur ce bloc. */
 .map-body {
   position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 26px;
-  padding: 30px 32px 0;
+  padding: 0 32px;
 }
 
+/* La respiration entre sections vit ici, et nulle part ailleurs : un gap ne
+   s'applique QU'ENTRE deux sections — ni avant la première (elle colle au
+   header), ni après la dernière (rien à pousser sous elle). */
 .map-sections {
   display: flex;
   flex-direction: column;
+  gap: 22px;
 }
 
 /* Jalon de section : deux filets qui enserrent le nom de la difficulté. Pas
-   d'encadré — la carte est continue, la section n'est qu'une graduation. */
+   d'encadré — la carte est continue, la section n'est qu'une graduation.
+
+   Aucune marge haute : l'écart entre deux sections appartient à la section qui
+   précède (.map-section, plus bas), pas au jalon qui suit. La première section
+   colle donc au header, comme les autres collent à ce qui les précède. */
 .map-milestone {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 22px 0 14px;
+  padding: 0 0 14px;
 }
 
 .map-milestone-rule {
@@ -597,18 +603,8 @@ body.map-open .win {
     gap: 12px;
     padding: 16px 16px 12px;
   }
-  .map-brand {
-    font-size: 20px;
-  }
-  /* Le ressort passe AVANT les onglets (ordre visuel) : marque et compteur sur
-     la première ligne, onglets sur la seconde. */
-  .map-spring {
-    order: 1;
-    flex: 1 0 0;
-  }
-  .map-stars {
-    order: 2;
-  }
+  /* La marque partie, le header tient sur une ligne : les onglets à gauche, le
+     compteur à droite. Plus rien à réordonner. */
   .map-stars-chip {
     gap: 6px;
   }
@@ -619,8 +615,6 @@ body.map-open .win {
     font-size: 12px;
   }
   .map-tabs {
-    order: 3;
-    flex-basis: 100%;
     gap: 8px;
   }
   .map-tab {
@@ -635,13 +629,15 @@ body.map-open .win {
 
   .map-body {
     align-items: stretch;
-    gap: 4px;
-    padding: 16px 16px 0;
+    padding: 0 16px;
   }
 
+  .map-sections {
+    gap: 18px;
+  }
   .map-milestone {
     gap: 11px;
-    padding: 18px 0 12px;
+    padding: 0 0 12px;
   }
   .map-milestone-name {
     font-size: 16px;

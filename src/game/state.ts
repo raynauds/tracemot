@@ -46,8 +46,6 @@ export interface GameState {
   /** Timeout d'effacement du dernier mot refusé. */
   rejectTimer: number | null;
   won: boolean;
-  startTime: number;
-  timerId: number | null;
 }
 
 export const state: GameState = {
@@ -65,8 +63,6 @@ export const state: GameState = {
   foundPaths: [],
   rejectTimer: null,
   won: false,
-  startTime: 0,
-  timerId: null,
 };
 
 // Adopte un niveau : mode, identifiant, forme effective (défi compris),

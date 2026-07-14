@@ -201,8 +201,8 @@ Deux familles, et une règle de répartition stricte.
 du registre, phrases explicatives. Poids 400 pour le corps, 700 pour ce qui
 titre.
 
-**IBM Plex Mono** porte tout ce qui se compte ou se commande : chronomètre,
-compteurs, libellés capitalés, boutons. Poids 600, avec un interlettrage large
+**IBM Plex Mono** porte tout ce qui se compte ou se commande : compteurs,
+libellés capitalés, boutons. Poids 600, avec un interlettrage large
 (1 à 3px) qui augmente à mesure que le texte rapetisse — c'est ce qui rend un
 libellé de 11px encore lisible et le distingue d'un titre.
 

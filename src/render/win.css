@@ -44,7 +44,7 @@
 }
 
 /* Étoile gagnée (défis, première validation seulement). Discret et sous le
-   chrono : c'est une récompense, pas l'annonce principale — le titre reste
+   sous-titre : c'est une récompense, pas l'annonce principale — le titre reste
    « Gagné. ». Le vermillon la distingue du gris du sous-titre, et la ligne
    « débloque » ne s'affiche que si l'étoile ouvre effectivement quelque chose
    (au-delà du 4e palier, elle ne compte plus que pour la complétion). */

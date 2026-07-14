@@ -48,8 +48,6 @@ import {
   renderWin,
   showReject,
   showRuleOnFirstVisit,
-  startTimer,
-  stopTimer,
 } from "./render/render.ts";
 
 /** Module debug, chargé si DEBUG. */
@@ -59,9 +57,8 @@ let debug: typeof import("./debug/debug.ts") | null = null;
 // reste cliquable pendant ce temps (elle n'est masquée qu'une fois la grille
 // prête) : un double-clic, ou un clic sur une autre case avant l'arrivée du
 // JSON, met deux startLevel en vol. Seule la DERNIÈRE demande doit aboutir —
-// sinon la reprise périmée reconstruit une grille par-dessus la bonne, relance
-// son chrono et, en cas d'échec, affiche une erreur pour un niveau que le
-// joueur ne demande plus.
+// sinon la reprise périmée reconstruit une grille par-dessus la bonne et, en
+// cas d'échec, affiche une erreur pour un niveau que le joueur ne demande plus.
 let selection = 0;
 
 // Lance un niveau : charge sa grille, reconstruit tout ce qui dépend de la
@@ -84,7 +81,6 @@ async function startLevel(modeId: ModeId, id: LevelId) {
     );
     // L'échec laisse le joueur sur la carte : aucune partie n'est en place.
     state.ready = false;
-    stopTimer();
     showMap(); // la carte est re-rendue dessous : le clic sur le message la révèle
     return;
   }
@@ -107,7 +103,6 @@ async function startLevel(modeId: ModeId, id: LevelId) {
   hideMap();
   renderLevelHeader();
   state.ready = true;
-  startTimer(); // le chrono démarre quand la grille est prête
   // Première visite : on présente la règle d'emblée (la carte est masquée,
   // le panneau est donc visible).
   showRuleOnFirstVisit();
@@ -127,7 +122,6 @@ async function startLevel(modeId: ModeId, id: LevelId) {
 // victoire vient d'ouvrir, elles n'existent donc pas dans la progression d'avant.
 function triggerWin() {
   state.won = true;
-  stopTimer();
   const id = state.levelId;
   if (!id) {
     renderWin();
@@ -153,7 +147,6 @@ function triggerWin() {
 // victoire vient de débloquer.
 function backToMap() {
   cancelAllGestures();
-  stopTimer();
   state.ready = false;
   showMap();
 }
