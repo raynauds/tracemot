@@ -42,8 +42,8 @@ import {
   markModeSeen,
   saveLastMode,
   sectionStats,
-  starCount,
   sectionTeased,
+  starCount,
   visibleModes,
   type CellState,
   type ModeProgress,
@@ -119,10 +119,7 @@ function buildTabs(): HTMLElement {
       // Onglet verrouillé : montré (on sait ce qui vient), mais inerte.
       tab.classList.add("is-locked");
       tab.disabled = true;
-      tab.setAttribute(
-        "aria-label",
-        `Mode ${modeLabel(modeId)}, verrouillé`,
-      );
+      tab.setAttribute("aria-label", `Mode ${modeLabel(modeId)}, verrouillé`);
       tab.appendChild(lockIcon());
     } else {
       tab.dataset.mode = modeId;
@@ -143,18 +140,73 @@ function buildTabs(): HTMLElement {
   return nav;
 }
 
+// Ce que le panneau des étoiles explique : comment on les gagne, et ce qu'elles
+// ouvrent. Ni seuil ni nom de difficulté : la mécanique, pas le barème — la
+// carte, elle, annonce le prochain palier au moment où il est à portée
+// (« ★ Encore 1 étoile »).
+const STARS_LINES = [
+  "Chaque défi validé rapporte une étoile.",
+  "Elles ouvrent les difficultés suivantes, et le mode au-dessus - des " +
+    "grilles plus grandes, des mots plus longs.",
+];
+
+// Voile + panneau du compteur : le composant partagé du header de partie
+// (src/render/panel.css), réemployé tel quel. Il naît DANS la chip pour que le
+// popover s'ancre dessus, et repart caché à chaque rendu (cf. bindMap).
+function buildStarsPanel(): DocumentFragment {
+  const frag = document.createDocumentFragment();
+
+  const overlay = el("div", "diff-overlay");
+  overlay.id = "map-stars-overlay";
+  overlay.hidden = true;
+  frag.appendChild(overlay);
+
+  const panel = el("div", "diff-panel map-stars-panel");
+  panel.id = "map-stars-panel";
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-label", "Étoiles");
+  panel.hidden = true;
+
+  const head = el("div", "diff-panel-head");
+  head.appendChild(el("span", "diff-panel-title", "ÉTOILES"));
+  const close = el("button", "diff-close", "✕");
+  close.type = "button";
+  close.id = "map-stars-close";
+  close.setAttribute("aria-label", "Fermer");
+  head.appendChild(close);
+  panel.appendChild(head);
+
+  for (const line of STARS_LINES)
+    panel.appendChild(el("p", "panel-line", line));
+  frag.appendChild(panel);
+  return frag;
+}
+
 // Compteur d'étoiles du mode AFFICHÉ (et non de la progression globale) : la
 // carte parle du mode qu'on regarde. À zéro étoile, le compteur ne dit rien
-// qu'on ne sache déjà : on le tait.
+// qu'on ne sache déjà : on le tait — et avec lui l'explication, qui n'aurait
+// que des verrous à montrer (l'accroche de la carte dit déjà le principe).
 function buildStars(p: ModeProgress): HTMLElement | null {
   const stars = starCount(p);
   if (stars === 0) return null;
   const box = el("div", "map-stars");
-  box.setAttribute("aria-label", `${stars} ${stars > 1 ? "étoiles" : "étoile"}`);
-  box.appendChild(el("span", "map-stars-count", String(stars)));
+
+  const chip = el("button", "map-stars-chip");
+  chip.type = "button";
+  chip.id = "map-stars-chip";
+  chip.setAttribute("aria-haspopup", "dialog");
+  chip.setAttribute("aria-expanded", "false");
+  chip.setAttribute(
+    "aria-label",
+    `${stars} ${stars > 1 ? "étoiles" : "étoile"} — ce qu'elles ouvrent`,
+  );
+  chip.appendChild(el("span", "map-stars-count", String(stars)));
   const icon = el("span", "map-stars-icon", "★");
   icon.setAttribute("aria-hidden", "true");
-  box.appendChild(icon);
+  chip.appendChild(icon);
+  box.appendChild(chip);
+
+  box.appendChild(buildStarsPanel());
   return box;
 }
 
@@ -331,13 +383,11 @@ function buildMilestone(
   );
   milestone.appendChild(el("span", "map-milestone-rule"));
   const label = el("span", "map-milestone-label");
-  label.appendChild(el("span", "map-milestone-name", DIFFICULTY_LABELS[s].name));
   label.appendChild(
-    el(
-      "span",
-      `map-milestone-count${complete ? " is-complete" : ""}`,
-      count,
-    ),
+    el("span", "map-milestone-name", DIFFICULTY_LABELS[s].name),
+  );
+  label.appendChild(
+    el("span", `map-milestone-count${complete ? " is-complete" : ""}`, count),
   );
   // Section verrouillée : pas d'étoiles à montrer (aucune n'y a été gagnée) —
   // le compteur porte déjà le prix à payer.
@@ -399,9 +449,7 @@ export function renderMap(modeId: ModeId): void {
   mapEl.appendChild(buildHeader(p));
 
   const body = el("div", "map-body");
-  body.appendChild(
-    el("p", "map-hint", isFirstLaunch() ? HINT_FIRST : HINT),
-  );
+  body.appendChild(el("p", "map-hint", isFirstLaunch() ? HINT_FIRST : HINT));
   const sections = el("div", "map-sections");
   // Les seuils d'étoiles étant croissants, les sections débloquées forment un
   // préfixe : la première verrouillée rencontrée clôt la carte. On ne l'annonce
@@ -462,6 +510,24 @@ export function hideMap(): void {
   document.body.classList.remove("map-open");
 }
 
+// Panneau des étoiles : ouvert/fermé sans état persistant — un rendu le
+// reconstruit fermé, et c'est sans conséquence puisque le voile couvre onglets
+// et cases (aucun rendu ne peut donc survenir panneau ouvert). Les nœuds sont
+// relus à chaque appel : ceux du rendu précédent n'existent plus.
+function setStarsPanelOpen(open: boolean): void {
+  const chip = document.getElementById("map-stars-chip");
+  const panel = document.getElementById(
+    "map-stars-panel",
+  ) as HTMLElement | null;
+  const overlay = document.getElementById(
+    "map-stars-overlay",
+  ) as HTMLElement | null;
+  if (!chip || !panel || !overlay) return;
+  panel.hidden = !open;
+  overlay.hidden = !open;
+  chip.setAttribute("aria-expanded", String(open));
+}
+
 // Délégation unique sur #map : le contenu étant reconstruit à chaque rendu,
 // attacher les écouteurs aux cases signifierait les réattacher sans cesse.
 export function bindMap(
@@ -471,6 +537,21 @@ export function bindMap(
   mapEl.addEventListener("click", (e) => {
     const target = e.target as HTMLElement | null;
     if (!target) return;
+
+    // Le panneau des étoiles passe avant le reste : sa chip vit dans le header,
+    // et son voile intercepte de toute façon tout clic ailleurs.
+    if (target.closest("#map-stars-chip")) {
+      const panel = document.getElementById("map-stars-panel") as HTMLElement;
+      setStarsPanelOpen(panel.hidden as boolean);
+      return;
+    }
+    if (
+      target.closest("#map-stars-close") ||
+      target.closest("#map-stars-overlay")
+    ) {
+      setStarsPanelOpen(false);
+      return;
+    }
 
     const tab = target.closest<HTMLElement>("[data-mode]");
     if (tab) {
@@ -485,6 +566,14 @@ export function bindMap(
 
     const cell = target.closest<HTMLElement>("[data-level]");
     if (cell && onSelect) onSelect(currentMode, cell.dataset.level as LevelId);
+  });
+  // Échap ferme le panneau des étoiles, comme celui de la règle du jeu.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const panel = document.getElementById(
+      "map-stars-panel",
+    ) as HTMLElement | null;
+    if (panel && !panel.hidden) setStarsPanelOpen(false);
   });
   // Le mode ouvert d'emblée compte comme vu (sinon sa pastille survivrait à sa
   // première visite).

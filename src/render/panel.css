@@ -56,6 +56,28 @@
   background: var(--card-hover);
 }
 
+/* Corps du panneau : une phrase serif, et la bande « specs » en mono sous un
+   filet. Partagés par la règle du jeu et le panneau des étoiles — deux panneaux
+   qui expliquent, dans la même voix. */
+.panel-line {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* Écho du chrono et du compteur : le chiffre de l'interface, pas la prose. */
+.panel-spec {
+  margin: 13px 0 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* La grille, le tracé et leurs feedbacks (deal, pop, flash, shake, stamp)
    sont rendus par PixiJS sur le canvas de fond (src/render/scene.ts). Il ne reste
    ici que le chrome en surimpression. */
@@ -91,5 +113,8 @@
     width: 32px;
     height: 32px;
     font-size: 14px;
+  }
+  .panel-line {
+    font-size: 14.5px;
   }
 }

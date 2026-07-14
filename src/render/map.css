@@ -108,13 +108,27 @@ body.map-open .win {
 }
 
 /* Compteur d'étoiles du mode courant : la monnaie du jeu, donc le seul chiffre
-   vermillon du header. Le rappel du prochain palier le suit, volontairement
-   effacé — c'est une note de bas de page, pas un second compteur. */
+   vermillon du header. Il est cliquable — il ouvre le panneau qui dit ce que
+   l'étoile vaut. D'où `position: relative` : le popover s'y ancre. */
 .map-stars {
+  position: relative;
+}
+
+/* Bouton nu : le chiffre EST le bouton, aucun cadre ne vient le doubler. */
+.map-stars-chip {
   display: flex;
   align-items: baseline;
   gap: 7px;
+  padding: 0;
+  background: none;
+  border: none;
   font-family: var(--mono);
+  cursor: pointer;
+}
+
+.map-stars-chip:hover .map-stars-count,
+.map-stars-chip:hover .map-stars-icon {
+  color: var(--ink);
 }
 
 .map-stars-count {
@@ -128,6 +142,26 @@ body.map-open .win {
   font-size: 14px;
   line-height: 1;
   color: var(--vermilion);
+}
+
+/* Le compteur est au bord droit du header : le popover s'aligne à droite, sans
+   quoi il déborderait de l'écran. Sur mobile, il redevient la feuille du bas
+   (src/render/panel.css). */
+.map-stars-panel {
+  left: auto;
+  right: 0;
+  width: 340px;
+}
+
+/* Sous 860px, le composant partagé passe en feuille pleine largeur : on lui
+   rend le `left` et la largeur que l'ancrage desktop ci-dessus lui prend (cette
+   feuille est chargée après src/render/panel.css, donc elle gagne la cascade).
+   Le seuil est celui du panneau, pas celui de la carte (640px). */
+@media (max-width: 860px) {
+  .map-stars-panel {
+    left: 0;
+    width: auto;
+  }
 }
 
 /* --- Corps : accroche, sections, brouillard --- */
@@ -571,6 +605,8 @@ body.map-open .win {
   }
   .map-stars {
     order: 2;
+  }
+  .map-stars-chip {
     gap: 6px;
   }
   .map-stars-count {

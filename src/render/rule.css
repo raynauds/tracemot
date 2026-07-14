@@ -43,43 +43,26 @@
   color: var(--paper);
 }
 
-/* Le panneau règle tient en deux lignes : plus étroit que celui des niveaux. */
+/* Le panneau règle tient en deux lignes : plus étroit que celui des niveaux.
+   Son corps (.panel-line, .panel-spec) vient du composant partagé. */
 .rule-panel {
   width: 340px;
-}
-
-/* Le « comment » : une phrase serif, sobre. */
-.rule-line {
-  margin: 14px 0 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--ink);
-}
-
-/* La bande « specs » : dimensions du puzzle en mono, écho du chrono/compteur. */
-.rule-spec {
-  margin: 13px 0 0;
-  padding-top: 11px;
-  border-top: 1px solid var(--line);
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 
 /* --- Mobile (maquette 390x844) --- */
 
 @media (max-width: 860px) {
-  /* Règle : bouton « ? » resserré à la hauteur de la chip de difficulté.
-     Le panneau, lui, hérite de la feuille .diff-panel définie plus haut. */
+  /* Règle : bouton « ? » resserré à la hauteur de la chip de difficulté. */
   .rule-chip {
     width: 30px;
     height: 30px;
     font-size: 13.5px;
   }
-  .rule-line {
-    font-size: 14.5px;
+  /* Le panneau redevient la feuille pleine largeur du composant partagé : la
+     largeur du popover desktop, déclarée plus bas dans la cascade que
+     src/render/panel.css, l'écraserait sans ce rappel. */
+  .rule-panel {
+    width: auto;
   }
 }
