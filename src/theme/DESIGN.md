@@ -198,7 +198,17 @@ debug n'est pas de l'interface produit.
 
 ## Typography
 
-Deux familles, chargées depuis Google Fonts, et une règle de répartition stricte.
+Deux familles, servies par le jeu lui-même, et une règle de répartition stricte.
+
+**Fontes locales.** Les WOFF2 vivent dans `public/fonts`, déclarés par
+`src/theme/fonts.css` — aucune requête vers Google Fonts. Sept faces, et pas une
+de plus : Source Serif 4 en 400 / 600 / 700 et ses italiques 400 / 700, IBM Plex
+Mono en 400 / 600. Réclamer une graisse absente ne casse rien de visible : le
+navigateur en synthétise une fausse, et le rendu se dégrade en silence. Ajouter
+une graisse = ajouter son fichier ET son `@font-face`. Le boot attend les fontes
+(`document.fonts.ready`, `src/render/scene.ts`, car les lettres de la grille sont
+gravées en texture) : c'est pour cela qu'elles ne doivent pas dépendre d'un CDN,
+et que les faces du premier écran sont préchargées dans `index.html`.
 
 **Source Serif 4** porte tout ce qui se lit : titres, lettres de la grille, mots
 du registre, phrases explicatives. Poids 400 pour le corps, 700 pour ce qui

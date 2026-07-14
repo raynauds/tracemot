@@ -20,6 +20,9 @@
    redéfinir de couleur en dur : l'ajouter aux tokens et régénérer. */
 @import "./src/theme/tokens.css";
 
+/* Fontes locales (public/fonts) : aucune requête vers Google Fonts. */
+@import "./src/theme/fonts.css";
+
 /* Socle : reset, page, boot. */
 @import "./src/theme/base.css";
 

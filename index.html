@@ -7,11 +7,32 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Tracemot</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fontes servies par le jeu (public/fonts) : les @font-face vivent dans
+         src/theme/fonts.css. On précharge les seules faces du PREMIER écran, la
+         carte — son titre (serif 700), ses accroches (serif 400 et son
+         italique) et ses chiffres (mono 600). Sans ce preload, le navigateur ne
+         les découvrirait qu'après avoir lu le CSS, et le boot attend les fontes
+         (body.booting). Les autres faces se chargent au lancement d'une partie. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/SourceSerif4-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/SourceSerif4-Bold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/IBMPlexMono-SemiBold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <link rel="stylesheet" href="style.css" />
   </head>
