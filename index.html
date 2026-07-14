@@ -109,7 +109,7 @@
       </button>
       <!-- Lignes pré-rendues (mode par défaut, voir src/game/config.ts) pour éviter
            un shift au chargement ; src/render/render.ts les adopte et ajuste leur
-           nombre au niveau lancé (le boss double la grille). -->
+           nombre au niveau lancé (un défi quadruple le nombre de mots). -->
       <ol class="word-list" id="word-list">
         <li class="word-row empty">
           <span class="word-num">01</span>
@@ -150,6 +150,13 @@
       <span class="confetti c6"></span>
       <div class="win-title">Gagné<span class="dot">.</span></div>
       <div class="win-sub" id="win-sub"></div>
+      <!-- Étoile : rendu uniquement à la première validation d'un défi
+           (src/render/render.ts). La seconde ligne annonce ce que l'étoile
+           débloque, et disparaît quand elle ne débloque rien. -->
+      <div class="win-star" id="win-star" hidden>
+        <span class="win-star-gain" id="win-star-gain"></span>
+        <span class="win-star-unlock" id="win-star-unlock" hidden></span>
+      </div>
       <div class="win-actions">
         <button type="button" class="win-replay" id="win-map">
           RETOUR À LA CARTE

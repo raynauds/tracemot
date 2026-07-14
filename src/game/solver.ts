@@ -298,7 +298,7 @@ export function createGridGenerator(
     // Budget de nœuds du backtracking. Le pavage est trouvé en quelques
     // dizaines de nœuds dans l'immense majorité des tirages, mais une branche
     // malheureuse peut partir en exploration exhaustive : sur une grille de
-    // boss (14×14, 16×16) une seule mauvaise graine bloquait la génération
+    // défi (14×14, 16×16) une seule mauvaise graine bloquait la génération
     // pendant des dizaines de minutes. Au-delà du budget, le pavage est
     // abandonné (paths incomplet) et la tentative repart sur un autre tirage —
     // c'est un abandon, pas un échec : la relance coûte quelques ms.

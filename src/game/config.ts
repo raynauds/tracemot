@@ -10,7 +10,8 @@ export type GameMode = {
 
 // Série N×N : un mode = N mots de N lettres sur une grille N×N. L'identifiant
 // du mode EST sa forme (« 5x5 »), et MODE_ORDER fixe l'ordre de déblocage :
-// le mode N+1 s'ouvre quand un boss du mode N est validé (cf. progress.ts).
+// le mode N+1 s'ouvre quand le mode N compte 3 ÉTOILES, une étoile étant un
+// défi validé (cf. progress.ts).
 export type ModeId = "5x5" | "6x6" | "7x7" | "8x8";
 export const MODE_ORDER: ModeId[] = ["5x5", "6x6", "7x7", "8x8"];
 
@@ -24,12 +25,13 @@ export const GAME_MODES: Record<ModeId, GameMode> = {
   "8x8": { rows: 8, cols: 8, wordLength: 8, wordCount: 8 },
 };
 
-// Format « boss » (présenté au joueur comme « Défi ») : la grille double de
-// côté et le nombre de mots quadruple, à longueur de mot constante. Le pavage
-// tient par construction (4N mots de N lettres = (2N)² cases), mais le
-// garde-fou ci-dessous le vérifie quand même : c'est l'invariant central du
-// solveur, on ne le laisse pas reposer sur une lecture d'algèbre.
-export function bossMode(m: GameMode): GameMode {
+// Format « défi » (le niveau qui clôt une ligne de la carte, et rapporte une
+// étoile) : la grille double de côté et le nombre de mots quadruple, à longueur
+// de mot constante. Le pavage tient par construction (4N mots de N lettres =
+// (2N)² cases), mais le garde-fou ci-dessous le vérifie quand même : c'est
+// l'invariant central du solveur, on ne le laisse pas reposer sur une lecture
+// d'algèbre.
+export function defiMode(m: GameMode): GameMode {
   return {
     rows: m.rows * 2,
     cols: m.cols * 2,
@@ -49,7 +51,7 @@ function assertPavage(id: string, m: GameMode) {
 
 for (const id of MODE_ORDER) {
   assertPavage(id, GAME_MODES[id]);
-  assertPavage(`${id} (boss)`, bossMode(GAME_MODES[id]));
+  assertPavage(`${id} (défi)`, defiMode(GAME_MODES[id]));
 }
 
 // Mode par défaut : le seul accessible au premier lancement.

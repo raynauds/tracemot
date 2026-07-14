@@ -8,9 +8,15 @@
 
 import { DEBUG } from "./game/config.ts";
 import type { ModeId } from "./game/config.ts";
-import { loadModeLevels } from "./game/levels.ts";
+import { isDefi, loadModeLevels } from "./game/levels.ts";
 import type { LevelId } from "./game/levels.ts";
-import { purgeLegacyKeys, saveValidated } from "./game/progress.ts";
+import {
+  loadProgress,
+  migrateStorage,
+  modeStars,
+  saveValidated,
+  starRewardAt,
+} from "./game/progress.ts";
 import { applyLevel, state } from "./game/state.ts";
 import { wordRejectReason } from "./game/rules.ts";
 import {
@@ -57,7 +63,7 @@ let debug: typeof import("./debug/debug.ts") | null = null;
 let selection = 0;
 
 // Lance un niveau : charge sa grille, reconstruit tout ce qui dépend de la
-// géométrie (elle change d'un niveau à l'autre — un boss double le côté) et
+// géométrie (elle change d'un niveau à l'autre — un défi double le côté) et
 // remet le déroulé à zéro. Sert aussi de rejeu (même identifiant).
 async function startLevel(modeId: ModeId, id: LevelId) {
   const token = ++selection;
@@ -84,7 +90,7 @@ async function startLevel(modeId: ModeId, id: LevelId) {
 
   cancelAllGestures(); // un geste en vol référencerait l'ancienne grille
   applyLevel(modeId, level);
-  buildBoard(); // registre : wordCount lignes du niveau (boss compris)
+  buildBoard(); // registre : wordCount lignes du niveau (défi compris)
   rebuildGrid(); // scène Pixi : cases recréées, caméra recadrée
 
   state.won = false;
@@ -107,13 +113,32 @@ async function startLevel(modeId: ModeId, id: LevelId) {
 }
 
 // Le niveau est acquis : la carte en tiendra compte au prochain affichage
-// (cases voisines débloquées). saveValidated est idempotent — rejouer un
+// (cases débloquées par la chaîne). saveValidated est idempotent — rejouer un
 // niveau déjà validé ne change rien.
+//
+// Une étoile ne s'annonce qu'à la PREMIÈRE validation d'un défi : rejouer un
+// défi déjà validé n'en redonne pas. D'où la lecture de la progression AVANT
+// la sauvegarde — après, l'identifiant y est de toute façon, et la première
+// fois serait indiscernable du rejeu.
 function triggerWin() {
   state.won = true;
   stopTimer();
-  if (state.levelId) saveValidated(state.modeId, state.levelId);
-  renderWin();
+  const id = state.levelId;
+  if (!id) {
+    renderWin();
+    return;
+  }
+  const { modeId } = state;
+  const wasValidated = loadProgress(modeId).validated.has(id);
+  saveValidated(modeId, id);
+  if (!isDefi(id) || wasValidated) {
+    renderWin();
+    return;
+  }
+  // Le défi vient d'être gagné : son rang d'étoile est le compte du mode une
+  // fois la sauvegarde faite (la n-ième étoile est celle qu'on vient de poser).
+  const count = modeStars(modeId);
+  renderWin({ count, unlocked: starRewardAt(modeId, count) });
 }
 
 // Retour à la carte : la partie en cours est abandonnée telle quelle (aucune
@@ -160,7 +185,7 @@ function commitPath() {
 }
 
 async function init() {
-  purgeLegacyKeys(); // vestiges du jeu libre (mode et difficulté au choix)
+  migrateStorage(); // vestiges du jeu libre + progressions d'un schéma périmé
   buildBoard();
   renderCounter();
   await initScene(); // Application Pixi + graphe de scène (canvas de fond)

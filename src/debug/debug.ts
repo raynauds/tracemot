@@ -15,7 +15,7 @@ let debugPanelEl: HTMLElement | null = null;
 
 // Dictionnaires du panneau. Les préfixes servent à élaguer le DFS de
 // findAllWords : ils sont plafonnés à la longueur maximale d'un tracé, soit le
-// nombre de cases de la grille. Un niveau plus grand (un boss, ou un autre
+// nombre de cases de la grille. Un niveau plus grand (un défi, ou un autre
 // mode) exige donc de les reconstruire — d'où la mémorisation du plafond
 // couvert par le chargement courant.
 let fullWords = new Set<string>();

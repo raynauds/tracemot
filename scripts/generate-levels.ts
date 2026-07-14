@@ -1,4 +1,5 @@
-// Génération hors-ligne des 400 niveaux (4 modes × 4 sections × 25 niveaux).
+// Génération hors-ligne des 288 niveaux (4 modes × 4 sections × 18 niveaux :
+// 15 normaux en 3 lignes de 5, plus les 3 défis A/B/C qui closent ces lignes).
 // Écrit public/levels/<modeId>.json ; le runtime ne génère plus rien et ne
 // charge plus de dictionnaire. Exécuté par Node 22 (les types sont strippés) :
 //
@@ -21,7 +22,9 @@
 // graine dérivée de (modeId, id du niveau, numéro de tirage). Conséquence : un
 // niveau ne dépend que de son identifiant — régénérer un sous-ensemble
 // (--mode / --section / --only) reproduit exactement les mêmes grilles que le
-// run complet, et le corpus est rejouable à l'identique.
+// run complet, et le corpus est rejouable à l'identique. C'est aussi ce qui
+// permet de RÉUTILISER (--resume) les normaux déjà générés : leurs
+// identifiants « 1-1 » … « 1-15 » n'ont pas bougé, seuls les défis sont neufs.
 
 // PREMIER IMPORT, impérativement : il installe le PRNG avant l'évaluation du
 // solveur (les modules importés sont évalués avant le corps de celui-ci).
@@ -35,7 +38,7 @@ import {
   DIFFICULTY_QUOTAS,
   GAME_MODES,
   MODE_ORDER,
-  bossMode,
+  defiMode,
 } from "../src/game/config.ts";
 import type {
   Difficulty,
@@ -55,8 +58,28 @@ import {
 } from "../src/game/dictionary.ts";
 import { canonKey, createGridGenerator } from "../src/game/solver.ts";
 import type { SolverSets } from "../src/game/solver.ts";
-import { BOSS_NUMBER, LEVELS_PER_SECTION, levelId } from "../src/game/levels.ts";
-import type { LevelData, LevelId, ModeLevels } from "../src/game/levels.ts";
+import {
+  DEFI_KEYS,
+  NORMALS_PER_SECTION,
+  allLevelIds,
+  compareLevelIds,
+  defiId,
+  levelId,
+} from "../src/game/levels.ts";
+import type {
+  DefiKey,
+  LevelData,
+  LevelId,
+  ModeLevels,
+} from "../src/game/levels.ts";
+
+// --- Plan canonique -------------------------------------------------------
+
+// Les 72 identifiants d'un mode (identiques d'un mode à l'autre : seule la
+// géométrie change). Sert à trois choses : valider --only, ordonner le fichier,
+// et ÉLAGUER à l'écriture tout id hors plan (cf. writeMode).
+const PLAN = allLevelIds();
+const PLAN_SET = new Set<LevelId>(PLAN);
 
 // --- Arguments ------------------------------------------------------------
 
@@ -66,13 +89,40 @@ function flag(name: string): string | null {
   return hit ? hit.slice(name.length + 3) : null;
 }
 const ONLY_MODE = flag("mode") as ModeId | null;
-const ONLY_SECTION = flag("section") ? Number(flag("section")) : null;
-const ONLY_LEVEL = flag("only"); // ex. --only=4-25 (un seul niveau)
+// Number(x) plutôt qu'un cast : le drapeau vient de la ligne de commande, et un
+// `--section=x` (NaN, donc falsy) désactiverait silencieusement le filtre —
+// 72 niveaux régénérés au lieu d'un — d'où la validation explicite plus bas.
+const RAW_SECTION = flag("section");
+const ONLY_SECTION: Section | null =
+  RAW_SECTION === null ? null : (Number(RAW_SECTION) as Section);
+// Un seul niveau, normal (--only=3-12) ou défi (--only=3-B). Majuscules forcées
+// pour tolérer « 3-b » ; « 3-12 » est insensible à la casse.
+const ONLY_LEVEL = flag("only")?.toUpperCase() ?? null;
 const RESUME = args.includes("--resume");
 const DRY_RUN = args.includes("--dry-run");
 
+const SECTIONS: Section[] = [1, 2, 3, 4];
+
 if (ONLY_MODE && !MODE_ORDER.includes(ONLY_MODE)) {
   console.error(`Mode inconnu : ${ONLY_MODE}`);
+  process.exit(1);
+}
+// Même piège que --only : une section hors 1..4 (la difficulté « Brûlant » = 5
+// existe encore dans DIFFICULTY_QUOTAS, la faute de frappe est naturelle) ne
+// générerait RIEN, et le script rendrait « (rien à générer) » sans un mot.
+if (ONLY_SECTION !== null && !SECTIONS.includes(ONLY_SECTION)) {
+  console.error(
+    `Section inconnue : ${RAW_SECTION} — attendu 1, 2, 3 ou 4.`,
+  );
+  process.exit(1);
+}
+// Un --only mal orthographié ne générerait RIEN en silence (aucun id ne matche)
+// et le script rendrait « rien à générer » comme s'il n'y avait rien à faire.
+if (ONLY_LEVEL && !PLAN_SET.has(ONLY_LEVEL)) {
+  console.error(
+    `Niveau inconnu : ${ONLY_LEVEL} — attendu « s-n » (n de 1 à ` +
+      `${NORMALS_PER_SECTION}) ou « s-A » / « s-B » / « s-C », s de 1 à 4.`,
+  );
   process.exit(1);
 }
 
@@ -96,8 +146,8 @@ const fullWords = readWords(FULL_DICT_FILE);
 const tierWords = {} as Record<Tier, Set<string>>;
 for (const tier of TIER_NAMES) tierWords[tier] = readWords(TIER_FILES[tier]);
 
-// Un mode et son boss partagent wordLength : les sous-ensembles sont construits
-// une fois par longueur (5, 6, 7, 8) et non par géométrie.
+// Un mode et ses défis partagent wordLength : les sous-ensembles sont
+// construits une fois par longueur (5, 6, 7, 8) et non par géométrie.
 const setsByLength = new Map<number, SolverSets>();
 function lengthSets(length: number): SolverSets {
   let s = setsByLength.get(length);
@@ -287,18 +337,15 @@ function makeLevel(
   );
 }
 
-/** Clés triées (section, puis numéro) : à contenu égal, octets égaux — quel
- *  que soit l'ordre dans lequel les niveaux ont été (re)générés. */
-function sortLevels(levels: Record<LevelId, LevelData>): Record<
-  LevelId,
-  LevelData
-> {
+/** Clés dans l'ordre canonique de jeu (section, ligne, normaux puis défi de la
+ *  ligne) : à contenu égal, octets égaux — quel que soit l'ordre dans lequel
+ *  les niveaux ont été (re)générés. Le tri vient de levels.ts : lui seul sait
+ *  intercaler « 1-A » entre « 1-5 » et « 1-6 ». */
+function sortLevels(
+  levels: Record<LevelId, LevelData>,
+): Record<LevelId, LevelData> {
   const out: Record<LevelId, LevelData> = {};
-  for (const key of Object.keys(levels).sort((a, b) => {
-    const [sa, na] = a.split("-").map(Number);
-    const [sb, nb] = b.split("-").map(Number);
-    return sa - sb || na - nb;
-  })) {
+  for (const key of Object.keys(levels).sort(compareLevelIds)) {
     out[key] = levels[key];
   }
   return out;
@@ -308,9 +355,10 @@ function sortLevels(levels: Record<LevelId, LevelData>): Record<
  * Sérialisation : UN NIVEAU PAR LIGNE. Le fichier est téléchargé par le jeu
  * (donc pas d'indentation à quatre niveaux), mais il est aussi versionné et
  * régénérable niveau par niveau (--only) : un JSON.stringify() nu mettrait les
- * 100 niveaux sur UNE seule ligne, et régénérer un niveau produirait un diff
- * illisible de 45 ko. Une ligne par niveau coûte 100 octets et rend le diff
- * exact. Le format reste du JSON strict, relu tel quel par levels.ts.
+ * 72 niveaux sur UNE seule ligne, et régénérer un niveau produirait un diff
+ * illisible de plusieurs dizaines de ko. Une ligne par niveau coûte 72 octets
+ * et rend le diff exact. Le format reste du JSON strict, relu tel quel par
+ * levels.ts.
  */
 function serialize(payload: ModeLevels): string {
   const lines = Object.entries(payload.levels).map(
@@ -324,13 +372,35 @@ function serialize(payload: ModeLevels): string {
 }
 
 /**
+ * Retire du corpus tout niveau hors du plan canonique, EN PLACE. Le fichier
+ * versionné peut contenir des identifiants d'un modèle antérieur (« 1-16 » …
+ * « 1-25 », d'avant les 18 niveaux par section) : --resume les conserverait
+ * indéfiniment et le jeu se les verrait livrer. On les supprime à l'écriture,
+ * bruyamment — c'est une perte de calcul, elle doit se voir dans le journal.
+ * Mutation volontaire : le record est réécrit après chaque section, l'élagage
+ * n'a donc lieu (et ne se journalise) qu'une fois.
+ */
+function pruneLevels(modeId: ModeId, levels: Record<LevelId, LevelData>): void {
+  const dead = Object.keys(levels).filter((id) => !PLAN_SET.has(id));
+  if (dead.length === 0) return;
+  for (const id of dead) delete levels[id];
+  const shown = dead.slice(0, 10).join(", ");
+  console.log(
+    `  élagage ${modeId} : ${dead.length} niveau(x) hors plan supprimé(s) — ` +
+      shown +
+      (dead.length > 10 ? ` (+${dead.length - 10})` : ""),
+  );
+}
+
+/**
  * Écrit le fichier du mode. Appelé après CHAQUE section, et non une seule fois
  * en fin de mode : makeLevel jette dès qu'un niveau résiste, et un mode complet
- * se compte en minutes — un échec (ou un Ctrl-C) au niveau 3-17 perdait sinon
- * les 66 niveaux déjà calculés, et --resume, dont c'est toute la raison d'être,
+ * se compte en minutes — un échec (ou un Ctrl-C) au niveau 3-12 perdait sinon
+ * les 47 niveaux déjà calculés, et --resume, dont c'est toute la raison d'être,
  * n'avait rien à reprendre.
  */
 function writeMode(modeId: ModeId, levels: Record<LevelId, LevelData>): void {
+  pruneLevels(modeId, levels);
   mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(
     path.join(OUT_DIR, `${modeId}.json`),
@@ -357,7 +427,7 @@ let grandLevels = 0;
 for (const modeId of MODE_ORDER) {
   if (ONLY_MODE && modeId !== ONLY_MODE) continue;
   const mode = GAME_MODES[modeId];
-  const boss = bossMode(mode);
+  const defi = defiMode(mode);
   const levels = readExisting(modeId);
   const modeT0 = performance.now();
   let modeDraws = 0;
@@ -365,33 +435,41 @@ for (const modeId of MODE_ORDER) {
 
   console.log(
     `\n=== Mode ${modeId} — grilles ${mode.rows}×${mode.cols} ` +
-      `(${mode.wordCount}×${mode.wordLength}), boss ${boss.rows}×${boss.cols} ` +
-      `(${boss.wordCount}×${boss.wordLength})`,
+      `(${mode.wordCount}×${mode.wordLength}), défis ${defi.rows}×${defi.cols} ` +
+      `(${defi.wordCount}×${defi.wordLength})`,
   );
 
-  for (const section of [1, 2, 3, 4] as Section[]) {
-    if (ONLY_SECTION && section !== ONLY_SECTION) continue;
+  for (const section of SECTIONS) {
+    if (ONLY_SECTION !== null && section !== ONLY_SECTION) continue;
     const difficulty: Difficulty = section; // section s ⇒ difficulté s
     const sectionT0 = performance.now();
     let sectionDraws = 0;
     let done = 0;
 
-    for (let n = 1; n <= LEVELS_PER_SECTION; n++) {
-      const id = levelId(section, n);
+    // Les 15 normaux de la section, puis ses 3 défis : même difficulté (donc
+    // mêmes quotas de vocabulaire), seule la géométrie change — un défi joue
+    // sur la grille doublée de defiMode(). Les défis en dernier parce qu'ils
+    // coûtent l'essentiel du temps : une section qui casse sur un normal
+    // échoue vite.
+    const plan: { id: LevelId; geometry: GameMode; defiKey: DefiKey | null }[] =
+      [];
+    for (let n = 1; n <= NORMALS_PER_SECTION; n++) {
+      plan.push({ id: levelId(section, n), geometry: mode, defiKey: null });
+    }
+    for (const key of DEFI_KEYS) {
+      plan.push({ id: defiId(section, key), geometry: defi, defiKey: key });
+    }
+
+    for (const { id, geometry, defiKey } of plan) {
       if (ONLY_LEVEL && id !== ONLY_LEVEL) continue;
       if (RESUME && levels[id]) continue;
-      const { data, stats } = makeLevel(
-        modeId,
-        id,
-        n === BOSS_NUMBER ? boss : mode,
-        difficulty,
-      );
+      const { data, stats } = makeLevel(modeId, id, geometry, difficulty);
       levels[id] = data;
       sectionDraws += stats.draws;
       done++;
-      if (n === BOSS_NUMBER) {
+      if (defiKey) {
         console.log(
-          `    boss ${id} : ${stats.draws} tirage(s), ` +
+          `    défi ${id} : ${stats.draws} tirage(s), ` +
             `${(stats.ms / 1000).toFixed(1)} s`,
         );
       }
@@ -410,7 +488,14 @@ for (const modeId of MODE_ORDER) {
   }
 
   if (modeLevels === 0) {
-    console.log("  (rien à générer)");
+    // Rien de neuf, mais le fichier peut encore porter des identifiants d'un
+    // modèle antérieur : un --resume sur un mode déjà complet est précisément
+    // le cas où l'élagage n'aurait jamais lieu (writeMode n'est appelé que par
+    // une section qui a produit quelque chose). On réécrit alors, et seulement
+    // alors — sinon le corpus mort survivrait à tous les runs.
+    const stale = Object.keys(levels).some((id) => !PLAN_SET.has(id));
+    if (stale && !DRY_RUN) writeMode(modeId, levels);
+    else console.log("  (rien à générer)");
     continue;
   }
   grandDraws += modeDraws;

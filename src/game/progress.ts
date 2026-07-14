@@ -3,20 +3,39 @@
 // que ce module calcule.
 //
 // Seule la liste des identifiants validés est stockée. Tout le reste (case
-// visible / active / validée, boss, sections rendues, modes débloqués) s'en
-// déduit à la lecture : impossible de désynchroniser un état persisté d'un
+// cachée / visible / jouable / validée, étoiles, sections et modes débloqués)
+// s'en déduit à la lecture : impossible de désynchroniser un état persisté d'un
 // état dérivé, et une progression injectée à la main donne un écran exact.
 //
-// Géométrie de la carte — une grille virtuelle unique de 16 lignes × 6
-// colonnes (4 sections × 4 lignes), où l'adjacence est purement géométrique
-// (haut/bas/gauche/droite). Le raccord entre sections (1-19↔2-1 … 1-24↔2-6)
-// n'est donc pas un cas particulier : il tombe de la continuité des lignes.
-// Le boss (n = 25) est HORS de cette grille : il est traité à part, adjacent
-// aux quatre cases de la colonne 6 de sa section (n = 6, 12, 18, 24).
+// Deux mécanismes, et deux seulement :
+//   1. une CHAÎNE linéaire de prédécesseurs à l'intérieur d'une section
+//      (1-1 → 1-2 → … → 1-5, et 1-5 ouvre aussi le défi de sa ligne, 1-A) ;
+//   2. une monnaie, l'ÉTOILE (1 défi validé = 1 étoile), qui ouvre les sections
+//      suivantes et le mode suivant.
+// Les étoiles sont fongibles : peu importe de quelle section elles viennent.
+// C'est ce qui laisse le joueur plonger en difficulté sans être taxé.
 
-import { MODE_ORDER, type ModeId, type Section } from "./config.ts";
-import { BOSS_NUMBER, isBoss, levelId, sectionOf } from "./levels.ts";
-import type { LevelId } from "./levels.ts";
+import {
+  DIFFICULTY_LABELS,
+  MODE_ORDER,
+  type ModeId,
+  type Section,
+} from "./config.ts";
+import {
+  DEFI_KEYS,
+  LEVELS_PER_SECTION,
+  NORMALS_PER_SECTION,
+  ROWS_PER_SECTION,
+  ROW_LENGTH,
+  defiId,
+  defiKeyOf,
+  lastNormalOfRow,
+  levelId,
+  levelNumber,
+  rowOfDefi,
+  sectionOf,
+  type LevelId,
+} from "./levels.ts";
 
 export type CellState = "hidden" | "disabled" | "active" | "validated";
 
@@ -24,111 +43,168 @@ export interface ModeProgress {
   validated: Set<LevelId>;
 }
 
-const ROWS = 16; // 4 sections × 4 lignes
-const COLS = 6;
-const NORMAL_PER_SECTION = 24; // les 24 cases de la grille virtuelle
-// Cases de la colonne 6 d'une section : les seules adjacentes au boss.
-const BOSS_NEIGHBOR_NUMBERS = [6, 12, 18, 24];
+const SECTIONS: Section[] = [1, 2, 3, 4];
+
+// 4 sections × 3 défis : le plafond d'étoiles d'un mode, donc son score de
+// complétion (« 7 / 12 ★ »).
+export const MAX_STARS = 12;
+
+// Coût d'entrée de chaque section, en étoiles. La section 1 est offerte ; la 4
+// coûte 4 étoiles — soit une de plus que le mode suivant (3), qui s'intercale
+// donc volontairement AVANT elle : on préfère offrir une grille plus grande
+// qu'une difficulté plus rude.
+export const STARS_FOR_SECTION: Record<Section, number> = { 1: 0, 2: 1, 3: 2, 4: 4 };
+export const STARS_FOR_NEXT_MODE = 3;
 
 const PROGRESS_KEY = (modeId: ModeId) => `tracemot.progress.${modeId}`;
 const LAST_MODE_KEY = "tracemot.lastMode";
 const SEEN_MODES_KEY = "tracemot.seenModes";
+const SCHEMA_KEY = "tracemot.schema";
+const SCHEMA_VERSION = "2";
 // Clés du jeu libre disparu (sélecteurs de mode et de difficulté).
 const LEGACY_KEYS = ["tracemot.mode", "tracemot.difficulty"];
 
-// --- Grille virtuelle -------------------------------------------------------
-
-// Identifiant de la case (r, c), ou null hors grille — le null porte les bords
-// et évite d'avoir à traiter les extrémités dans les appelants.
-function idAt(r: number, c: number): LevelId | null {
-  if (c < 1 || c > COLS || r < 1 || r > ROWS) return null;
-  const section = Math.ceil(r / 4) as Section;
-  return levelId(section, ((r - 1) % 4) * COLS + c);
+// Construit une progression hors stockage (harnais, tests, injection d'état).
+export function makeProgress(ids: LevelId[]): ModeProgress {
+  return { validated: new Set(ids) };
 }
 
-// Coordonnées (ligne, colonne) d'un id normal (1..24). Non défini pour un boss.
-function rcOf(id: LevelId): [number, number] {
+// --- Dérivation des états (pure : rien n'est lu ni écrit en stockage) -------
+
+// Une étoile par défi validé, toutes sections confondues.
+export function starCount(p: ModeProgress): number {
+  let n = 0;
+  for (const s of SECTIONS) {
+    for (const key of DEFI_KEYS) {
+      if (p.validated.has(defiId(s, key))) n++;
+    }
+  }
+  return n;
+}
+
+export function sectionUnlocked(p: ModeProgress, s: Section): boolean {
+  return starCount(p) >= STARS_FOR_SECTION[s];
+}
+
+export function starsMissingForSection(p: ModeProgress, s: Section): number {
+  return Math.max(0, STARS_FOR_SECTION[s] - starCount(p));
+}
+
+// Prédécesseur d'un niveau dans la chaîne : la seule case dont la validation
+// l'ouvre. null pour le 1-1 d'une section, dont la porte est l'étoile (donc la
+// section elle-même) et non une case.
+//
+// Le « 1-5 ouvre DEUX cases » de la spec n'a pas besoin d'être encodé : 1-6 a
+// pour prédécesseur 1-5 (c'est n−1), et le défi de la ligne 1 a lui aussi 1-5.
+// La règle « n−1 » suffit donc à tout, sans cas particulier de fin de ligne.
+function predecessorOf(id: LevelId): LevelId | null {
   const s = sectionOf(id);
-  const n = Number(id.split("-")[1]);
-  return [(s - 1) * 4 + Math.ceil(n / COLS), ((n - 1) % COLS) + 1];
+  const key = defiKeyOf(id);
+  if (key) return levelId(s, lastNormalOfRow(rowOfDefi(key)));
+  const n = levelNumber(id);
+  return n <= 1 ? null : levelId(s, n - 1);
 }
 
-function neighbors(id: LevelId): LevelId[] {
-  const [r, c] = rcOf(id);
-  return [idAt(r - 1, c), idAt(r + 1, c), idAt(r, c - 1), idAt(r, c + 1)].filter(
-    (x): x is LevelId => x !== null,
-  );
-}
-
-// --- Dérivation des états ---------------------------------------------------
-
-// Racine de la carte : la seule case active sans aucun voisin validé.
-const ROOT: LevelId = "1-1";
-
-function isActive(p: ModeProgress, id: LevelId): boolean {
-  if (p.validated.has(id)) return false;
-  return id === ROOT || neighbors(id).some((n) => p.validated.has(n));
-}
-
-// « Allumée » = validée ou active. C'est ce qui rend ses voisines visibles.
-function isOn(p: ModeProgress, id: LevelId): boolean {
-  return p.validated.has(id) || isActive(p, id);
+// Débloquée = sa section est ouverte ET son prédécesseur est validé (ou elle
+// n'en a pas). Non récursive : on ne remonte JAMAIS la chaîne, un seul maillon
+// suffit — c'est aussi ce qui garantit qu'un état « disabled » se calcule sans
+// risque de récursion mutuelle avec cellState().
+function isUnlocked(p: ModeProgress, id: LevelId): boolean {
+  if (!sectionUnlocked(p, sectionOf(id))) return false;
+  const pred = predecessorOf(id);
+  return pred === null || p.validated.has(pred);
 }
 
 export function cellState(p: ModeProgress, id: LevelId): CellState {
-  if (isBoss(id)) return bossState(p, sectionOf(id));
   if (p.validated.has(id)) return "validated";
-  if (isActive(p, id)) return "active";
-  return neighbors(id).some((n) => isOn(p, n)) ? "disabled" : "hidden";
-}
-
-// Le boss n'est actif que lorsque les 24 niveaux normaux de sa section sont
-// validés — l'adjacence ne suffit pas, elle ne le rend que visible.
-export function bossState(p: ModeProgress, s: Section): CellState {
-  const bossId = levelId(s, BOSS_NUMBER);
-  if (p.validated.has(bossId)) return "validated";
-  let allNormals = true;
-  for (let n = 1; n <= NORMAL_PER_SECTION; n++) {
-    if (!p.validated.has(levelId(s, n))) {
-      allNormals = false;
-      break;
-    }
+  if (isUnlocked(p, id)) return "active";
+  // « Visible désactivée » = un pas d'avance, et pas davantage : la case dont
+  // le prédécesseur est justement JOUABLE (débloqué et pas encore validé).
+  // Un 1-1 (pas de prédécesseur) n'est donc jamais « disabled » : si sa section
+  // est verrouillée il reste caché, et c'est le jalon verrouillé de la section
+  // qui porte le message « ★ Encore N étoiles », pas la case.
+  const pred = predecessorOf(id);
+  if (pred !== null && isUnlocked(p, pred) && !p.validated.has(pred)) {
+    return "disabled";
   }
-  if (allNormals) return "active";
-  const adjacentOn = BOSS_NEIGHBOR_NUMBERS.some((n) => isOn(p, levelId(s, n)));
-  return adjacentOn ? "disabled" : "hidden";
+  return "hidden";
 }
 
 export interface SectionStats {
-  validatedCount: number; // boss inclus (0..25)
-  complete: boolean; // === 25
-  lastVisibleRow: number; // 0..4 — croissance additive : on ne rend pas au-delà
+  unlocked: boolean;
+  validatedCount: number; // 0..18, défis compris
+  complete: boolean; // === LEVELS_PER_SECTION
+  stars: number; // 0..3 — défis validés de CETTE section
+  lastVisibleRow: number; // 0..3 — croissance additive : on ne rend pas au-delà
   anyVisible: boolean; // le jalon de section n'apparaît qu'à partir de là
 }
 
 export function sectionStats(p: ModeProgress, s: Section): SectionStats {
   let validatedCount = 0;
+  let stars = 0;
   let lastVisibleRow = 0;
-  for (let n = 1; n <= NORMAL_PER_SECTION; n++) {
+
+  for (let n = 1; n <= NORMALS_PER_SECTION; n++) {
     const id = levelId(s, n);
     if (p.validated.has(id)) validatedCount++;
     if (cellState(p, id) !== "hidden") {
-      lastVisibleRow = Math.max(lastVisibleRow, Math.ceil(n / COLS));
+      lastVisibleRow = Math.max(lastVisibleRow, Math.ceil(n / ROW_LENGTH));
     }
   }
-  const boss = bossState(p, s);
-  if (boss === "validated") validatedCount++;
+  // Le défi compte dans la visibilité de SA ligne au même titre qu'une case
+  // normale : la règle est « une ligne est visible si au moins une de ses cinq
+  // cases ou son défi ne sont pas cachés », sans exception à retenir.
+  for (let r = 1; r <= ROWS_PER_SECTION; r++) {
+    const id = defiId(s, DEFI_KEYS[r - 1]);
+    if (p.validated.has(id)) {
+      validatedCount++;
+      stars++;
+    }
+    if (cellState(p, id) !== "hidden") {
+      lastVisibleRow = Math.max(lastVisibleRow, r);
+    }
+  }
+
   return {
+    unlocked: sectionUnlocked(p, s),
     validatedCount,
-    complete: validatedCount === NORMAL_PER_SECTION + 1,
+    complete: validatedCount === LEVELS_PER_SECTION,
+    stars,
     lastVisibleRow,
-    anyVisible: lastVisibleRow > 0 || boss !== "hidden",
+    anyVisible: lastVisibleRow > 0,
   };
 }
 
-// Construit une progression hors stockage (harnais, tests, injection d'état).
-export function makeProgress(ids: LevelId[]): ModeProgress {
-  return { validated: new Set(ids) };
+// --- Paliers d'étoiles ------------------------------------------------------
+
+// Ce que débloque la n-ième étoile d'un mode (1-indexé), ou null si elle ne
+// débloque rien (au-delà de la 4e, l'étoile n'est plus qu'un score). Les libellés
+// sont DÉRIVÉS (nom de la difficulté de la section, forme du mode suivant) : les
+// écrire en dur ici les ferait diverger de config.ts au premier réglage.
+export function starRewardAt(modeId: ModeId, star: number): string | null {
+  if (star === STARS_FOR_NEXT_MODE) {
+    const next = MODE_ORDER[MODE_ORDER.indexOf(modeId) + 1];
+    // Dernier mode de la série : ce palier ne débloque rien, il est SAUTÉ.
+    return next ? `Mode ${next.replace("x", "×")}` : null;
+  }
+  // Section s ⇒ difficulté s : le nom du palier est celui de la difficulté.
+  // La section 1 (coût 0) n'est jamais trouvée ici, star valant au moins 1.
+  const section = SECTIONS.find((s) => STARS_FOR_SECTION[s] === star);
+  return section ? DIFFICULTY_LABELS[section].name : null;
+}
+
+// Prochain palier atteignable, pour le rappel du header (« Prochaine étoile :
+// Corsé »). null quand plus rien n'est à débloquer : le compteur d'étoiles se
+// suffit alors à lui-même.
+export function nextStarReward(
+  modeId: ModeId,
+  p: ModeProgress,
+): { stars: number; label: string } | null {
+  for (let star = starCount(p) + 1; star <= MAX_STARS; star++) {
+    const label = starRewardAt(modeId, star);
+    if (label) return { stars: star, label };
+  }
+  return null;
 }
 
 // --- Persistance (localStorage, tolérante aux échecs) -----------------------
@@ -176,17 +252,12 @@ export function totalValidated(modeId: ModeId): number {
   return readList(PROGRESS_KEY(modeId)).length;
 }
 
-const SECTIONS: Section[] = [1, 2, 3, 4];
-
-// Un boss QUELCONQUE de ce mode est-il validé ? C'est la clé du mode suivant :
-// pas besoin de finir les quatre sections pour voir la grille grandir.
-function hasBossValidated(modeId: ModeId): boolean {
-  const p = loadProgress(modeId);
-  return SECTIONS.some((s) => p.validated.has(levelId(s, BOSS_NUMBER)));
+export function modeStars(modeId: ModeId): number {
+  return starCount(loadProgress(modeId));
 }
 
-// Un mode est débloqué si TOUS ceux qui le précèdent ont livré un boss. La
-// chaîne est vérifiée en entier, et non seulement le maillon précédent : sans
+// Un mode est débloqué si TOUS ceux qui le précèdent valent au moins 3 étoiles.
+// La chaîne est vérifiée en entier, et non seulement le maillon précédent : sans
 // cela, un stockage incohérent (progression d'un mode effacée à la main, mise
 // à jour partielle) rendrait un mode lointain jouable par-dessus son verrou —
 // et visibleModes(), qui suppose que les débloqués forment un PRÉFIXE de
@@ -195,7 +266,7 @@ export function isModeUnlocked(modeId: ModeId): boolean {
   const index = MODE_ORDER.indexOf(modeId);
   if (index < 0) return false; // mode inconnu
   for (let i = 0; i < index; i++) {
-    if (!hasBossValidated(MODE_ORDER[i])) return false;
+    if (modeStars(MODE_ORDER[i]) < STARS_FOR_NEXT_MODE) return false;
   }
   return true; // 5x5 (index 0) : toujours ouvert
 }
@@ -253,13 +324,45 @@ export function markModeSeen(modeId: ModeId): void {
   writeList(SEEN_MODES_KEY, list);
 }
 
-// Migration : le jeu libre (mode + difficulté au choix) n'existe plus.
-export function purgeLegacyKeys(): void {
-  for (const key of LEGACY_KEYS) {
-    try {
-      localStorage.removeItem(key);
-    } catch (_) {
-      /* stockage indisponible : rien à purger */
-    }
+// --- Migration --------------------------------------------------------------
+
+function removeKey(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch (_) {
+    /* stockage indisponible : rien à purger */
+  }
+}
+
+// Deux nettoyages, à appeler une fois au démarrage :
+//
+//  - les clés du jeu libre disparu (mode et difficulté au choix) ;
+//  - toute progression écrite AVANT le modèle « défis + étoiles ». Une
+//    progression v1 contient des identifiants qui n'existent plus (1-16…1-25)
+//    et aucun défi A/B/C : le compte d'étoiles serait faux et la carte
+//    incohérente. Le jeu n'étant pas publié, repartir propre vaut mieux qu'une
+//    progression fantôme — d'où la purge franche plutôt qu'une conversion.
+//
+// Le numéro de schéma est écrit APRÈS la purge : une interruption au milieu
+// (onglet fermé, quota) laisse simplement la migration à refaire.
+export function migrateStorage(): void {
+  for (const key of LEGACY_KEYS) removeKey(key);
+
+  let schema: string | null = null;
+  try {
+    schema = localStorage.getItem(SCHEMA_KEY);
+  } catch (_) {
+    /* stockage indisponible : rien à migrer, rien à écrire */
+    return;
+  }
+  if (schema === SCHEMA_VERSION) return;
+
+  for (const modeId of MODE_ORDER) removeKey(PROGRESS_KEY(modeId));
+  removeKey(SEEN_MODES_KEY);
+  removeKey(LAST_MODE_KEY);
+  try {
+    localStorage.setItem(SCHEMA_KEY, SCHEMA_VERSION);
+  } catch (_) {
+    /* stockage indisponible : la migration se rejouera au prochain lancement */
   }
 }

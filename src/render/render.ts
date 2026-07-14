@@ -9,6 +9,7 @@
 
 import { REJECT_DISPLAY_MS } from "../game/config.ts";
 import { levelLabel } from "../game/levels.ts";
+import { MAX_STARS } from "../game/progress.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
 
@@ -27,6 +28,9 @@ export const replayEl = byId("replay");
 const statusEl = byId("status");
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
+const winStarEl = byId("win-star");
+const winStarGainEl = byId("win-star-gain");
+const winStarUnlockEl = byId("win-star-unlock");
 const winMapEl = byId("win-map");
 const backMapEl = byId("back-map");
 const chronoEl = byId("chrono");
@@ -142,8 +146,8 @@ export function buildBoard() {
   // Les lignes du registre sont pré-rendues dans le HTML (anti-shift au
   // chargement, calées sur le mode par défaut) : on les adopte, et on ajuste
   // leur nombre au niveau actif. Rappelée à chaque niveau : le nombre de mots
-  // varie du simple au quadruple (un boss 8×8 en demande 32 quand le HTML n'en
-  // pré-rend que 5 — les 27 manquantes sont créées ici), et listRows est
+  // varie du simple au quadruple (un défi du 8×8 en demande 32 quand le HTML
+  // n'en pré-rend que 5 — les 27 manquantes sont créées ici), et listRows est
   // reconstruit de zéro (les lignes adoptées restent valides).
   const { wordCount } = state.mode;
   listRows.length = 0;
@@ -289,13 +293,26 @@ export function renderNewGame() {
   hideWin();
 }
 
-export function renderWin() {
+// star : passé par main.ts au seul cas qui vaut une récompense — un défi gagné
+// pour la première fois. Le rejeu d'un défi et les niveaux normaux laissent
+// l'écran de victoire inchangé, sans quoi l'étoile ne voudrait plus rien dire.
+export function renderWin(star?: { count: number; unlocked: string | null }) {
   const time = formatTime(Date.now() - state.startTime);
   chronoEl.textContent = `${time} ■`;
   chronoEl.classList.add("won");
   counterEl.classList.add("full");
   const { wordCount } = state.mode;
   winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} EN ${time}`;
+  winStarEl.hidden = !star;
+  if (star) {
+    winStarGainEl.textContent = `★ Étoile gagnée — ${star.count} / ${MAX_STARS}`;
+    // Les étoiles au-delà des paliers ne débloquent rien : elles ne comptent
+    // que pour la complétion du mode, on n'annonce donc que le gain.
+    winStarUnlockEl.hidden = star.unlocked === null;
+    winStarUnlockEl.textContent = star.unlocked
+      ? `Débloque : ${star.unlocked}`
+      : "";
+  }
   winEl.hidden = false;
 }
 

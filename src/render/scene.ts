@@ -602,7 +602,7 @@ export async function initScene(): Promise<void> {
 }
 
 // Reconstruit la grille Pixi à la forme du niveau lancé (elle change d'un
-// niveau à l'autre — un boss double le côté) : annule les animations en cours,
+// niveau à l'autre — un défi double le côté) : annule les animations en cours,
 // détruit cases et lettres, recadre la caméra sur la nouvelle forme, recrée la
 // grille. Les lettres sont reposées ensuite par renderSceneGrid (main.ts,
 // startLevel).

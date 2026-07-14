@@ -4,7 +4,7 @@
 // Depuis la progression, l'état ne connaît plus que le niveau en cours :
 // les dictionnaires ne sont plus chargés au runtime (les grilles sont
 // prégénérées) et la difficulté n'est plus un choix du joueur mais une
-// propriété de la section. La géométrie change à chaque niveau (un boss
+// propriété de la section. La géométrie change à chaque niveau (un défi
 // double le côté de la grille) : applyLevel reste la seule écriture
 // autorisée de mode/geometry, tout le reste en dérive.
 
@@ -24,7 +24,7 @@ export interface GameState {
   modeId: ModeId;
   /** Niveau en cours, null tant qu'aucun n'a été lancé. */
   levelId: LevelId | null;
-  /** Forme du puzzle en cours : celle du mode, doublée pour un boss. */
+  /** Forme du puzzle en cours : celle du mode, doublée pour un défi. */
   mode: GameMode;
   /** Géométrie de la grille du niveau. */
   geometry: Geometry;
@@ -69,7 +69,7 @@ export const state: GameState = {
   timerId: null,
 };
 
-// Adopte un niveau : mode, identifiant, forme effective (boss compris),
+// Adopte un niveau : mode, identifiant, forme effective (défi compris),
 // géométrie dérivée, solution et lettres prégénérées. Seule écriture
 // autorisée de state.mode/geometry ; la reconstruction de la scène Pixi et
 // du registre incombe à l'appelant (main.ts), qui seul sait quand elle est
