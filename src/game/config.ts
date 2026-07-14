@@ -62,7 +62,7 @@ export const DEFAULT_MODE: ModeId = "5x5";
 // Mode debug : affiche en bas de l'écran tous les mots trouvables dans la
 // grille courante - ceux du dictionnaire enfant en vert et en gras.
 // Survoler un mot met en évidence son tracé dans la grille.
-export const DEBUG = true;
+export const DEBUG = false;
 
 export type Tier = "enfant" | "ado" | "adulte" | "inconnu";
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
@@ -179,10 +179,6 @@ export const ZOOM_MAX_CELLS = 3;
 export const ZOOM_STEP = 1.25;
 // Pan clavier (flèches / ZQSD-WASD), en px/s.
 export const KEY_PAN_SPEED = 900;
-// Auto-pan pendant le tracé : bande de bord déclenchante (px) et vitesse
-// maximale atteinte au ras du bord (px/s).
-export const EDGE_PAN_MARGIN = 64;
-export const EDGE_PAN_MAX_SPEED = 700;
 
 // --- Palette numérique (0xRRGGBB) pour Pixi -------------------------------
 // DÉRIVÉE de src/theme/tokens.ts, la source unique de la palette : Pixi attend
