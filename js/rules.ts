@@ -1,15 +1,12 @@
-// @ts-check
 // Validation d'un mot. Partagé entre la validation au lâcher du tracé
 // (main.js) et le hint d'encre du registre (render.js).
 
-import { state } from "./state.js";
+import { state } from "./state.ts";
 
 /**
  * Motif de refus du mot, ou null s'il est valable.
- * @param {string} word
- * @returns {string|null}
  */
-export function wordRejectReason(word) {
+export function wordRejectReason(word: string): string | null {
   if (word.length !== state.mode.wordLength) {
     return `${state.mode.wordLength} LETTRES REQUISES`;
   }

@@ -1,4 +1,3 @@
-// @ts-check
 // Scène Pixi : rendu plein écran de la grille (fonds de cases + lettres),
 // tracé actif et tracés fantômes. Le chrome (registre, chrono, difficulté,
 // victoire) reste piloté par render.js. La caméra (zoom molette/boutons,
@@ -6,7 +5,8 @@
 // s'appuie sur cellAtGlobal / getStage exposés ici.
 
 import { Application, Container, Graphics, Text } from "pixi.js";
-import { Camera } from "./camera.js";
+import type { PointData, TextStyle, Ticker } from "pixi.js";
+import { Camera } from "./camera.ts";
 import {
   CARD,
   CARD_HOVER,
@@ -18,16 +18,16 @@ import {
   PAPER,
   VERMILION,
   ZOOM_STEP,
-} from "./config.js";
-import { state } from "./state.js";
-import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.js";
+} from "./config.ts";
+import { state } from "./state.ts";
+import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.ts";
 
 // Géométrie de la grille, tirée du mode actif. Réadoptée au changement de
 // mode par rebuildGrid (les fonctions du module la lisent à l'appel).
 let rows = 0;
 let cols = 0;
 let cellCount = 0;
-function adoptGeometry() {
+function adoptGeometry(): void {
   ({ rows, cols, cellCount } = state.geometry);
 }
 
@@ -53,8 +53,8 @@ const metrics = {
   font: FONT_SIZE,
 };
 
-/** @param {number} base facteur px-natifs / unité design (baseScale caméra) */
-function updateMetrics(base) {
+/** @param base facteur px-natifs / unité design (baseScale caméra) */
+function updateMetrics(base: number): void {
   metrics.base = base;
   metrics.pitch = (CELL_SIZE + CELL_GAP) * base;
   metrics.cell = CELL_SIZE * base;
@@ -80,34 +80,29 @@ const SHAKE_AMP = 0.08; // amplitude de la secousse (fraction de la largeur d'un
 const SHAKE_MIN_PX = 6; // plancher écran (px) : garde la secousse perceptible très dézoomé
 const SHAKE_FREQ = 22; // pulsation de la secousse (rad/unité de temps normalisée)
 
-/** @type {Application} */
-let app;
-/** @type {Container} Repère monde (transform caméra). */
-let world;
-/** @type {Camera} Modèle caméra appliqué à world. */
-let camera;
-/** @type {Container} */
-let cellsLayer;
-/** @type {Container} */
-let traceLayer;
-/** @type {Container} */
-let lettersLayer;
-/** @type {Graphics} Tracés fantômes des mots trouvés (sous le tracé actif). */
-let ghostTrace;
-/** @type {Graphics} Tracé en cours. */
-let activeTrace;
-/** @type {Graphics[]} Fonds de cases, dans l'ordre des indices. */
-const cellBgs = [];
-/** @type {Text[]} Lettres des cases, dans l'ordre des indices. */
-const cellTexts = [];
-/** @type {Set<number>} Cases du tracé survolé dans le panneau debug. */
-const debugHint = new Set();
+let app: Application;
+/** Repère monde (transform caméra). */
+let world: Container;
+/** Modèle caméra appliqué à world. */
+let camera: Camera;
+let cellsLayer: Container;
+let traceLayer: Container;
+let lettersLayer: Container;
+/** Tracés fantômes des mots trouvés (sous le tracé actif). */
+let ghostTrace: Graphics;
+/** Tracé en cours. */
+let activeTrace: Graphics;
+/** Fonds de cases, dans l'ordre des indices. */
+const cellBgs: Graphics[] = [];
+/** Lettres des cases, dans l'ordre des indices. */
+const cellTexts: Text[] = [];
+/** Cases du tracé survolé dans le panneau debug. */
+const debugHint = new Set<number>();
 
 /**
  * Coin haut-gauche (monde) d'une case selon son indice.
- * @param {number} i
  */
-function cellOrigin(i) {
+function cellOrigin(i: number): { x: number; y: number } {
   const col = i % cols;
   const row = Math.floor(i / cols);
   return { x: col * metrics.pitch, y: row * metrics.pitch };
@@ -115,9 +110,8 @@ function cellOrigin(i) {
 
 /**
  * Centre (monde) d'une case selon son indice.
- * @param {number} i
  */
-function cellCenter(i) {
+function cellCenter(i: number): { x: number; y: number } {
   const o = cellOrigin(i);
   return { x: o.x + metrics.cell / 2, y: o.y + metrics.cell / 2 };
 }
@@ -125,8 +119,7 @@ function cellCenter(i) {
 // État visuel d'une case : disabled (mot trouvé) > head (dernière du tracé) >
 // sel (dans le tracé) > normal. Les cases consommées sont inertes, jamais
 // dans le tracé.
-/** @param {number} i */
-function cellState(i) {
+function cellState(i: number): "disabled" | "head" | "sel" | "normal" {
   if (state.usedCells.has(i)) return "disabled";
   const path = state.path;
   if (path.length && i === path[path.length - 1]) return "head";
@@ -135,9 +128,8 @@ function cellState(i) {
 }
 
 // Peint fond + lettre d'une case selon son état (couleurs de config.js).
-/** @param {number} i */
-function paintCell(i) {
-  let fill, stroke, textFill;
+function paintCell(i: number): void {
+  let fill: number, stroke: number, textFill: number;
   switch (cellState(i)) {
     case "head":
       fill = VERMILION;
@@ -184,12 +176,7 @@ function paintCell(i) {
 
 // Applique scale + alpha à une case (fond + lettre ensemble). Base des
 // animations deal/pop/stamp ; les couleurs restent gérées par paintCell.
-/**
- * @param {number} i
- * @param {number} scale
- * @param {number} alpha
- */
-function setCellTransform(i, scale, alpha) {
+function setCellTransform(i: number, scale: number, alpha: number): void {
   cellBgs[i].scale.set(scale);
   cellBgs[i].alpha = alpha;
   cellTexts[i].scale.set(scale);
@@ -197,12 +184,7 @@ function setCellTransform(i, scale, alpha) {
 }
 
 // Interpolation linéaire entre deux couleurs 0xRRGGBB (pour le flash de refus).
-/**
- * @param {number} a
- * @param {number} b
- * @param {number} t
- */
-function lerpColor(a, b, t) {
+function lerpColor(a: number, b: number, t: number): number {
   const ar = (a >> 16) & 0xff;
   const ag = (a >> 8) & 0xff;
   const ab = a & 0xff;
@@ -214,7 +196,7 @@ function lerpColor(a, b, t) {
 
 // Repeint toutes les cases (25 petits roundRect : bon marché, appelé aux
 // changements de tracé et de cases consommées).
-function repaintCells() {
+function repaintCells(): void {
   for (let i = 0; i < cellCount; i++) paintCell(i);
 }
 
@@ -223,7 +205,7 @@ function repaintCells() {
 // jamais world.scale = 1 : il suffit donc de couvrir la densité écran (dpr)
 // plus un léger sur-échantillonnage pour l'anticrénelage. Plus besoin du
 // facteur d'échelle du zoom, ni d'un plafond élevé.
-function letterResolution() {
+function letterResolution(): number {
   const dpr = window.devicePixelRatio || 1;
   return Math.min(4, dpr * 1.5);
 }
@@ -231,7 +213,7 @@ function letterResolution() {
 // Construit les cellCount cases (fond + lettre vide) une fois pour toutes.
 // Positions, tailles et résolution sont posées par layoutCells (rappelée au
 // resize via relayout). Les lettres sont peuplées par renderSceneGrid.
-function buildGrid() {
+function buildGrid(): void {
   for (let i = 0; i < cellCount; i++) {
     const bg = new Graphics();
     cellsLayer.addChild(bg);
@@ -257,14 +239,17 @@ function buildGrid() {
 // Positionne et dimensionne cases + lettres selon les métriques courantes
 // (unités design × baseScale). Géométrie centrée sur (0,0) local et placée au
 // centre de la case : scale/pop grandissent autour du centre, sans dérive.
-function layoutCells() {
+function layoutCells(): void {
   const resolution = letterResolution();
   for (let i = 0; i < cellCount; i++) {
     const c = cellCenter(i);
     cellBgs[i].position.set(c.x, c.y);
     cellTexts[i].position.set(c.x, c.y);
     cellTexts[i].style.fontSize = metrics.font;
-    cellTexts[i].style.resolution = resolution;
+    // NOTE typage : TextStyle (Pixi v8) n'expose pas `resolution` (elle vit sur
+    // Text). Assignation conservée telle quelle (aucun changement runtime).
+    (cellTexts[i].style as TextStyle & { resolution?: number }).resolution =
+      resolution;
     paintCell(i);
   }
 }
@@ -272,7 +257,7 @@ function layoutCells() {
 // Recalcule les métriques (baseScale caméra) puis re-pose la grille et les
 // tracés : appelé au resize, quand baseScale change (le zoom max reste
 // ~ZOOM_MAX_CELLS cases, la scène est regravée à la nouvelle taille native).
-function relayout() {
+function relayout(): void {
   updateMetrics(camera.baseScale);
   layoutCells();
   renderTrace();
@@ -282,13 +267,12 @@ function relayout() {
 // --- Tracé (espace monde) --------------------------------------------------
 
 // Trace la polyligne d'un chemin sur un Graphics (largeur/couleur/alpha donnés).
-/**
- * @param {Graphics} g
- * @param {number[]} path
- * @param {number} color
- * @param {number} [alpha]
- */
-function strokePath(g, path, color, alpha = 1) {
+function strokePath(
+  g: Graphics,
+  path: number[],
+  color: number,
+  alpha: number = 1,
+): void {
   if (path.length < 2) return;
   const p0 = cellCenter(path[0]);
   g.moveTo(p0.x, p0.y);
@@ -300,15 +284,14 @@ function strokePath(g, path, color, alpha = 1) {
 }
 
 // Redessine le tracé en cours (ligne d'encre continue).
-export function renderTrace() {
+export function renderTrace(): void {
   activeTrace.clear();
   strokePath(activeTrace, state.path, INK);
 }
 
 // Dessine tous les tracés fantômes, le dernier avec un alpha donné (fondu du
 // mot qu'on vient de valider). lastAlpha = 1 → tous pleinement visibles.
-/** @param {number} lastAlpha */
-function drawFoundTraces(lastAlpha) {
+function drawFoundTraces(lastAlpha: number): void {
   ghostTrace.clear();
   const paths = state.foundPaths;
   for (let k = 0; k < paths.length; k++) {
@@ -319,7 +302,7 @@ function drawFoundTraces(lastAlpha) {
 
 // Tracés fantômes : les traits des mots validés restent affichés, dans les
 // tons des cases désactivées, pour relire les mots sur la grille.
-export function renderFoundTraces() {
+export function renderFoundTraces(): void {
   drawFoundTraces(1);
 }
 
@@ -329,7 +312,7 @@ let prevPathLen = 0;
 
 // Repeint les cases selon la sélection courante (tint sel/head) et anime d'un
 // petit rebond la case qui vient de rejoindre le tracé.
-export function updateSelection() {
+export function updateSelection(): void {
   repaintCells();
   const len = state.path.length;
   if (len > prevPathLen && len > 0) popCell(state.path[len - 1]);
@@ -339,8 +322,7 @@ export function updateSelection() {
 // --- Animations ------------------------------------------------------------
 
 // « Pop » : la case qui rejoint la tête du tracé rebondit brièvement.
-/** @param {number} i */
-function popCell(i) {
+function popCell(i: number): void {
   tween({
     id: `cell-${i}`,
     duration: POP_MS,
@@ -353,7 +335,7 @@ function popCell(i) {
 // « Deal » : distribution des cases (fondu + léger tassement) en vague
 // circulaire depuis le coin haut-gauche — délai proportionnel à la distance
 // euclidienne, plus un micro-jitter déterministe qui casse le lockstep.
-function dealCells() {
+function dealCells(): void {
   prevPathLen = 0;
   const norm = Math.hypot(rows - 1, cols - 1) || 1;
   for (let i = 0; i < cellCount; i++) {
@@ -375,8 +357,7 @@ function dealCells() {
 
 // « Flash » de refus : les cases du tracé virent au vermillon puis reviennent
 // (tint multiplicatif : les fonds clairs prennent la teinte, le noir résiste).
-/** @param {number[]} indices */
-export function flashPath(indices) {
+export function flashPath(indices: number[]): void {
   for (const i of indices) {
     tween({
       id: `flash-${i}`,
@@ -393,8 +374,7 @@ export function flashPath(indices) {
 
 // « Stamp » : un mot validé tasse ses cases (scale 1.12→1, déjà repeintes en
 // disabled par renderUsedCells) et fait apparaître son tracé fantôme en fondu.
-/** @param {number[]} traced */
-export function stampWord(traced) {
+export function stampWord(traced: number[]): void {
   for (const i of traced) {
     setCellTransform(i, STAMP_SCALE, 1);
     tween({
@@ -421,13 +401,12 @@ export function stampWord(traced) {
 let shakeElapsed = 0;
 let shaking = false;
 
-export function shakeGrid() {
+export function shakeGrid(): void {
   shakeElapsed = 0;
   shaking = true;
 }
 
-/** @param {import("pixi.js").Ticker} ticker */
-function applyShake(ticker) {
+function applyShake(ticker: Ticker): void {
   if (!shaking || !camera) return;
   shakeElapsed += ticker.deltaMS;
   const t = shakeElapsed / SHAKE_MS;
@@ -444,15 +423,14 @@ function applyShake(ticker) {
 }
 
 // Repeint les cases consommées par les mots trouvés (état disabled).
-export function renderUsedCells() {
+export function renderUsedCells(): void {
   repaintCells();
 }
 
 // Survol d'un mot du panneau debug : surligne les cases de son tracé (apparence
 // « hover »), ou efface le surlignage si path est null. Sans effet hors debug
 // (setDebugHint n'est appelé que par debug.js, chargé si DEBUG).
-/** @param {number[]|null} path */
-export function setDebugHint(path) {
+export function setDebugHint(path: number[] | null): void {
   if (!app) return;
   debugHint.clear();
   if (path) for (const i of path) debugHint.add(i);
@@ -464,11 +442,7 @@ export function setDebugHint(path) {
 // Case sous un point écran (Point global d'un event fédéré), ou null.
 // Conversion écran→monde via world.toLocal, puis tolérance rayon cell/2
 // autour du centre de la case la plus proche (reprise de la logique DOM).
-/**
- * @param {import("pixi.js").PointData} global
- * @returns {number|null}
- */
-export function cellAtGlobal(global) {
+export function cellAtGlobal(global: PointData): number | null {
   if (!world) return null;
   const p = world.toLocal(global);
   const col = Math.round((p.x - metrics.cell / 2) / metrics.pitch);
@@ -481,29 +455,25 @@ export function cellAtGlobal(global) {
 }
 
 // Stage Pixi : cible des events fédérés du tracé (configuré dans initScene).
-/** @returns {import("pixi.js").Container} */
-export function getStage() {
+export function getStage(): Container {
   return app.stage;
 }
 
 // Application Pixi : input.js s'en sert pour le canvas (contextmenu/dragstart)
 // et le Ticker (pan clavier).
-/** @returns {Application} */
-export function getApp() {
+export function getApp(): Application {
   return app;
 }
 
 // Caméra : input.js la pilote pour le pan (translation) et le pinch (zoom
 // autour du milieu des doigts). Le zoom molette/boutons reste géré ici.
-/** @returns {Camera} */
-export function getCamera() {
+export function getCamera(): Camera {
   return camera;
 }
 
 // Molette → zoom centré sur le pointeur. Facteur exponentiel (doublement
 // tous les ~500 px) pour un zoom lisse ; la caméra borne fit/max.
-/** @param {WheelEvent} e */
-function onWheel(e) {
+function onWheel(e: WheelEvent): void {
   if (!camera) return;
   e.preventDefault();
   const rect = app.canvas.getBoundingClientRect();
@@ -513,17 +483,19 @@ function onWheel(e) {
 
 // Boutons flottants + / − / tout voir : câblés sur zoomAt(centre, ±ZOOM_STEP)
 // et fit(). Style « chip » (mono, bordure INK) défini dans style.css.
-function buildZoomControls() {
+function buildZoomControls(): void {
   const bar = document.createElement("div");
   bar.className = "zoom-controls";
 
   /**
-   * @param {string} label
-   * @param {string} title
-   * @param {() => void} onClick
-   * @param {string} [extraClass] modificateur optionnel (ex. bouton de pas)
+   * @param extraClass modificateur optionnel (ex. bouton de pas)
    */
-  const addButton = (label, title, onClick, extraClass) => {
+  const addButton = (
+    label: string,
+    title: string,
+    onClick: () => void,
+    extraClass?: string,
+  ): void => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = extraClass ? `zoom-btn ${extraClass}` : "zoom-btn";
@@ -555,7 +527,7 @@ function buildZoomControls() {
  * Initialise l'application Pixi et le graphe de scène. À appeler (await) avant
  * toute partie. Attend les polices pour éviter des lettres en fallback.
  */
-export async function initScene() {
+export async function initScene(): Promise<void> {
   app = new Application();
   await app.init({
     resizeTo: window,
@@ -633,7 +605,7 @@ export async function initScene() {
 // chaud) : annule les animations en cours, détruit cases et lettres, recadre
 // la caméra sur la nouvelle forme, recrée la grille. Les lettres sont
 // reposées par renderSceneGrid (startGame).
-export function rebuildGrid() {
+export function rebuildGrid(): void {
   if (!app) return;
   cancelTweens(); // aucun onUpdate ne doit toucher une case détruite
   shaking = false; // fin de secousse : la caméra recale world via fit
@@ -653,7 +625,7 @@ export function rebuildGrid() {
 
 // Réaffiche la grille pour la partie courante : pose les lettres, remet les
 // cases à l'état normal, efface le tracé et les fantômes, recadre.
-export function renderSceneGrid() {
+export function renderSceneGrid(): void {
   if (!app) return;
   for (let i = 0; i < cellCount; i++) {
     cellTexts[i].text = state.letters[i] ?? "";

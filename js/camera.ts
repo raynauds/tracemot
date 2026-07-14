@@ -1,4 +1,3 @@
-// @ts-check
 // Modèle caméra : état { scale, x, y } appliqué au container monde
 // (world.scale = scale, world.position = (x, y)). Centralise les conversions
 // écran<->monde, le cadrage « fit », les bornes (clamp) et le zoom centré
@@ -10,11 +9,11 @@ import {
   FIT_MARGIN_PX,
   VIEW_MARGIN,
   ZOOM_MAX_CELLS,
-} from "./config.js";
+} from "./config.ts";
 
-/** @typedef {import("pixi.js").Application} Application */
-/** @typedef {import("pixi.js").Container} Container */
-/** @typedef {{ x: number, y: number }} Vec2 */
+import type { Application, Container } from "pixi.js";
+
+export type Vec2 = { x: number; y: number };
 
 /**
  * Borne la position (px écran) de l'origine grille sur un axe. On autorise la
@@ -22,13 +21,17 @@ import {
  * écran), plus un débattement `overshoot` au-delà de chaque côté. Aucun
  * recentrage forcé : même plus petite que l'écran, la grille peut être poussée
  * sur un côté (pour la dégager de l'interface) au lieu de rester centrée.
- * @param {number} pos      position monde de l'origine grille (px écran)
- * @param {number} screen   taille écran de l'axe (px)
- * @param {number} gridProj taille projetée de la grille sur l'axe (px)
- * @param {number} overshoot débattement de pan au-delà du ras (px)
- * @returns {number}
+ * @param pos      position monde de l'origine grille (px écran)
+ * @param screen   taille écran de l'axe (px)
+ * @param gridProj taille projetée de la grille sur l'axe (px)
+ * @param overshoot débattement de pan au-delà du ras (px)
  */
-function clampAxis(pos, screen, gridProj, overshoot) {
+function clampAxis(
+  pos: number,
+  screen: number,
+  gridProj: number,
+  overshoot: number,
+): number {
   // Positions « au ras » : 0 (bord haut/gauche aligné) et screen - gridProj
   // (bord bas/droit aligné). Selon la taille de la grille, l'une ou l'autre est
   // la borne basse ; on élargit des deux côtés par overshoot.
@@ -40,12 +43,30 @@ function clampAxis(pos, screen, gridProj, overshoot) {
 }
 
 export class Camera {
+  app: Application;
+  world: Container;
+  pitchDesign: number;
+  gridWDesign: number;
+  gridHDesign: number;
+  baseScale: number;
+  gridW: number;
+  gridH: number;
+  scale: number;
+  x: number;
+  y: number;
+  fitScale: number;
+  maxScale: number;
+  defaultScale: number;
+  margin: number;
+
   /**
-   * @param {Application} app
-   * @param {Container} world  container monde recevant la transform.
-   * @param {{ rows: number, cols: number }} grid
+   * @param world  container monde recevant la transform.
    */
-  constructor(app, world, grid) {
+  constructor(
+    app: Application,
+    world: Container,
+    grid: { rows: number; cols: number },
+  ) {
     this.app = app;
     this.world = world;
     this.pitchDesign = CELL_SIZE + CELL_GAP;
@@ -78,8 +99,7 @@ export class Camera {
 
   // Adopte une forme de grille (constructeur et changement de mode à chaud) :
   // géométrie design, bornes recalculées, retour au cadrage « tout voir ».
-  /** @param {{ rows: number, cols: number }} grid */
-  setGrid(grid) {
+  setGrid(grid: { rows: number; cols: number }): void {
     this.gridWDesign = grid.cols * CELL_SIZE + (grid.cols - 1) * CELL_GAP;
     this.gridHDesign = grid.rows * CELL_SIZE + (grid.rows - 1) * CELL_GAP;
     this.recompute();
@@ -90,7 +110,7 @@ export class Camera {
   // monde et les bornes : fitScale (world.scale montrant toute la grille) et
   // maxScale = 1 (rendu natif : la scène est déjà gravée à la taille du zoom
   // max, on ne dépasse jamais 1, donc le texte n'est jamais agrandi).
-  recompute() {
+  recompute(): void {
     const sw = this.app.screen.width;
     const sh = this.app.screen.height;
     this.baseScale = Math.min(sw, sh) / (ZOOM_MAX_CELLS * this.pitchDesign);
@@ -127,13 +147,11 @@ export class Camera {
 
   // Contraint un état : scale dans [fitScale, maxScale] et position bornée par
   // clampAxis (glissement bord à bord + débattement margin, sans recentrage).
-  /**
-   * @param {number} scale
-   * @param {number} x
-   * @param {number} y
-   * @returns {{ scale: number, x: number, y: number }}
-   */
-  clamp(scale, x, y) {
+  clamp(
+    scale: number,
+    x: number,
+    y: number,
+  ): { scale: number; x: number; y: number } {
     const s = Math.min(this.maxScale, Math.max(this.fitScale, scale));
     const sw = this.app.screen.width;
     const sh = this.app.screen.height;
@@ -145,18 +163,13 @@ export class Camera {
   }
 
   // Écrit l'état sur le container monde.
-  apply() {
+  apply(): void {
     this.world.scale.set(this.scale);
     this.world.position.set(this.x, this.y);
   }
 
   // Adopte un état clampé puis l'applique.
-  /**
-   * @param {number} scale
-   * @param {number} x
-   * @param {number} y
-   */
-  set(scale, x, y) {
+  set(scale: number, x: number, y: number): void {
     const c = this.clamp(scale, x, y);
     this.scale = c.scale;
     this.x = c.x;
@@ -165,29 +178,19 @@ export class Camera {
   }
 
   // Point écran (px) → point monde.
-  /**
-   * @param {number} sx
-   * @param {number} sy
-   * @returns {Vec2}
-   */
-  toWorld(sx, sy) {
+  toWorld(sx: number, sy: number): Vec2 {
     return { x: (sx - this.x) / this.scale, y: (sy - this.y) / this.scale };
   }
 
   // Point monde → point écran (px).
-  /**
-   * @param {number} wx
-   * @param {number} wy
-   * @returns {Vec2}
-   */
-  toScreen(wx, wy) {
+  toScreen(wx: number, wy: number): Vec2 {
     return { x: wx * this.scale + this.x, y: wy * this.scale + this.y };
   }
 
   // Cadrage « tout voir » : échelle d'ouverture (defaultScale, plus serrée que
   // le dézoom max), grille centrée. clampAxis ne recentre plus (pan libre), donc
   // on vise explicitement le centre ici.
-  fit() {
+  fit(): void {
     const sw = this.app.screen.width;
     const sh = this.app.screen.height;
     this.set(
@@ -200,10 +203,9 @@ export class Camera {
   // Zoom centré sur un point écran : le point monde sous le pointeur reste
   // fixe. factor > 1 zoome en avant.
   /**
-   * @param {Vec2} pointer  point écran (px)
-   * @param {number} factor
+   * @param pointer  point écran (px)
    */
-  zoomAt(pointer, factor) {
+  zoomAt(pointer: Vec2, factor: number): void {
     const target = Math.min(
       this.maxScale,
       Math.max(this.fitScale, this.scale * factor),
@@ -215,13 +217,12 @@ export class Camera {
   }
 
   // Centre de l'écran (px) : cible des boutons + / −.
-  /** @returns {Vec2} */
-  screenCenter() {
+  screenCenter(): Vec2 {
     return { x: this.app.screen.width / 2, y: this.app.screen.height / 2 };
   }
 
   // Recalcule les bornes et re-clampe l'état après un resize.
-  resize() {
+  resize(): void {
     this.recompute();
     this.set(this.scale, this.x, this.y);
   }

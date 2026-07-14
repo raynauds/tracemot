@@ -1,4 +1,3 @@
-// @ts-check
 // Orchestration : initialisation, déroulement d'une partie, validation
 // des mots. Seul module à écrire le déroulement dans state.
 
@@ -9,12 +8,12 @@ import {
   ENABLED_DIFFICULTIES,
   ENABLED_MODES,
   GAME_MODES,
-} from "./config.js";
-import { applyMode, state } from "./state.js";
-import { buildLengthSets, loadDictionaries } from "./dictionary.js";
-import { createGridGenerator } from "./solver.js";
-import { wordRejectReason } from "./rules.js";
-import { attachInputHandlers, cancelAllGestures, clearPath } from "./input.js";
+} from "./config.ts";
+import { applyMode, state } from "./state.ts";
+import { buildLengthSets, loadDictionaries } from "./dictionary.ts";
+import { createGridGenerator } from "./solver.ts";
+import { wordRejectReason } from "./rules.ts";
+import { attachInputHandlers, cancelAllGestures, clearPath } from "./input.ts";
 import {
   flashPath,
   initScene,
@@ -23,7 +22,7 @@ import {
   renderUsedCells,
   shakeGrid,
   stampWord,
-} from "./scene.js";
+} from "./scene.ts";
 import {
   bindDifficultyBar,
   bindModeBar,
@@ -42,19 +41,19 @@ import {
   showRuleOnFirstVisit,
   startTimer,
   stopTimer,
-} from "./render.js";
+} from "./render.ts";
 
 const DIFFICULTY_STORAGE_KEY = "tracemot.difficulty";
 const MODE_STORAGE_KEY = "tracemot.mode";
 
-/** @type {typeof import("./debug.js")|null} Module debug, chargé si DEBUG. */
-let debug = null;
+/** Module debug, chargé si DEBUG. */
+let debug: typeof import("./debug.ts") | null = null;
 
-/** @type {ReturnType<typeof createGridGenerator>|null} Générateur du mode
+/** Générateur du mode
  *  actif, fermé sur la géométrie et les dictionnaires (créé au premier
  *  lancement de partie, après le chargement des dictionnaires ; invalidé
  *  — remis à null — au changement de mode). */
-let generator = null;
+let generator: ReturnType<typeof createGridGenerator> | null = null;
 
 function startGame() {
   state.won = false;
@@ -124,8 +123,7 @@ function commitPath() {
   if (state.found.length >= state.mode.wordCount) triggerWin();
 }
 
-/** @param {number} difficulty */
-function setDifficulty(difficulty) {
+function setDifficulty(difficulty: number) {
   const valid = ENABLED_DIFFICULTIES.find((d) => d === difficulty);
   if (!valid || valid === state.difficulty || !state.ready) return;
   state.difficulty = valid;
@@ -143,8 +141,7 @@ function setDifficulty(difficulty) {
 // Pixi et le registre sont reconstruits à la forme du nouveau mode, et une
 // partie est relancée (le générateur, fermé sur l'ancienne géométrie et les
 // anciens sets de longueur, est invalidé — startGame le recrée).
-/** @param {string} id */
-function setMode(id) {
+function setMode(id: string) {
   const valid = ENABLED_MODES.find((m) => m === id);
   if (!valid || valid === state.modeId || !state.ready) return;
   cancelAllGestures(); // un geste en vol référencerait l'ancienne grille
@@ -163,7 +160,7 @@ function setMode(id) {
 }
 
 function restoreMode() {
-  let stored = null;
+  let stored: string | null = null;
   try {
     stored = localStorage.getItem(MODE_STORAGE_KEY);
   } catch (_) {
@@ -232,7 +229,7 @@ async function init() {
   hideStatus();
 
   if (DEBUG) {
-    debug = await import("./debug.js");
+    debug = await import("./debug.ts");
     debug.buildDebugPanel();
   }
 

@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check:solver": "node tools/solver-check.mjs"
+    "check:solver": "node tools/solver-check.mjs",
+    "check": "tsc --noEmit"
   },
   "devDependencies": {
+    "typescript": "^7.0.2",
     "vite": "^8.1.4"
   },
   "dependencies": {

@@ -1,4 +1,3 @@
-// @ts-check
 // Petit moteur de tweens sur le Ticker de l'app. Chaque tween interpole une
 // progression `k` de 0 à 1 sur `duration` ms (après un éventuel `delay`), avec
 // un easing, et appelle onUpdate(k) chaque frame puis onComplete à la fin.
@@ -6,51 +5,51 @@
 // annule le précédent — indispensable pour ne pas empiler deux animations sur
 // la même propriété (ex. deal puis pop sur une même case).
 
-/** @typedef {import("pixi.js").Ticker} Ticker */
+import type { Ticker } from "pixi.js";
 
 /** Easing par défaut : sortie cubique (démarre vite, finit en douceur). */
-export const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+export const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 /** Easing symétrique (accélère puis décélère). */
-export const easeInOutQuad = (t) =>
+export const easeInOutQuad = (t: number): number =>
   t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-/**
- * @typedef {Object} TweenSpec
- * @property {number} duration               durée en ms
- * @property {(k: number) => void} onUpdate  reçoit la progression easée (0→1)
- * @property {string} [id]                    clé d'unicité (annule le même id)
- * @property {number} [delay]                 ms avant démarrage (stagger)
- * @property {(t: number) => number} [ease]   easing (défaut : linéaire)
- * @property {() => void} [onComplete]
- */
+export interface TweenSpec {
+  /** Durée en ms. */
+  duration: number;
+  /** Reçoit la progression easée (0→1). */
+  onUpdate: (k: number) => void;
+  /** Clé d'unicité (annule le même id). */
+  id?: string;
+  /** Ms avant démarrage (stagger). */
+  delay?: number;
+  /** Easing (défaut : linéaire). */
+  ease?: (t: number) => number;
+  onComplete?: () => void;
+}
 
-/**
- * @typedef {Object} RunningTween
- * @property {string|undefined} id
- * @property {number} duration
- * @property {number} delay
- * @property {(t: number) => number} ease
- * @property {(k: number) => void} onUpdate
- * @property {(() => void)|undefined} onComplete
- * @property {number} elapsed
- */
+interface RunningTween {
+  id: string | undefined;
+  duration: number;
+  delay: number;
+  ease: (t: number) => number;
+  onUpdate: (k: number) => void;
+  onComplete: (() => void) | undefined;
+  elapsed: number;
+}
 
-/** @type {RunningTween[]} */
-const tweens = [];
-/** @type {Ticker|null} */
-let ticker = null;
+const tweens: RunningTween[] = [];
+let ticker: Ticker | null = null;
 
 /**
  * Branche le moteur sur le Ticker de l'app (à appeler une fois, après app.init).
- * @param {Ticker} t
  */
-export function initTweens(t) {
+export function initTweens(t: Ticker): void {
   ticker = t;
   ticker.add(step);
 }
 
-/** Avance tous les tweens actifs d'une frame. @param {Ticker} t */
-function step(t) {
+/** Avance tous les tweens actifs d'une frame. */
+function step(t: Ticker): void {
   const dt = t.deltaMS;
   // Parcours descendant : on retire les tweens terminés sans casser l'index.
   for (let i = tweens.length - 1; i >= 0; i--) {
@@ -76,15 +75,14 @@ function step(t) {
 // Annule tous les tweens en cours SANS appeler onComplete : utilisé au
 // rebuild de la grille (changement de mode), où les onUpdate/onComplete
 // capturés référenceraient des cases détruites.
-export function cancelTweens() {
+export function cancelTweens(): void {
   tweens.length = 0;
 }
 
 /**
  * Programme un tween. Renvoie sans rien faire si le moteur n'est pas branché.
- * @param {TweenSpec} spec
  */
-export function tween(spec) {
+export function tween(spec: TweenSpec): void {
   if (!ticker) return;
   if (spec.id) {
     for (let i = tweens.length - 1; i >= 0; i--) {

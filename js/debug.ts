@@ -1,14 +1,12 @@
-// @ts-check
 // Panneau debug : liste tous les mots trouvables dans la grille courante,
 // ceux du dictionnaire enfant en évidence. Survoler un mot met son tracé
 // en évidence dans la grille. Chargé dynamiquement par main.js si DEBUG.
 
-import { state } from "./state.js";
-import { findAllWords } from "./solver.js";
-import { setDebugHint } from "./scene.js";
+import { state } from "./state.ts";
+import { findAllWords } from "./solver.ts";
+import { setDebugHint } from "./scene.ts";
 
-/** @type {HTMLElement|null} */
-let debugPanelEl = null;
+let debugPanelEl: HTMLElement | null = null;
 
 export function buildDebugPanel() {
   debugPanelEl = document.createElement("div");

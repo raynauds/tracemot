@@ -1,16 +1,19 @@
-// @ts-check
 // Réglages du jeu. GAME_MODES, DEFAULT_MODE et DEBUG sont faits pour être
 // modifiés, le reste décrit la grille et l'interface.
 
-/** @typedef {{ rows: number, cols: number, wordLength: number, wordCount: number }} GameMode */
+export type GameMode = {
+  rows: number;
+  cols: number;
+  wordLength: number;
+  wordCount: number;
+};
 
 // Modes de jeu : forme de la grille (rows × cols) et puzzle (wordCount mots
 // de wordLength lettres). Le pavage parfait exige
 // wordCount × wordLength = rows × cols (validé ci-dessous). Tout le reste
 // (registre, compteur, condition de victoire, caméra, solveur) dérive du
 // mode actif.
-/** @type {Record<string, GameMode>} */
-export const GAME_MODES = {
+export const GAME_MODES: Record<string, GameMode> = {
   classique: { rows: 5, cols: 5, wordLength: 5, wordCount: 5 },
   maxi: { rows: 10, cols: 10, wordLength: 5, wordCount: 20 },
   longs: { rows: 8, cols: 8, wordLength: 8, wordCount: 8 },
@@ -26,20 +29,24 @@ for (const [id, m] of Object.entries(GAME_MODES)) {
 }
 
 // Mode par défaut (première visite, ou mode mémorisé invalide).
-/** @type {keyof typeof GAME_MODES} */
-export const DEFAULT_MODE = "classique";
+export const DEFAULT_MODE: keyof typeof GAME_MODES = "classique";
 // Modes accessibles dans l'interface (au moins un). Retirez des entrées
 // pour restreindre le jeu. Avec un seul mode accessible, le sélecteur
 // (chip du header) disparaît entièrement.
-/** @type {(keyof typeof GAME_MODES)[]} */
-export const ENABLED_MODES = ["classique", "maxi", "longs"];
+export const ENABLED_MODES: (keyof typeof GAME_MODES)[] = [
+  "classique",
+  "maxi",
+  "longs",
+];
 
 // Nom et description de chaque mode : chip du header, lignes de la feuille
 // de sélection et toast de confirmation. Le nom décrit le puzzle
 // (nombre de mots × nombre de lettres, PAS la grille), la description le
 // développe en toutes lettres.
-/** @type {Record<keyof typeof GAME_MODES, {name: string, desc: string}>} */
-export const MODE_LABELS = {
+export const MODE_LABELS: Record<
+  keyof typeof GAME_MODES,
+  { name: string; desc: string }
+> = {
   classique: { name: "5×5", desc: "5 mots de 5 lettres" },
   maxi: { name: "20×5", desc: "20 mots de 5 lettres" },
   longs: { name: "8×8", desc: "8 mots de 8 lettres" },
@@ -50,8 +57,8 @@ export const MODE_LABELS = {
 // Survoler un mot met en évidence son tracé dans la grille.
 export const DEBUG = false;
 
-/** @typedef {"enfant"|"ado"|"adulte"|"inconnu"} Tier */
-/** @typedef {1|2|3|4|5} Difficulty */
+export type Tier = "enfant" | "ado" | "adulte" | "inconnu";
+export type Difficulty = 1 | 2 | 3 | 4 | 5;
 
 // Difficultés (nombre d'étoiles). Chaque niveau fixe la composition des
 // mots cachés parmi les quatre paliers de vocabulaire : bornes [min, max]
@@ -59,26 +66,32 @@ export const DEBUG = false;
 // solveur) pour les paliers « ado », « adulte » et « inconnu », le reste
 // venant du palier « enfant ». Sur 5 mots, 0.2 = 1 mot ; le barème reste
 // cohérent quel que soit wordCount.
-/** @type {Record<Difficulty, {ado: [number, number], adulte: [number, number], inconnu: [number, number]}>} */
-export const DIFFICULTY_QUOTAS = {
+export const DIFFICULTY_QUOTAS: Record<
+  Difficulty,
+  {
+    ado: [number, number];
+    adulte: [number, number];
+    inconnu: [number, number];
+  }
+> = {
   1: { ado: [0, 0], adulte: [0, 0], inconnu: [0, 0] },
   2: { ado: [0.2, 0.4], adulte: [0, 0], inconnu: [0, 0] },
   3: { ado: [0.6, 1], adulte: [0, 0], inconnu: [0, 0] },
   4: { ado: [0.2, 0.4], adulte: [0.2, 0.4], inconnu: [0, 0] },
   5: { ado: [0, 1], adulte: [0.2, 0.4], inconnu: [0.2, 0.4] },
 };
-/** @type {Difficulty} */
-export const DEFAULT_DIFFICULTY = 1;
+export const DEFAULT_DIFFICULTY: Difficulty = 1;
 // Difficultés accessibles dans l'interface (au moins une). Retirez des
 // entrées pour restreindre le jeu. Avec une seule difficulté accessible,
 // le sélecteur (chip du header) disparaît entièrement.
-/** @type {Difficulty[]} */
-export const ENABLED_DIFFICULTIES = [1, 2, 3, 4, 5];
+export const ENABLED_DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5];
 
 // Nom et description de chaque difficulté : chip du header, lignes de la
 // feuille de sélection et toast de confirmation.
-/** @type {Record<Difficulty, {name: string, desc: string}>} */
-export const DIFFICULTY_LABELS = {
+export const DIFFICULTY_LABELS: Record<
+  Difficulty,
+  { name: string; desc: string }
+> = {
   1: { name: "Doux", desc: "Que des mots très courants" },
   2: { name: "Équilibré", desc: "Un ou deux mots moins courants" },
   3: { name: "Relevé", desc: "Une bonne pincée de mots moins courants" },
@@ -108,8 +121,7 @@ export const MIN_WORD_LENGTH = 3;
 export const REJECT_DISPLAY_MS = 2000;
 
 // Pondération des lettres selon leur fréquence en français (Q volontairement rare).
-/** @type {Record<string, number>} */
-export const LETTER_WEIGHTS = {
+export const LETTER_WEIGHTS: Record<string, number> = {
   A: 76,
   B: 9,
   C: 33,

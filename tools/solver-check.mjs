@@ -12,16 +12,16 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { DIFFICULTY_QUOTAS, GAME_MODES } from "../js/config.js";
-import { createGeometry } from "../js/geometry.js";
+import { DIFFICULTY_QUOTAS, GAME_MODES } from "../js/config.ts";
+import { createGeometry } from "../js/geometry.ts";
 import {
   FULL_DICT_FILE,
   TIER_FILES,
   TIER_NAMES,
   buildLengthSets,
   parseWordList,
-} from "../js/dictionary.js";
-import { canonKey, createGridGenerator } from "../js/solver.js";
+} from "../js/dictionary.ts";
+import { canonKey, createGridGenerator } from "../js/solver.ts";
 
 // Les dictionnaires vivent dans public/ (servis à la racine par Vite).
 const ROOT = path.join(
@@ -31,7 +31,7 @@ const ROOT = path.join(
 );
 const GRIDS_PER_CASE = Number(process.argv[2]) || 20;
 const MODE_FILTER = process.argv[3];
-/** @type {import("../js/config.js").Difficulty[]} */
+/** @type {import("../js/config.ts").Difficulty[]} */
 const DIFFICULTIES = [1, 2, 3, 4, 5];
 
 /** @param {string} file */
@@ -40,7 +40,7 @@ function readWords(file) {
 }
 
 const fullWords = readWords(FULL_DICT_FILE);
-/** @type {Record<import("../js/config.js").Tier, Set<string>>} */
+/** @type {Record<import("../js/config.ts").Tier, Set<string>>} */
 const tierWords = /** @type {any} */ ({});
 for (const tier of TIER_NAMES) tierWords[tier] = readWords(TIER_FILES[tier]);
 
@@ -48,7 +48,7 @@ for (const tier of TIER_NAMES) tierWords[tier] = readWords(TIER_FILES[tier]);
  * Énumérateur indépendant : tous les tracés de `length` cases dont le mot est
  * dans `words`, par DFS exhaustif (sans préfixes). Retourne mot → Set de clés
  * canoniques de tracés.
- * @param {import("../js/geometry.js").Geometry} geometry
+ * @param {import("../js/geometry.ts").Geometry} geometry
  * @param {string[]} letters
  * @param {Set<string>} words
  * @param {number} length

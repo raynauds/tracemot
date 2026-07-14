@@ -1,4 +1,3 @@
-// @ts-check
 // Chrome DOM en surimpression : registre repliable des mots trouvés,
 // sélecteurs de mode et de difficulté, consigne, chrono, statut et victoire.
 // La grille, le tracé et leurs animations sont rendus par PixiJS (js/scene.js).
@@ -10,20 +9,16 @@ import {
   MODE_LABELS,
   REJECT_DISPLAY_MS,
   TOAST_MS,
-} from "./config.js";
-import { state } from "./state.js";
-import { wordRejectReason } from "./rules.js";
+} from "./config.ts";
+import { state } from "./state.ts";
+import { wordRejectReason } from "./rules.ts";
 
 // Ligne vide du registre : un point par lettre attendue (mode actif).
 function wordDots() {
   return Array.from({ length: state.mode.wordLength }, () => "·").join(" ");
 }
 
-/**
- * @param {string} id
- * @returns {HTMLElement}
- */
-function byId(id) {
+function byId(id: string): HTMLElement {
   const el = document.getElementById(id);
   if (!el) throw new Error(`Tracemot : élément #${id} introuvable`);
   return el;
@@ -38,13 +33,11 @@ const counterEl = byId("counter");
 const wordListEl = byId("word-list");
 const ruleSpecEl = byId("rule-spec");
 
-/** @type {HTMLElement[]} */
-const listRows = []; // les wordCount lignes du registre
+const listRows: HTMLElement[] = []; // les wordCount lignes du registre
 
 // --- Utilitaires --------------------------------------------------------
 
-/** @param {number} ms */
-function formatTime(ms) {
+function formatTime(ms: number) {
   const total = Math.floor(ms / 1000);
   const m = String(Math.floor(total / 60)).padStart(2, "0");
   const s = String(total % 60).padStart(2, "0");
@@ -72,10 +65,9 @@ const diffToastEl = byId("diff-toast");
 const diffToastTitleEl = byId("diff-toast-title");
 const diffToastSubEl = byId("diff-toast-sub");
 
-/** @type {HTMLButtonElement[]} Lignes du panneau, une par difficulté. */
-const diffRows = [];
-/** @type {ReturnType<typeof setTimeout>|null} */
-let diffToastTimer = null;
+/** Lignes du panneau, une par difficulté. */
+const diffRows: HTMLButtonElement[] = [];
+let diffToastTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Lignes du panneau générées depuis DIFFICULTY_LABELS : étoiles pleines
 // jusqu'au niveau, nom, description, coche sur le niveau courant.
@@ -116,8 +108,7 @@ for (const [levelStr, { name, desc }] of Object.entries(DIFFICULTY_LABELS)) {
   diffRows.push(row);
 }
 
-/** @param {boolean} open */
-function setDifficultyPanelOpen(open) {
+function setDifficultyPanelOpen(open: boolean) {
   // Les trois panneaux partagent le voile : jamais ouverts en même temps.
   if (open) {
     setRulePanelOpen(false);
@@ -159,10 +150,11 @@ export function showDifficultyToast() {
   }, TOAST_MS);
 }
 
-/** @param {(difficulty: number) => void} onSelect */
-export function bindDifficultyBar(onSelect) {
+export function bindDifficultyBar(onSelect: (difficulty: number) => void) {
   diffChipEl.addEventListener("click", () =>
-    setDifficultyPanelOpen(diffPanelEl.hidden),
+    // hidden est typé string | boolean (« until-found ») mais on n'y écrit
+    // que des booléens.
+    setDifficultyPanelOpen(diffPanelEl.hidden as boolean),
   );
   diffCloseEl.addEventListener("click", () => setDifficultyPanelOpen(false));
   diffOverlayEl.addEventListener("click", () => setDifficultyPanelOpen(false));
@@ -196,10 +188,9 @@ const modeToastEl = byId("mode-toast");
 const modeToastTitleEl = byId("mode-toast-title");
 const modeToastSubEl = byId("mode-toast-sub");
 
-/** @type {HTMLButtonElement[]} Lignes du panneau, une par mode. */
-const modeRows = [];
-/** @type {ReturnType<typeof setTimeout>|null} */
-let modeToastTimer = null;
+/** Lignes du panneau, une par mode. */
+const modeRows: HTMLButtonElement[] = [];
+let modeToastTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Lignes du panneau générées depuis MODE_LABELS : nom de la grille
 // (largeur × hauteur), description du puzzle, coche sur le mode courant.
@@ -229,8 +220,7 @@ for (const [id, { name, desc }] of Object.entries(MODE_LABELS)) {
   modeRows.push(row);
 }
 
-/** @param {boolean} open */
-function setModePanelOpen(open) {
+function setModePanelOpen(open: boolean) {
   // Les trois panneaux partagent le voile : jamais ouverts en même temps.
   if (open) {
     setDifficultyPanelOpen(false);
@@ -271,10 +261,11 @@ export function showModeToast() {
   }, TOAST_MS);
 }
 
-/** @param {(id: string) => void} onSelect */
-export function bindModeBar(onSelect) {
+export function bindModeBar(onSelect: (id: string) => void) {
   modeChipEl.addEventListener("click", () =>
-    setModePanelOpen(modePanelEl.hidden),
+    // hidden est typé string | boolean (« until-found ») mais on n'y écrit
+    // que des booléens.
+    setModePanelOpen(modePanelEl.hidden as boolean),
   );
   modeCloseEl.addEventListener("click", () => setModePanelOpen(false));
   modeOverlayEl.addEventListener("click", () => setModePanelOpen(false));
@@ -299,8 +290,7 @@ export function bindModeBar(onSelect) {
 const ledgerEl = byId("ledger");
 const ledgerToggleEl = byId("ledger-toggle");
 
-/** @param {boolean} collapsed */
-function setLedgerCollapsed(collapsed) {
+function setLedgerCollapsed(collapsed: boolean) {
   ledgerEl.classList.toggle("collapsed", collapsed);
   ledgerToggleEl.setAttribute("aria-expanded", String(!collapsed));
 }
@@ -323,8 +313,7 @@ const rulePanelEl = byId("rule-panel");
 const ruleOverlayEl = byId("rule-overlay");
 const ruleCloseEl = byId("rule-close");
 
-/** @param {boolean} open */
-function setRulePanelOpen(open) {
+function setRulePanelOpen(open: boolean) {
   // Les trois panneaux partagent le voile : jamais ouverts en même temps.
   if (open) {
     setDifficultyPanelOpen(false);
@@ -336,7 +325,11 @@ function setRulePanelOpen(open) {
   ruleChipEl.setAttribute("aria-expanded", String(open));
 }
 
-ruleChipEl.addEventListener("click", () => setRulePanelOpen(rulePanelEl.hidden));
+// hidden est typé string | boolean (« until-found ») mais on n'y écrit que
+// des booléens.
+ruleChipEl.addEventListener("click", () =>
+  setRulePanelOpen(rulePanelEl.hidden as boolean),
+);
 ruleCloseEl.addEventListener("click", () => setRulePanelOpen(false));
 ruleOverlayEl.addEventListener("click", () => setRulePanelOpen(false));
 document.addEventListener("keydown", (e) => {
@@ -374,9 +367,7 @@ export function buildBoard() {
     wordListEl.lastElementChild?.remove();
   }
   for (let i = 0; i < wordCount; i++) {
-    const existing = /** @type {HTMLElement|undefined} */ (
-      wordListEl.children[i]
-    );
+    const existing = wordListEl.children[i] as HTMLElement | undefined;
     if (existing) {
       listRows.push(existing);
       continue;
@@ -399,15 +390,13 @@ export function buildBoard() {
 
 // Sur mobile la liste est compressée et scrolle : on garde la ligne active
 // en vue. Sans effet quand la liste tient en entier (desktop).
-/** @param {HTMLElement} row */
-function keepRowVisible(row) {
+function keepRowVisible(row: HTMLElement) {
   if (wordListEl.scrollHeight > wordListEl.clientHeight) {
     row.scrollIntoView({ block: "nearest" });
   }
 }
 
-/** @param {HTMLElement} row */
-function resetListRow(row) {
+function resetListRow(row: HTMLElement) {
   row.className = "word-row empty";
   const content = row.children[1];
   content.className = "word-dots";
@@ -440,11 +429,7 @@ export function renderPendingWord() {
 
 // Mot refusé : lettres en rouge, motif du refus à droite, puis la ligne
 // redevient libre une fois le message lu.
-/**
- * @param {string} word
- * @param {string} reason
- */
-export function showReject(word, reason) {
+export function showReject(word: string, reason: string) {
   const row = listRows[state.found.length];
   if (!row) return;
   // Le flash et la secousse de la grille sont rendus par js/scene.js (Pixi).
@@ -462,12 +447,7 @@ export function showReject(word, reason) {
   }, REJECT_DISPLAY_MS);
 }
 
-/**
- * @param {number} index
- * @param {string} word
- * @param {boolean} animate
- */
-export function fillListRow(index, word, animate) {
+export function fillListRow(index: number, word: string, animate: boolean) {
   const row = listRows[index];
   row.className = "word-row";
   const content = row.children[1];
@@ -535,8 +515,7 @@ export function renderWin() {
   winEl.hidden = false;
 }
 
-/** @param {string} message */
-export function renderLoadError(message) {
+export function renderLoadError(message: string) {
   statusEl.classList.add("error");
   statusEl.textContent = message;
 }

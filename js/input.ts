@@ -1,4 +1,3 @@
-// @ts-check
 // Arbitrage des gestes sur la grille Pixi. Machine à états sur les pointeurs
 // actifs (Map<pointerId>), events fédérés sur app.stage + clavier sur window.
 //
@@ -20,9 +19,9 @@ import {
   EDGE_PAN_MARGIN,
   EDGE_PAN_MAX_SPEED,
   KEY_PAN_SPEED,
-} from "./config.js";
-import { state } from "./state.js";
-import { buzz, renderPendingWord, replayEl } from "./render.js";
+} from "./config.ts";
+import { state } from "./state.ts";
+import { buzz, renderPendingWord, replayEl } from "./render.ts";
 import {
   cellAtGlobal,
   getApp,
@@ -30,32 +29,26 @@ import {
   getStage,
   renderTrace,
   updateSelection,
-} from "./scene.js";
+} from "./scene.ts";
+import type { FederatedPointerEvent, Ticker } from "pixi.js";
 
-/** @typedef {import("pixi.js").FederatedPointerEvent} FederatedPointerEvent */
-/** @typedef {{ x: number, y: number }} Vec2 */
+export type Vec2 = { x: number; y: number };
 
-/** @type {() => void} */
-let onCommit = () => {};
+let onCommit: () => void = () => {};
 
 // --- État d'arbitrage ------------------------------------------------------
 
-/** Pointeurs actifs (au plus deux suivis), avec leur dernière position écran.
- * @type {Map<number, Vec2>} */
-const pointers = new Map();
-/** @type {"trace"|"pan"|"pinch"|null} */
-let mode = null;
+/** Pointeurs actifs (au plus deux suivis), avec leur dernière position écran. */
+const pointers = new Map<number, Vec2>();
+let mode: "trace" | "pan" | "pinch" | null = null;
 
 // Pan : pointeur porteur + dernière position écran.
-/** @type {number|null} */
-let panPointerId = null;
+let panPointerId: number | null = null;
 let panLast = { x: 0, y: 0 };
 
 // Pinch : les deux pointeurs et l'état caméra figé au début du geste.
-/** @type {number|null} */
-let pinchA = null;
-/** @type {number|null} */
-let pinchB = null;
+let pinchA: number | null = null;
+let pinchB: number | null = null;
 let pinchDist0 = 1;
 let pinchMid0 = { x: 0, y: 0 };
 let pinchScale0 = 1;
@@ -71,11 +64,7 @@ export function clearPath() {
 }
 
 // Adjacence orthogonale : voisins précalculés de la géométrie du mode.
-/**
- * @param {number} a
- * @param {number} b
- */
-function isOrthAdjacent(a, b) {
+function isOrthAdjacent(a: number, b: number) {
   return state.geometry.neighbors[a].includes(b);
 }
 
@@ -84,11 +73,7 @@ function isOrthAdjacent(a, b) {
 let traceScreen = { x: 0, y: 0 };
 
 // Démarre un tracé sur la case idx avec le pointeur courant.
-/**
- * @param {FederatedPointerEvent} e
- * @param {number} idx
- */
-function beginTrace(e, idx) {
+function beginTrace(e: FederatedPointerEvent, idx: number) {
   mode = "trace";
   state.pointerId = e.pointerId;
   state.path = [idx];
@@ -103,8 +88,7 @@ function beginTrace(e, idx) {
 // backtrack, cases consommées inertes). Source unique partagée par le déplacement
 // du pointeur (traceMove) et la réévaluation post auto-pan. Retourne true si le
 // tracé a changé.
-/** @param {number|null} idx */
-function extendTraceTo(idx) {
+function extendTraceTo(idx: number | null) {
   if (idx === null) return false;
   if (state.usedCells.has(idx)) return false; // case consommée par un mot trouvé
   const last = state.path[state.path.length - 1];
@@ -126,8 +110,7 @@ function extendTraceTo(idx) {
 }
 
 // Étend le tracé selon la case sous le pointeur (règles inchangées).
-/** @param {FederatedPointerEvent} e */
-function traceMove(e) {
+function traceMove(e: FederatedPointerEvent) {
   if (e.pointerId !== state.pointerId || state.won) return;
   // Bouton souris relâché sans pointerup délivré (perte de focus) : on annule
   // le tracé au lieu de l'étendre au survol.
@@ -142,21 +125,13 @@ function traceMove(e) {
 
 // --- Pan -------------------------------------------------------------------
 
-/**
- * @param {number} pointerId
- * @param {Vec2} pos
- */
-function beginPan(pointerId, pos) {
+function beginPan(pointerId: number, pos: Vec2) {
   mode = "pan";
   panPointerId = pointerId;
   panLast = { x: pos.x, y: pos.y };
 }
 
-/**
- * @param {FederatedPointerEvent} e
- * @param {Vec2} pos
- */
-function panMove(e, pos) {
+function panMove(e: FederatedPointerEvent, pos: Vec2) {
   if (e.pointerId !== panPointerId) return;
   if (e.pointerType === "mouse" && e.buttons === 0) {
     mode = null;
@@ -231,8 +206,7 @@ function endGesture() {
   state.pointerId = null;
 }
 
-/** @param {FederatedPointerEvent} e */
-function onPointerDown(e) {
+function onPointerDown(e: FederatedPointerEvent) {
   // Down répété pour un pointeur déjà suivi (pointerup manqué) : on repart net.
   if (pointers.has(e.pointerId)) cancelAllGestures();
   // On n'arbitre qu'avec deux pointeurs : les suivants sont ignorés.
@@ -259,8 +233,7 @@ function onPointerDown(e) {
   beginPan(e.pointerId, pos);
 }
 
-/** @param {FederatedPointerEvent} e */
-function onPointerMove(e) {
+function onPointerMove(e: FederatedPointerEvent) {
   // Pointeur non suivi (survol souris sans bouton, 3e doigt) : ignoré.
   if (!pointers.has(e.pointerId)) return;
   const pos = { x: e.global.x, y: e.global.y };
@@ -272,11 +245,7 @@ function onPointerMove(e) {
 }
 
 // Fin d'un pointeur (up, upoutside, cancel). commit = valider un tracé abouti.
-/**
- * @param {FederatedPointerEvent} e
- * @param {boolean} commit
- */
-function onPointerEnd(e, commit) {
+function onPointerEnd(e: FederatedPointerEvent, commit: boolean) {
   const wasTrace = mode === "trace" && e.pointerId === state.pointerId;
   pointers.delete(e.pointerId);
 
@@ -315,8 +284,7 @@ function onPointerEnd(e, commit) {
 // --- Pan clavier (flèches, ZQSD/WASD) --------------------------------------
 
 // Touche → direction de pan. On mappe par lettre (spec ZQSD + WASD explicite).
-/** @type {Record<string, "up"|"down"|"left"|"right">} */
-const KEY_DIRS = {
+const KEY_DIRS: Record<string, "up" | "down" | "left" | "right"> = {
   arrowup: "up",
   arrowdown: "down",
   arrowleft: "left",
@@ -328,12 +296,10 @@ const KEY_DIRS = {
   a: "left",
   d: "right",
 };
-/** @type {Set<"up"|"down"|"left"|"right">} */
-const pressed = new Set();
+const pressed = new Set<"up" | "down" | "left" | "right">();
 
 // Ne pas capturer les flèches/lettres quand l'utilisateur saisit du texte.
-/** @param {EventTarget|null} target */
-function isTypingTarget(target) {
+function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
   return (
@@ -344,24 +310,21 @@ function isTypingTarget(target) {
   );
 }
 
-/** @param {KeyboardEvent} e */
-function onKeyDown(e) {
+function onKeyDown(e: KeyboardEvent) {
   const dir = KEY_DIRS[e.key.toLowerCase()];
   if (!dir || isTypingTarget(e.target)) return;
   e.preventDefault();
   pressed.add(dir);
 }
 
-/** @param {KeyboardEvent} e */
-function onKeyUp(e) {
+function onKeyUp(e: KeyboardEvent) {
   const dir = KEY_DIRS[e.key.toLowerCase()];
   if (dir) pressed.delete(dir);
 }
 
 // Boucle Ticker : translate la caméra tant qu'une touche de pan est enfoncée.
 // La direction suit la vue (flèche droite → on découvre la droite de la grille).
-/** @param {import("pixi.js").Ticker} ticker */
-function keyPan(ticker) {
+function keyPan(ticker: Ticker) {
   if (pressed.size === 0) return;
   const d = KEY_PAN_SPEED * (ticker.deltaMS / 1000);
   let dx = 0;
@@ -382,11 +345,11 @@ function keyPan(ticker) {
 // choisi pour révéler le contenu vers lequel le pointeur tend (près du bord
 // droit → caméra vers la gauche).
 /**
- * @param {number} pos   position écran sur l'axe (px)
- * @param {number} size  taille écran de l'axe (px)
- * @returns {number} facteur dans [-1, 1]
+ * @param pos   position écran sur l'axe (px)
+ * @param size  taille écran de l'axe (px)
+ * @returns facteur dans [-1, 1]
  */
-function edgeVelocity(pos, size) {
+function edgeVelocity(pos: number, size: number): number {
   if (pos < EDGE_PAN_MARGIN) {
     return Math.min(1, (EDGE_PAN_MARGIN - pos) / EDGE_PAN_MARGIN);
   }
@@ -400,8 +363,7 @@ function edgeVelocity(pos, size) {
 // bande de bord, translate la caméra (px/s, indépendant du framerate via
 // deltaMS), puis réévalue la case sous le pointeur pour continuer le mot hors de
 // la vue courante. Le clamp caméra arrête l'auto-pan aux limites de la grille.
-/** @param {import("pixi.js").Ticker} ticker */
-function edgePan(ticker) {
+function edgePan(ticker: Ticker) {
   if (mode !== "trace") return;
   const { width, height } = getApp().screen;
   const vx = edgeVelocity(traceScreen.x, width);
@@ -425,10 +387,10 @@ function edgePan(ticker) {
 
 // --- Câblage ---------------------------------------------------------------
 
-/**
- * @param {{ onCommit: () => void, onReplay: () => void }} handlers
- */
-export function attachInputHandlers(handlers) {
+export function attachInputHandlers(handlers: {
+  onCommit: () => void;
+  onReplay: () => void;
+}) {
   onCommit = handlers.onCommit;
   const stage = getStage();
   const app = getApp();
@@ -437,16 +399,20 @@ export function attachInputHandlers(handlers) {
   // globalpointermove : suit le pointeur sur tout l'écran, y compris hors de
   // toute case (le hit-test filtre), sans capture implicite à gérer.
   stage.on("globalpointermove", onPointerMove);
-  stage.on("pointerup", (e) => onPointerEnd(e, true));
+  stage.on("pointerup", (e: FederatedPointerEvent) => onPointerEnd(e, true));
   // Relâchement hors hitArea (bord de fenêtre) : traité comme un pointerup.
-  stage.on("pointerupoutside", (e) => onPointerEnd(e, true));
-  stage.on("pointercancel", (e) => onPointerEnd(e, false));
+  stage.on("pointerupoutside", (e: FederatedPointerEvent) =>
+    onPointerEnd(e, true),
+  );
+  stage.on("pointercancel", (e: FederatedPointerEvent) =>
+    onPointerEnd(e, false),
+  );
 
   // Neutralise le menu contextuel et le drag natif du canvas (clic droit,
   // glisser d'image) qui parasiteraient pan et tracé.
   const canvas = app.canvas;
-  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-  canvas.addEventListener("dragstart", (e) => e.preventDefault());
+  canvas.addEventListener("contextmenu", (e: Event) => e.preventDefault());
+  canvas.addEventListener("dragstart", (e: Event) => e.preventDefault());
 
   // Pan clavier.
   window.addEventListener("keydown", onKeyDown);
