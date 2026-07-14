@@ -38,24 +38,39 @@
   letter-spacing: 2.5px;
 }
 
+/* Icône nue (cf. src/render/icons.ts), comme la flèche du retour et le « i » de
+   la règle : aucun cadre ne double la croix. Estompée au repos — fermer n'est
+   pas l'action du panneau, juste sa sortie.
+
+   Le padding n'est là que pour la cible du doigt ; la marge négative le reprend,
+   pour que la croix s'aligne quand même sur le bord du panneau et n'étire pas
+   la ligne de titre. */
 .diff-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: 10px;
+  margin: -10px;
   background: none;
-  border: 1.5px solid var(--ink);
-  /* Le bouton ne contient qu'une icône (src/render/icons.ts), qui tient 1em de
-     côté : sa taille se règle donc ici, par le font-size. */
-  font-size: 16px;
-  color: var(--ink);
+  border: none;
+  /* Le bouton ne contient qu'une icône, qui tient 1em de côté : sa taille se
+     règle donc ici, par le font-size. */
+  font-size: 18px;
+  color: var(--muted);
   cursor: pointer;
 }
 
-.diff-close:hover {
-  background: var(--card-hover);
+/* Vermillon au pointeur, comme toutes les icônes nues. Le survol est réservé à
+   la souris : au doigt, le navigateur simule un :hover au tap et le laisse
+   collé. L'appui (:active), lui, se relâche partout. */
+@media (hover: hover) {
+  .diff-close:hover {
+    color: var(--vermilion);
+  }
+}
+
+.diff-close:active {
+  color: var(--vermilion);
 }
 
 /* Corps du panneau : une phrase serif, et la bande « specs » en mono sous un
@@ -112,9 +127,7 @@
     }
   }
   .diff-close {
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
+    font-size: 20px;
   }
   .panel-line {
     font-size: 14.5px;
