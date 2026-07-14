@@ -38,7 +38,13 @@ body.map-open .win {
   display: flex;
   align-items: center;
   gap: 28px;
-  padding: 18px 32px;
+  /* Le cadre de l'application (--edge, src/theme/base.css) : haut, gauche et
+     droite au même retrait — celui du header de partie, qui prend la relève dès
+     qu'on lance un niveau. Seul le retrait bas est libre : il ne sépare pas du
+     bord de l'écran, il tient la première section à distance. */
+  padding: max(var(--edge), env(safe-area-inset-top))
+    max(var(--edge), env(safe-area-inset-right)) 18px
+    max(var(--edge), env(safe-area-inset-left));
 }
 
 /* Pousse le compteur à droite sans marge auto (le gap resterait appliqué). */
@@ -172,7 +178,8 @@ body.map-open .win {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 32px;
+  padding: 0 max(var(--edge), env(safe-area-inset-right)) 0
+    max(var(--edge), env(safe-area-inset-left));
 }
 
 /* La respiration entre sections vit ici, et nulle part ailleurs : un gap ne
@@ -556,7 +563,12 @@ body.map-open .win {
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px 26px;
-  padding: 0 32px 28px;
+  /* Le pied de la carte : gauche, bas et droite au même retrait que la tête —
+     c'est lui qui tient la barre home à distance. Son retrait haut est nul, le
+     brouillard occupe déjà l'espace au-dessus. */
+  padding: 0 max(var(--edge), env(safe-area-inset-right))
+    max(var(--edge), env(safe-area-inset-bottom))
+    max(var(--edge), env(safe-area-inset-left));
   font-family: var(--mono);
   font-size: 10.5px;
   letter-spacing: 1px;
@@ -598,10 +610,12 @@ body.map-open .win {
 /* --- Carte : mobile --- */
 
 @media (max-width: 640px) {
+  /* Les trois bords du cadre suivent --edge, qui s'est déjà resserré à 860px :
+     seul le retrait bas, qui n'appartient qu'à ce bloc, se surcharge ici. */
   .map-header {
     flex-wrap: wrap;
     gap: 12px;
-    padding: 16px 16px 12px;
+    padding-bottom: 12px;
   }
   /* La marque partie, le header tient sur une ligne : les onglets à gauche, le
      compteur à droite. Plus rien à réordonner. */
@@ -629,7 +643,6 @@ body.map-open .win {
 
   .map-body {
     align-items: stretch;
-    padding: 0 16px;
   }
 
   .map-sections {
@@ -725,7 +738,6 @@ body.map-open .win {
 
   .map-legend {
     gap: 10px 18px;
-    padding: 0 16px 24px;
     font-size: 9.5px;
     letter-spacing: 0.5px;
   }

@@ -1,6 +1,37 @@
 /* Socle : reset, page, boot. Les tokens (couleurs, polices) sont importés par
    style.css avant cette feuille. */
 
+/* --edge : LA marge de l'application. Une seule valeur, tous écrans, tous bords.
+   Elle vit ici et pas dans tokens.css, qui est généré depuis src/theme/tokens.ts
+   pour ce que Pixi partage avec le DOM (couleurs, polices) : un espacement n'a
+   rien à y faire.
+
+   Ce que la règle veut dire, concrètement :
+   — un en-tête a le MÊME retrait en haut, à gauche et à droite (son retrait bas
+     ne regarde que son contenu, il est libre) ;
+   — un pied a le même à gauche, en bas et à droite (son retrait haut est libre) ;
+   — et les deux valent --edge. Le header de la carte, celui de la partie, le
+     zoom et le registre se posent donc sur le même cadre : rien ne bouge quand
+     on passe de la carte au jeu.
+
+   Chaque bord s'écrit `max(var(--edge), env(safe-area-inset-*))` : la marge est
+   un plancher, l'encoche ou la barre home peut la pousser, jamais la réduire. */
+:root {
+  --edge: 24px;
+  /* Hauteur du header de partie : la marge haute, la flèche (24px — l'item le
+     plus haut), son retrait bas (src/render/header.css). Le registre s'y
+     accroche au lieu de la deviner ; ce calc et le padding du header doivent
+     bouger ensemble. */
+  --header-h: calc(var(--edge) + 24px + 20px);
+}
+
+@media (max-width: 860px) {
+  :root {
+    --edge: 14px;
+    --header-h: calc(var(--edge) + 22px + 18px);
+  }
+}
+
 * {
   box-sizing: border-box;
 }

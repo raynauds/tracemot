@@ -7,8 +7,11 @@
    seuls les boutons les interceptent. */
 .zoom-controls {
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  /* Le cadre de l'application (--edge, src/theme/base.css) : le zoom est au pied
+     de l'écran ce que le header est à sa tête — même retrait des trois bords
+     qu'il touche. */
+  right: max(var(--edge), env(safe-area-inset-right));
+  bottom: max(var(--edge), env(safe-area-inset-bottom));
   z-index: 15;
   pointer-events: none;
   display: flex;
@@ -87,6 +90,6 @@
   /* Zoom déplacé à gauche : la pastille registre occupe le coin bas-droit. */
   .zoom-controls {
     right: auto;
-    left: max(14px, env(safe-area-inset-left));
+    left: max(var(--edge), env(safe-area-inset-left));
   }
 }

@@ -3,16 +3,20 @@
 
 
 /* Ancré au bord droit, sous le header. Interactif (pointer-events: auto) :
-   la barre d'en-tête plie/déplie, la liste scrolle si besoin. */
+   la barre d'en-tête plie/déplie, la liste scrolle si besoin.
+
+   Aucun nombre en dur : il se pose sous le header (--header-h) et partage le
+   cadre de l'application (--edge) — sans quoi les deux bords droits se
+   rateraient de quelques pixels. Il s'arrête à la même marge en bas. */
 .ledger {
   position: fixed;
-  top: 96px;
-  right: max(20px, env(safe-area-inset-right));
+  top: calc(var(--header-h) + var(--edge));
+  right: max(var(--edge), env(safe-area-inset-right));
   /* Au-dessus des boutons zoom (15) : déplié, l'encart couvre le bouton « fit »
      au lieu de le laisser dépasser. */
   z-index: 16;
   width: 300px;
-  max-height: calc(100vh - 120px);
+  max-height: calc(100vh - var(--header-h) - var(--edge) * 2);
   display: flex;
   flex-direction: column;
   background: var(--card);
@@ -213,16 +217,18 @@
 @media (max-width: 860px) {
   /* Registre : pastille compacte ancrée en bas à droite ; dépliée en tiroir
      depuis le bas (scrollable). Repliée par défaut (src/render/render.ts). */
+  /* La pastille descend au coin bas-droit : même marge que le zoom, qui est à sa
+     gauche sur la même ligne — leurs socles s'alignent. */
   .ledger {
     top: auto;
-    bottom: max(14px, env(safe-area-inset-bottom));
-    right: max(14px, env(safe-area-inset-right));
+    bottom: max(var(--edge), env(safe-area-inset-bottom));
+    right: max(var(--edge), env(safe-area-inset-right));
     width: auto;
-    max-width: calc(100vw - 28px);
+    max-width: calc(100vw - var(--edge) * 2);
     max-height: 60dvh;
   }
   .ledger:not(.collapsed) {
-    left: max(14px, env(safe-area-inset-left));
+    left: max(var(--edge), env(safe-area-inset-left));
   }
   .ledger-head {
     padding: 11px 14px;

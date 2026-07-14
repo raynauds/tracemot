@@ -23,8 +23,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 24px max(24px, env(safe-area-inset-right)) 20px
-    max(24px, env(safe-area-inset-left));
+  /* Gouttière commune au registre et au zoom (--edge, src/theme/base.css) : les
+     trois se posent sur le même bord droit. Le retrait bas, lui, n'appartient
+     qu'au header — mais --header-h le rejoue pour poser le registre dessous. */
+  padding: max(var(--edge), env(safe-area-inset-top))
+    max(var(--edge), env(safe-area-inset-right)) 20px
+    max(var(--edge), env(safe-area-inset-left));
   background: linear-gradient(
     var(--paper) 55%,
     rgba(246, 241, 231, 0)
@@ -86,9 +90,9 @@
 /* --- Mobile (maquette 390x844) --- */
 
 @media (max-width: 860px) {
+  /* Les trois autres bords suivent --edge, qui se resserre au même seuil. */
   .header {
-    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
-      18px max(14px, env(safe-area-inset-left));
+    padding-bottom: 18px;
   }
   .header-left {
     gap: 10px;
