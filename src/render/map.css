@@ -177,13 +177,6 @@ body.map-open .win {
   padding: 30px 32px 0;
 }
 
-.map-hint {
-  margin: 0;
-  font-size: 14px;
-  font-style: italic;
-  color: var(--map-hint);
-}
-
 .map-sections {
   display: flex;
   flex-direction: column;
@@ -365,11 +358,22 @@ body.map-open .win {
 /* Deux nœuds, un seul affiché : carte à droite de SA ligne (desktop), bandeau
    sous SA ligne (mobile). La bascule est ici, pas en JS. */
 .map-defi {
+  position: relative; /* ancre la coche du validé */
   box-sizing: border-box;
   background: transparent;
   border: 1.5px solid transparent;
   font-family: var(--serif);
   text-align: left;
+}
+
+/* La coche du défi gagné, au coin bas-droit — exactement celle des cases
+   validées (.map-cell-mark), au même endroit et au même corps. */
+.map-defi-check {
+  position: absolute;
+  right: 5px;
+  bottom: 3px;
+  font-size: 13px;
+  color: var(--vermilion);
 }
 
 /* La carte tient sur la hauteur d'une ligne : couchée, pas carrée. Le contenu
@@ -505,11 +509,7 @@ body.map-open .win {
   color: var(--map-count);
 }
 
-/* Seule la mention « PRÊT À JOUER » est vermillon : c'est un appel à l'action. */
-.map-defi.is-active .map-defi-caption {
-  color: var(--vermilion);
-}
-
+/* Une seule légende subsiste, celle du défi verrouillé : ce qu'il lui manque. */
 .map-defi.is-disabled .map-defi-caption {
   color: var(--ghost);
 }
@@ -637,10 +637,6 @@ body.map-open .win {
     align-items: stretch;
     gap: 4px;
     padding: 16px 16px 0;
-  }
-  .map-hint {
-    font-size: 13px;
-    line-height: 1.5;
   }
 
   .map-milestone {

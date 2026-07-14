@@ -31,7 +31,6 @@ export const COLORS = {
   "map-rule": "#c6bca6", // filet de la carte
   "map-dash": "#c1b7a2", // pointillé du verrouillé
   "map-count": "#8a806c", // chiffre secondaire
-  "map-hint": "#4a4438", // accroche
 } as const;
 
 export type ColorName = keyof typeof COLORS;

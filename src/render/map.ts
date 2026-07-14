@@ -35,7 +35,6 @@ import {
 import { checkIcon, starIcon } from "./icons.ts";
 import {
   cellState,
-  isFirstLaunch,
   isModeSeen,
   isModeUnlocked,
   loadLastMode,
@@ -51,13 +50,9 @@ import {
 } from "../game/progress.ts";
 
 const SECTIONS: Section[] = [1, 2, 3, 4];
-// Étoiles d'une section : trois défis, donc trois glyphes, pleins ou creux.
+// Étoiles d'une section : trois défis, donc trois icônes, pleines ou creuses.
 const SECTION_STARS = 3;
 
-const HINT = "Choisissez un niveau. Chaque défi validé rapporte une étoile.";
-const HINT_FIRST =
-  "Tracez tous les mots de la grille pour valider le niveau et révéler la " +
-  "suite.";
 
 // Onglet affiché. Initialisé au dernier mode consulté, puis piloté par les
 // clics ; c'est le seul état que la carte porte.
@@ -259,21 +254,24 @@ function buildCell(id: LevelId, n: number, state: CellState): HTMLElement {
   return cell;
 }
 
-// Sous-titre du défi : dérivé de defiMode (« 10×10 · 20 MOTS DE 5 LETTRES »),
-// jamais écrit en dur — la série N×N doit rester paramétrable par config.ts.
-function defiSub(modeId: ModeId, short: boolean): string {
+// Sous-titre du défi : dérivé de defiMode (« 10×10 · 20 MOTS »), jamais écrit en
+// dur — la série N×N doit rester paramétrable par config.ts.
+//
+// Verrouillé, le format s'annonce en entier (« … DE 5 LETTRES ») : c'est une
+// promesse, elle a le droit de se vendre. Une fois le défi à portée, la longueur
+// des mots ne décide plus rien — la grille, elle, le dira.
+function defiSub(modeId: ModeId, locked: boolean): string {
   const m = defiMode(GAME_MODES[modeId]);
-  const shape = `${m.rows}×${m.cols}`;
-  return short
-    ? `${shape} · ${m.wordCount} MOTS`
-    : `${shape} · ${m.wordCount} MOTS DE ${m.wordLength} LETTRES`;
+  const sub = `${m.rows}×${m.cols} · ${m.wordCount} MOTS`;
+  return locked ? `${sub} DE ${m.wordLength} LETTRES` : sub;
 }
 
-// Validé : aucune légende — l'étoile pleine devant « DÉFI » le dit déjà, et le
-// répéter en toutes lettres n'ajoute rien.
+// Seul le défi verrouillé a une légende — elle dit ce qui lui manque. Ouvert ou
+// gagné, il n'en a pas : le relief du bouton dit déjà qu'on peut le lancer, et
+// l'étoile pleine qu'il est gagné. Le répéter en toutes lettres n'ajoute rien.
 const DEFI_CAPTION: Record<Exclude<CellState, "hidden">, string | null> = {
   validated: null,
-  active: "PRÊT À JOUER",
+  active: null,
   disabled: "TERMINEZ LA LIGNE",
 };
 
@@ -304,14 +302,20 @@ function buildDefi(
   defi.appendChild(mark);
   defi.appendChild(el("span", "map-defi-title", "DÉFI"));
   const texts = el("span", "map-defi-texts");
-  // Validé, le sous-titre passe en version courte : la case a déjà dit ce
-  // qu'elle valait, elle n'a plus à se vendre.
   texts.appendChild(
-    el("span", "map-defi-sub", defiSub(modeId, state === "validated")),
+    el("span", "map-defi-sub", defiSub(modeId, state === "disabled")),
   );
   const caption = DEFI_CAPTION[state];
   if (caption) texts.appendChild(el("span", "map-defi-caption", caption));
   defi.appendChild(texts);
+
+  // Validé, le défi prend la coche des cases, au même coin : deux niveaux gagnés
+  // se reconnaissent au même signe, où que la carte les pose.
+  if (state === "validated") {
+    const check = checkIcon();
+    check.classList.add("map-defi-check");
+    defi.appendChild(check);
+  }
 
   // Trois défis par section, tous de la même difficulté : la clé A/B/C est ce
   // qui les distingue à l'oreille d'un lecteur d'écran.
@@ -455,8 +459,10 @@ export function renderMap(modeId: ModeId): void {
   mapEl.textContent = "";
   mapEl.appendChild(buildHeader(p));
 
+  // Aucune accroche, pas même au premier lancement : la carte se lit d'elle-même
+  // (une case, un numéro, une étoile), et ce que l'étoile vaut est dit par le
+  // panneau du compteur. Elle ne s'explique pas, elle se montre.
   const body = el("div", "map-body");
-  body.appendChild(el("p", "map-hint", isFirstLaunch() ? HINT_FIRST : HINT));
   const sections = el("div", "map-sections");
   // Les seuils d'étoiles étant croissants, les sections débloquées forment un
   // préfixe : la première verrouillée rencontrée clôt la carte. On ne l'annonce
