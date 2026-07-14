@@ -21,7 +21,7 @@
 @import "./src/theme/tokens.css";
 
 /* Socle : reset, page, boot. */
-@import "./src/styles/base.css";
+@import "./src/theme/base.css";
 
 /* Chrome de partie (src/render/render.ts, scene.ts). */
 @import "./src/render/header.css";
