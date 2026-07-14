@@ -271,20 +271,6 @@ export function starRewardAt(modeId: ModeId, star: number): string | null {
   return section ? DIFFICULTY_LABELS[section].name : null;
 }
 
-// Prochain palier atteignable, pour le rappel du header (« Prochaine étoile :
-// Corsé »). null quand plus rien n'est à débloquer : le compteur d'étoiles se
-// suffit alors à lui-même.
-export function nextStarReward(
-  modeId: ModeId,
-  p: ModeProgress,
-): { stars: number; label: string } | null {
-  for (let star = starCount(p) + 1; star <= MAX_STARS; star++) {
-    const label = starRewardAt(modeId, star);
-    if (label) return { stars: star, label };
-  }
-  return null;
-}
-
 // --- Persistance (localStorage, tolérante aux échecs) -----------------------
 
 function readList(key: string): string[] {

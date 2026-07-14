@@ -130,19 +130,6 @@ body.map-open .win {
   color: var(--vermilion);
 }
 
-/* Séparé par un filet plutôt que par un simple blanc : sans lui, le libellé se
-   lirait comme la suite du compteur. Il peut se passer de nous (aucun palier
-   restant ⇒ le nœud n'est pas rendu). */
-.map-stars-next {
-  margin-left: 5px;
-  padding-left: 12px;
-  border-left: 1px solid var(--map-rule);
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  color: var(--map-count);
-  white-space: nowrap;
-}
-
 /* --- Corps : accroche, sections, brouillard --- */
 
 /* `position: relative` : le brouillard est un absolu ancré sur ce bloc. */
@@ -316,9 +303,9 @@ body.map-open .win {
   line-height: 1;
 }
 
+/* Même police, même corps que les cases allumées : seuls la graisse et la
+   couleur disent qu'elle n'est pas encore atteignable. */
 .map-cell.is-disabled .map-cell-num {
-  font-family: var(--mono);
-  font-size: 12px;
   font-weight: 400;
   color: var(--ghost);
 }
@@ -506,23 +493,12 @@ body.map-open .win {
   bottom: 0;
   height: 190px;
   pointer-events: none;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 26px;
   background: linear-gradient(
     to bottom,
     rgba(239, 233, 218, 0) 0%,
     rgba(239, 233, 218, 0.9) 55%,
     var(--map-paper) 100%
   );
-}
-
-.map-fog-text {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--ghost);
 }
 
 /* --- Légende --- */
@@ -603,11 +579,6 @@ body.map-open .win {
   .map-stars-icon {
     font-size: 12px;
   }
-  /* Le prochain palier disparaît : sur une ligne partagée avec la marque, il
-     pousserait le compteur — qui, lui, ne se négocie pas. */
-  .map-stars-next {
-    display: none;
-  }
   .map-tabs {
     order: 3;
     flex-basis: 100%;
@@ -662,15 +633,10 @@ body.map-open .win {
   /* La grille prend toute la largeur : les cases se répartissent. */
   .map-grid {
     grid-template-columns: repeat(5, 1fr);
-    grid-auto-rows: 53px;
-    gap: 6px;
     flex: 1;
   }
   .map-cell-num {
     font-size: 17px;
-  }
-  .map-cell.is-disabled .map-cell-num {
-    font-size: 11px;
   }
   .map-cell-mark {
     font-size: 11px;
@@ -724,11 +690,6 @@ body.map-open .win {
   }
   .map-fog {
     height: 150px;
-    padding-bottom: 20px;
-  }
-  .map-fog-text {
-    font-size: 9.5px;
-    letter-spacing: 1.5px;
   }
 
   .map-legend {

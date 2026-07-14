@@ -59,7 +59,6 @@ const {
   hasActiveDefi,
   sectionTeased,
   isModeTeased,
-  nextStarReward,
   nextChoices,
   starRewardAt,
   MAX_STARS,
@@ -370,21 +369,6 @@ const ids = (s, ns) => ns.map((n) => `${s}-${n}`);
   checkCell(p4, "4-1", "active", tag);
   checkCell(p4, "4-2", "disabled", tag);
 
-  // Prochain palier affiché dans le header, mode par mode.
-  const p0 = makeProgress([]);
-  const p1 = makeProgress([...ids(1, range(1, 5)), "1-A"]);
-  const p2 = makeProgress([...ids(1, range(1, 10)), "1-A", "1-B"]);
-  checkEqual(nextStarReward("5x5", p0), { stars: 1, label: "Équilibré" }, `${tag} : 5x5, 0★`);
-  checkEqual(nextStarReward("5x5", p1), { stars: 2, label: "Relevé" }, `${tag} : 5x5, 1★`);
-  checkEqual(nextStarReward("5x5", p2), { stars: 3, label: "Mode 6×6" }, `${tag} : 5x5, 2★`);
-  checkEqual(nextStarReward("5x5", p3), { stars: 4, label: "Corsé" }, `${tag} : 5x5, 3★`);
-  check(nextStarReward("5x5", p4) === null, `${tag} : 5x5, 4★ ⇒ plus aucun palier`);
-  checkEqual(nextStarReward("7x7", p2), { stars: 3, label: "Mode 8×8" }, `${tag} : 7x7, 2★`);
-  // 8×8 : pas de mode suivant ⇒ le palier 3 est SAUTÉ, pas affiché vide.
-  checkEqual(nextStarReward("8x8", p2), { stars: 4, label: "Corsé" }, `${tag} : 8x8, 2★`);
-  checkEqual(nextStarReward("8x8", p3), { stars: 4, label: "Corsé" }, `${tag} : 8x8, 3★`);
-  check(nextStarReward("8x8", p4) === null, `${tag} : 8x8, 4★ ⇒ plus aucun palier`);
-
   // Récompense d'une étoile donnée : sert à l'écran de victoire d'un défi.
   check(starRewardAt("5x5", 1) === "Équilibré", `${tag} : 5x5 étoile 1`);
   check(starRewardAt("5x5", 2) === "Relevé", `${tag} : 5x5 étoile 2`);
@@ -548,8 +532,6 @@ const REFERENCE_COUNT = 27;
   check(starsMissingForSection(p, 4) === 1, `${tag} : « ★ Encore 1 étoile »`);
   checkCells(p, "hidden", ["4-1", "4-2", "4-15", "4-C"], tag);
 
-  // Le prochain palier annoncé dans le header à cet instant précis.
-  checkEqual(nextStarReward("5x5", p), { stars: 4, label: "Corsé" }, `${tag} : prochain palier`);
   check(sectionTeased(p, 4), `${tag} : section 4 teasée (2-A jouable donne la 4e ★)`);
   console.log("État de référence (dérivation) : OK");
 }

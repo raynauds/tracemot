@@ -33,7 +33,6 @@ import {
   levelId,
 } from "../game/levels.ts";
 import {
-  MAX_STARS,
   cellState,
   isFirstLaunch,
   isModeSeen,
@@ -41,7 +40,6 @@ import {
   loadLastMode,
   loadProgress,
   markModeSeen,
-  nextStarReward,
   saveLastMode,
   sectionStats,
   starCount,
@@ -146,35 +144,27 @@ function buildTabs(): HTMLElement {
 }
 
 // Compteur d'étoiles du mode AFFICHÉ (et non de la progression globale) : la
-// carte parle du mode qu'on regarde. Le rappel du prochain palier donne à la
-// monnaie sa raison d'être — sans lui, « 3 / 12 » n'achète rien de visible.
-function buildStars(modeId: ModeId, p: ModeProgress): HTMLElement {
+// carte parle du mode qu'on regarde. À zéro étoile, le compteur ne dit rien
+// qu'on ne sache déjà : on le tait.
+function buildStars(p: ModeProgress): HTMLElement | null {
   const stars = starCount(p);
+  if (stars === 0) return null;
   const box = el("div", "map-stars");
-  box.setAttribute("aria-label", `${stars} étoiles sur ${MAX_STARS}`);
-  box.appendChild(
-    el("span", "map-stars-count", `${stars} / ${MAX_STARS}`),
-  );
+  box.setAttribute("aria-label", `${stars} ${stars > 1 ? "étoiles" : "étoile"}`);
+  box.appendChild(el("span", "map-stars-count", String(stars)));
   const icon = el("span", "map-stars-icon", "★");
   icon.setAttribute("aria-hidden", "true");
   box.appendChild(icon);
-  // Aucun palier restant (mode terminé, ou 8×8 dont la 3e étoile n'ouvre aucun
-  // mode suivant) : on n'affiche pas une promesse vide.
-  const next = nextStarReward(modeId, p);
-  if (next) {
-    box.appendChild(
-      el("span", "map-stars-next", `Prochaine étoile : ${next.label}`),
-    );
-  }
   return box;
 }
 
-function buildHeader(modeId: ModeId, p: ModeProgress): HTMLElement {
+function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
   head.appendChild(el("div", "map-brand", "Tracemot"));
   head.appendChild(buildTabs());
   head.appendChild(el("div", "map-spring"));
-  head.appendChild(buildStars(modeId, p));
+  const stars = buildStars(p);
+  if (stars) head.appendChild(stars);
   return head;
 }
 
@@ -224,8 +214,10 @@ function defiSub(modeId: ModeId, short: boolean): string {
     : `${shape} · ${m.wordCount} MOTS DE ${m.wordLength} LETTRES`;
 }
 
-const DEFI_CAPTION: Record<Exclude<CellState, "hidden">, string> = {
-  validated: "✓ VALIDÉ",
+// Validé : aucune légende — la coche qui remplace l'étoile devant « DÉFI » le
+// dit déjà, et le répéter en toutes lettres n'ajoute rien.
+const DEFI_CAPTION: Record<Exclude<CellState, "hidden">, string | null> = {
+  validated: null,
   active: "PRÊT À JOUER",
   disabled: "TERMINEZ LA LIGNE",
 };
@@ -261,7 +253,8 @@ function buildDefi(
   texts.appendChild(
     el("span", "map-defi-sub", defiSub(modeId, state === "validated")),
   );
-  texts.appendChild(el("span", "map-defi-caption", DEFI_CAPTION[state]));
+  const caption = DEFI_CAPTION[state];
+  if (caption) texts.appendChild(el("span", "map-defi-caption", caption));
   defi.appendChild(texts);
 
   // Trois défis par section, tous de la même difficulté : la clé A/B/C est ce
@@ -403,7 +396,7 @@ export function renderMap(modeId: ModeId): void {
   const p = loadProgress(modeId);
 
   mapEl.textContent = "";
-  mapEl.appendChild(buildHeader(modeId, p));
+  mapEl.appendChild(buildHeader(p));
 
   const body = el("div", "map-body");
   body.appendChild(
@@ -428,7 +421,6 @@ export function renderMap(modeId: ModeId): void {
   body.appendChild(el("div", "map-spacer"));
   const fog = el("div", "map-fog");
   fog.setAttribute("aria-hidden", "true");
-  fog.appendChild(el("span", "map-fog-text", "· · · LA CARTE CONTINUE · · ·"));
   body.appendChild(fog);
   mapEl.appendChild(body);
 
