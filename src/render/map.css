@@ -16,7 +16,7 @@
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  background: var(--map-paper);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--serif);
 }
@@ -529,9 +529,9 @@ body.map-open .win {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    rgba(239, 233, 218, 0) 0%,
-    rgba(239, 233, 218, 0.9) 55%,
-    var(--map-paper) 100%
+    rgba(246, 241, 231, 0) 0%,
+    rgba(246, 241, 231, 0.9) 55%,
+    var(--paper) 100%
   );
 }
 

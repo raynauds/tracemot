@@ -26,10 +26,8 @@ export const COLORS = {
   // Filets
   line: "#d8cfbc", // séparation interne, filet subordonné
 
-  // Carte de progression : un papier plus sourd que celui du jeu, pour que
-  // l'accueil et la partie ne se confondent jamais.
-  "map-paper": "#efe9da",
-  "map-validated": "#e6e8d6", // case résolue
+  // Carte de progression.
+  "map-validated": "#efe9da", // case résolue
   "map-rule": "#c6bca6", // filet de la carte
   "map-dash": "#c1b7a2", // pointillé du verrouillé
   "map-count": "#8a806c", // chiffre secondaire
