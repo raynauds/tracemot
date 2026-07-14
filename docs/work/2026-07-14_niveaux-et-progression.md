@@ -6,14 +6,15 @@ Le jeu libre actuel (choix d'un mode + difficulté → grille aléatoire) est re
 
 Série N×N : un mode = N mots de N lettres sur une grille N×N.
 
-| Mode | Puzzle | Boss |
-| --- | --- | --- |
-| 5×5 | 5 mots de 5 lettres | 10×10, 20 mots de 5 lettres |
-| 6×6 | 6 mots de 6 lettres | 12×12, 24 mots de 6 lettres |
-| 7×7 | 7 mots de 7 lettres | 14×14, 28 mots de 7 lettres |
-| 8×8 | 8 mots de 8 lettres | 16×16, 32 mots de 8 lettres |
+| Mode | Puzzle              | Boss                        |
+| ---- | ------------------- | --------------------------- |
+| 5×5  | 5 mots de 5 lettres | 10×10, 20 mots de 5 lettres |
+| 6×6  | 6 mots de 6 lettres | 12×12, 24 mots de 6 lettres |
+| 7×7  | 7 mots de 7 lettres | 14×14, 28 mots de 7 lettres |
+| 8×8  | 8 mots de 8 lettres | 16×16, 32 mots de 8 lettres |
 
 - Le boss d'un mode N×N est une grille 2N×2N contenant 4×N mots de N lettres.
+- « Boss » est le terme interne ; au joueur, il est présenté comme **« Défi »** (cf. rendu carte).
 - Les modes actuels `maxi` et `longs` disparaissent en tant que modes jouables : le 10×10 devient le format boss du 5×5, le 8×8 devient un mode de la série.
 - **Déblocage de mode** : le mode N+1 est débloqué dès qu'un boss quelconque du mode N est validé (1-25 ou 2-25 ou …). Au premier lancement, seul le 5×5 est accessible.
 
@@ -22,19 +23,21 @@ Série N×N : un mode = N mots de N lettres sur une grille N×N.
 4 sections × 25 niveaux = 100 niveaux. Une section = une difficulté, dans l'ordre des 4 premières difficultés existantes (« Brûlant » n'est pas utilisé) :
 
 | Section | Difficulté (quotas actuels) |
-| --- | --- |
-| 1-* | 1 · Doux |
-| 2-* | 2 · Équilibré |
-| 3-* | 3 · Relevé |
-| 4-* | 4 · Corsé |
+| ------- | --------------------------- |
+| 1-\*    | 1 · Doux                    |
+| 2-\*    | 2 · Équilibré               |
+| 3-\*    | 3 · Relevé                  |
+| 4-\*    | 4 · Corsé                   |
 
 Numérotation `s-n` : section `s` (1–4), niveau `n` (1–25). Les niveaux 1 à 24 sont des grilles normales du mode ; le niveau 25 est le boss. Le boss utilise les quotas de difficulté de sa section (le 1-25 est un 10×10 doux, le 2-25 un 10×10 équilibré, etc.).
 
 ### Disposition sur la carte
 
-- 24 niveaux normaux en 4 lignes × 6 colonnes, numérotés ligne par ligne : 1-1…1-6 / 1-7…1-12 / 1-13…1-18 / 1-19…1-24. Chaque case fait 1 unité de côté.
-- Le boss est une grande case d'environ 4×4 unités, collée à droite du bloc 4×6.
+- 24 niveaux normaux en 4 lignes × 6 colonnes, numérotés ligne par ligne : 1-1…1-6 / 1-7…1-12 / 1-13…1-18 / 1-19…1-24. Chaque case fait 1 unité de côté et affiche le numéro `n` seul (1–24), la section donnant le contexte.
+- Le boss (« Défi ») : en desktop, grande case d'environ 4×4 unités collée à droite du bloc 4×6 ; en mobile, bandeau pleine largeur sous la grille de la section. L'adjacence logique (colonne 6) est la même dans les deux dispositions.
 - Les sections sont empilées verticalement : la dernière ligne de la section `s` touche colonne à colonne la première ligne de la section `s+1` (1-19↔2-1, 1-20↔2-2, …, 1-24↔2-6).
+- **Carte continue, sans encadrés** : pas de cadre autour des sections. Chaque section est introduite par un jalon inline — séparateur horizontal portant le nom de la difficulté et un compteur de section (« 12 validés », « 25 ✓ » quand elle est complète, boss compris).
+- **Croissance additive** : seules les lignes contenant au moins une case visible sont rendues, sans espace réservé pour les lignes entièrement cachées. En bas de carte, une frange de brouillard (dégradé vers le fond + mention « · · · LA CARTE CONTINUE · · · ») suggère la suite.
 
 ### Adjacence
 
@@ -48,29 +51,33 @@ Purement géométrique sur la carte : haut / bas / gauche / droite.
 
 Trois informations dérivées, jamais stockées (seule la liste des niveaux validés est persistée) :
 
-| État | Règle | Rendu |
-| --- | --- | --- |
-| **Validée** | Le niveau figure dans la progression persistée. | Marquée réussie, cliquable (rejeu). |
-| **Active non validée** | Adjacente à une case validée, ou racine (1-1 d'un mode débloqué). | Cliquable, lance le niveau. |
-| **Visible désactivée** | Adjacente à une case active (validée ou non). | Grisée, non cliquable. |
-| **Cachée** | Tout le reste. | Absente de la carte. |
+| État                   | Règle                                                             | Rendu (légende joueur)                                                             |
+| ---------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Validée**            | Le niveau figure dans la progression persistée.                   | Fond vert pâle, coche ✓ vermillon, cliquable (rejeu). « VALIDÉ »                   |
+| **Active non validée** | Adjacente à une case validée, ou racine (1-1 d'un mode débloqué). | Fond blanc, bordure pleine + ombre portée, cliquable, lance le niveau. « JOUABLE » |
+| **Visible désactivée** | Adjacente à une case active (validée ou non).                     | Contour pointillé grisé, numéro estompé, non cliquable. « À DÉBLOQUER »            |
+| **Cachée**             | Tout le reste.                                                    | Absente de la carte.                                                               |
 
-Cas particulier du boss : **visible** dès qu'une de ses cases adjacentes est active, mais **actif** seulement quand les 24 niveaux normaux de sa section sont validés.
+Une légende en pied de carte reprend les trois états visibles (VALIDÉ / JOUABLE / À DÉBLOQUER).
 
-Le bloc d'une section (titre, cadre) apparaît dès qu'au moins une de ses cases est visible.
+Cas particulier du boss : **visible** dès qu'une de ses cases adjacentes est active, mais **actif** seulement quand les 24 niveaux normaux de sa section sont validés. La case affiche « DÉFI », le format (« 10×10 · 20 MOTS DE 5 LETTRES ») et une mention d'état : « TERMINEZ LES 24 NIVEAUX » (visible désactivé), « PRÊT À JOUER » (actif), « ✓ VALIDÉ » (validé).
+
+Le jalon d'une section (séparateur, titre, compteur) apparaît dès qu'au moins une de ses cases est visible.
 
 ### Déroulé attendu (exemples de référence)
 
 - **Premier lancement** : 1-1 active non validée ; 1-2 et 1-7 visibles désactivées ; le reste caché.
 - **Après 1-1** : 1-1 validée ; 1-2 et 1-7 actives ; 1-3, 1-8, 1-13 visibles désactivées.
 - **Après 1-1…1-6** : 1-1…1-6 validées ; 1-7…1-12 actives ; 1-13…1-18 visibles désactivées ; boss 1-25 visible désactivé (adjacent à 1-6 active, mais 24 niveaux non validés) ; le reste caché.
-- Dès qu'une case de la dernière ligne de 1-* est **active**, les cases correspondantes de 2-* deviennent visibles désactivées ; dès qu'elle est **validée**, la case 2-* en dessous devient active.
+- Dès qu'une case de la dernière ligne de 1-_ est **active**, les cases correspondantes de 2-_ deviennent visibles désactivées ; dès qu'elle est **validée**, la case 2-\* en dessous devient active.
 
 ## Écran de sélection
 
 En DOM (HTML/CSS), plein écran par-dessus le canvas, dans le style papier existant. Pixi reste dédié à la grille de jeu.
 
-- Onglets de mode en haut : les modes débloqués, plus le prochain mode grisé avec cadenas (les modes plus lointains sont cachés).
+- Header : titre « Tracemot », onglets de mode, et compteur « N VALIDÉS » (portée à trancher, cf. points ouverts).
+- Onglets de mode : les modes débloqués, plus le prochain mode grisé avec cadenas (les modes plus lointains sont cachés). Un mode débloqué mais jamais visité porte une pastille vermillon sur son onglet.
+- Sous le header, une ligne d'accroche en italique : « Choisissez un niveau. Chaque grille validée révèle la suite de la carte. » ; au premier lancement : « Tracez tous les mots de la grille pour valider le niveau et révéler la suite. »
 - Sous l'onglet actif : les sections visibles, empilées, avec leur nom de difficulté (« Doux », « Équilibré », …).
 - Cliquer une case active (validée ou non) lance le niveau.
 - C'est l'écran d'accueil de l'application. En partie, le header affiche l'identifiant du niveau (ex. « 5×5 · 1-12 ») et un bouton retour vers la carte.
@@ -78,7 +85,7 @@ En DOM (HTML/CSS), plein écran par-dessus le canvas, dans le style papier exist
 ## Partie
 
 - Lancer un niveau charge sa grille prédéfinie : aucune génération au runtime.
-- **Validation d'un tracé** : longueur requise, pas déjà trouvé, et le mot appartient à la **liste des mots du niveau** (plus de vérification contre le dictionnaire complet — les grilles sont pré-vérifiées sans tracé parasite, donc tout mot valide traçable est un mot de la solution). Nouveau motif de refus suggéré : « PAS UN MOT À TROUVER ».
+- **Validation d'un tracé** : longueur requise, pas déjà trouvé, et le mot appartient à la **liste des mots du niveau** (plus de vérification contre le dictionnaire complet — les grilles sont pré-vérifiées sans tracé parasite, donc tout mot valide traçable est un mot de la solution). Motif de refus : « INCORRECTE ».
 - Le dictionnaire complet n'est plus chargé au runtime (sauf en mode DEBUG pour le panneau des mots trouvables).
 - **Victoire** : le niveau est ajouté à la progression, l'écran de victoire propose le retour à la carte (où les nouvelles cases débloquées apparaissent).
 - **Rejeu** : un niveau validé est relançable librement (même grille) ; aucun impact sur la progression, pas de score ni de chrono enregistré pour l'instant.
@@ -121,7 +128,7 @@ tracemot.progress.5x5 = [
 soit 51 niveaux validés. États dérivés :
 
 - **Onglets** : 5×5 ouvert ; 6×6 débloqué (boss 1-25 validé) ; 7×7 grisé avec cadenas ; 8×8 caché.
-- **Section 1 · Doux** : tout validé, boss compris → *boss validé*.
+- **Section 1 · Doux** : tout validé, boss compris → _boss validé_.
 - **Section 2 · Équilibré** : 24 niveaux validés, boss 2-25 **actif non validé** (seul état boss jouable).
 - **Section 3 · Relevé** : mélange de tous les états normaux, boss **visible désactivé** (adjacent à 3-6 active, mais 24 normaux non validés) :
 
@@ -135,11 +142,7 @@ soit 51 niveaux validés. États dérivés :
 
   ✔ validé · ● actif non validé · ○ visible désactivé · « · » caché.
   (3-3…3-6 sont actives par adjacence à la dernière ligne de la section 2, entièrement validée ; 3-8 et 3-13 par adjacence à 3-2 et 3-7.)
+
 - **Section 4 · Corsé** : entièrement cachée (aucune case active en ligne 4 de la section 3), boss caché — la section n'apparaît pas du tout.
 
 L'écran couvre ainsi : les 4 états d'une case normale, les 4 états d'un boss (validé / actif / désactivé / caché), une section complète, une section en cours, une section invisible, et les 3 états d'onglet de mode.
-
-## Points ouverts
-
-- Wording exact des titres de sections et du motif de refus (suggestions ci-dessus à valider en design).
-- Animations de déblocage sur la carte (apparition des nouvelles cases) : hors périmètre de cette spec, à traiter au design de l'écran.
