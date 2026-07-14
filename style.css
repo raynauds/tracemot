@@ -312,9 +312,11 @@ body {
   color: var(--ghost);
 }
 
-/* Deux actions empilées : la carte d'abord (c'est là que la progression se
-   voit et que le niveau suivant se choisit), le rejeu ensuite — utile mais
-   marginal, donc en bouton fantôme. */
+/* Actions empilées dans l'ordre de ce que la victoire vient d'ouvrir : le
+   niveau suivant en tête (on enchaîne sans repasser par la carte), le défi
+   ensuite quand une fin de ligne l'a débloqué, la carte en dernier — toujours
+   offerte, mais ce n'est plus le passage obligé. Les deux premiers sont masqués
+   quand la victoire n'ouvre rien (src/render/render.ts). */
 .win-actions {
   display: flex;
   flex-direction: column;
@@ -324,7 +326,7 @@ body {
   margin-top: 18px;
 }
 
-.win-replay {
+.win-primary {
   height: 62px;
   background: var(--vermilion);
   color: var(--paper);
@@ -336,11 +338,33 @@ body {
   cursor: pointer;
 }
 
-.win-replay:hover {
+.win-primary:hover {
   filter: brightness(1.08);
 }
-.win-replay:active {
+.win-primary:active {
   filter: brightness(0.94);
+}
+
+/* Le défi : bouton fantôme, mais cerclé et lettré de vermillon — c'est la
+   nouveauté que la victoire vient d'ouvrir, et la seule case qui rapporte une
+   étoile. Il se distingue ainsi du retour carte sans voler la tête au suivant. */
+.win-defi {
+  height: 54px;
+  background: none;
+  color: var(--vermilion);
+  border: 1.5px solid var(--vermilion);
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+
+.win-defi:hover {
+  background: color-mix(in srgb, var(--vermilion) 14%, transparent);
+}
+.win-defi:active {
+  background: color-mix(in srgb, var(--vermilion) 22%, transparent);
 }
 
 .win-second {
@@ -813,11 +837,12 @@ body {
     font-size: 13px;
     letter-spacing: 2px;
   }
-  .win-replay {
+  .win-primary {
     height: 56px;
     font-size: 19px;
     letter-spacing: 3px;
   }
+  .win-defi,
   .win-second {
     height: 50px;
     font-size: 15px;
@@ -1169,8 +1194,10 @@ body.map-open .win {
 
 /* Le coût restant (« ★ Encore 1 étoile ») porte l'étoile : c'est la cible de la
    monnaie, on la garde lisible là où le nom s'efface. */
+/* Le prix se lit du même gris que le nom : un jalon verrouillé est UN bloc en
+   retrait, pas un nom estompé flanqué d'un compteur qui ressort. */
 .map-milestone.is-locked .map-milestone-count {
-  color: var(--map-hint);
+  color: var(--ghost);
 }
 
 /* Une section = un empilement de lignes ; une ligne = 5 cases + son défi. */

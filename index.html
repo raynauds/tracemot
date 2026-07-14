@@ -138,9 +138,10 @@
          niveaux). Rien à annoncer au boot : la carte s'affiche sans réseau. -->
     <div class="status" id="status" hidden></div>
 
-    <!-- Victoire : overlay plein écran au-dessus du canvas. Action principale =
-         retour à la carte (la progression y est visible) ; rejouer le même
-         niveau est l'action secondaire. -->
+    <!-- Victoire : overlay plein écran au-dessus du canvas. Les deux boutons de
+         tête sont peuplés à la volée (src/render/render.ts) avec ce que la
+         victoire vient d'ouvrir : le niveau suivant, et le défi quand une fin
+         de ligne l'a débloqué. Le retour à la carte reste toujours offert. -->
     <div class="win" id="win" hidden>
       <span class="confetti c1"></span>
       <span class="confetti c2 cream"></span>
@@ -158,10 +159,11 @@
         <span class="win-star-unlock" id="win-star-unlock" hidden></span>
       </div>
       <div class="win-actions">
-        <button type="button" class="win-replay" id="win-map">
+        <button type="button" class="win-primary" id="win-next" hidden></button>
+        <button type="button" class="win-defi" id="win-defi" hidden></button>
+        <button type="button" class="win-second" id="win-map">
           RETOUR À LA CARTE
         </button>
-        <button type="button" class="win-second" id="replay">REJOUER</button>
       </div>
     </div>
 

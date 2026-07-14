@@ -56,7 +56,11 @@ const {
   starCount,
   sectionUnlocked,
   starsMissingForSection,
+  hasActiveDefi,
+  sectionTeased,
+  isModeTeased,
   nextStarReward,
+  nextChoices,
   starRewardAt,
   MAX_STARS,
   STARS_FOR_SECTION,
@@ -393,6 +397,83 @@ const ids = (s, ns) => ns.map((n) => `${s}-${n}`);
   console.log("Barème des étoiles : OK");
 }
 
+// --- 6bis. Suites proposées à la victoire (écran de victoire) -----------------
+// nextChoices se lit sur la progression APRÈS la validation : on lui passe donc
+// des états qui CONTIENNENT le niveau gagné. Elle ne rend que ce que cette
+// victoire a ouvert — et, à défaut, le premier niveau jouable restant.
+{
+  const tag = "suites";
+  /** @param {string[]} done @param {string} won */
+  const after = (done, won) => nextChoices(makeProgress(done), won);
+
+  // Milieu de ligne : une seule suite, le normal suivant.
+  checkEqual(
+    after(["1-1"], "1-1"),
+    [{ id: "1-2", kind: "next" }],
+    `${tag} : 1-1 ⇒ 1-2`,
+  );
+
+  // Fin de ligne : DEUX suites, le normal puis le défi — dans cet ordre.
+  checkEqual(
+    after(ids(1, range(1, 5)), "1-5"),
+    [
+      { id: "1-6", kind: "next" },
+      { id: "1-A", kind: "defi" },
+    ],
+    `${tag} : 1-5 ⇒ 1-6 + défi 1-A`,
+  );
+  checkEqual(
+    after([...ids(1, range(1, 10)), "1-A"], "1-10"),
+    [
+      { id: "1-11", kind: "next" },
+      { id: "1-B", kind: "defi" },
+    ],
+    `${tag} : 1-10 ⇒ 1-11 + défi 1-B`,
+  );
+
+  // Dernier normal de la section : le défi C seul (il n'y a pas de 1-16).
+  checkEqual(
+    after([...ids(1, range(1, 15)), "1-A", "1-B"], "1-15"),
+    [{ id: "1-C", kind: "defi" }],
+    `${tag} : 1-15 ⇒ défi 1-C seul`,
+  );
+
+  // Un défi n'ouvre aucune case : repli sur le premier jouable restant. Après
+  // 1-A, c'est 1-6 — déjà ouvert par 1-5, et toujours pas joué.
+  checkEqual(
+    after([...ids(1, range(1, 5)), "1-A"], "1-A"),
+    [{ id: "1-6", kind: "continue" }],
+    `${tag} : défi 1-A ⇒ continuer en 1-6`,
+  );
+
+  // Le défi qui ferme une section : le repli traverse les sections (2-1, ouvert
+  // par l'étoile) plutôt que de renvoyer à la carte.
+  checkEqual(
+    after([...ids(1, range(1, 15)), "1-A", "1-B", "1-C"], "1-C"),
+    [{ id: "2-1", kind: "continue" }],
+    `${tag} : section 1 finie ⇒ continuer en 2-1`,
+  );
+
+  // Rejeu d'un niveau déjà validé : rien d'ouvert, on reprend là où ça bloque —
+  // ici 1-A, que l'ordre canonique place AVANT 1-6 (le défi ferme sa ligne). Le
+  // bouton l'annonce comme un défi (src/render/render.ts), pas comme un
+  // « continuer » anodin.
+  checkEqual(
+    after(ids(1, range(1, 5)), "1-2"),
+    [{ id: "1-A", kind: "continue" }],
+    `${tag} : rejeu de 1-2 ⇒ reprise au défi 1-A`,
+  );
+
+  // Section verrouillée : la case suivante existe mais n'est pas « active ».
+  // 1-15 gagné sans étoile ne peut proposer que le défi 1-C — jamais 2-1.
+  const noStar = after(ids(1, range(1, 15)), "1-15");
+  checkEqual(noStar, [{ id: "1-C", kind: "defi" }], `${tag} : sans étoile, pas de 2-1`);
+
+  // Mode entièrement validé : plus aucune suite, seul le retour carte subsiste.
+  checkEqual(after(allLevelIds(), "4-C"), [], `${tag} : mode complet ⇒ aucune suite`);
+  console.log("Suites proposées à la victoire : OK");
+}
+
 // --- 7. État de référence de la maquette (27 validés, 3 étoiles) --------------
 // Section 1 complète (3★), section 2 ligne 1 finie (défi 2-A jouable), section 3
 // à peine entamée (défi 3-A entrevu), section 4 verrouillée.
@@ -469,7 +550,62 @@ const REFERENCE_COUNT = 27;
 
   // Le prochain palier annoncé dans le header à cet instant précis.
   checkEqual(nextStarReward("5x5", p), { stars: 4, label: "Corsé" }, `${tag} : prochain palier`);
+  check(sectionTeased(p, 4), `${tag} : section 4 teasée (2-A jouable donne la 4e ★)`);
   console.log("État de référence (dérivation) : OK");
+}
+
+// --- 7 bis. Un verrou ne se montre qu'à UN DÉFI PRÈS -------------------------
+// Règle globale à tout ce qui coûte des étoiles (sections ET modes) : le verrou
+// n'apparaît que s'il manque exactement une étoile ET qu'un défi est jouable
+// tout de suite pour la donner. Le cas qui a motivé la règle : au premier
+// lancement, il manque bien 1 étoile pour la section 2 — mais aucun défi n'est
+// atteignable, et annoncer le prix à ce moment-là promettait sans donner le
+// moyen de tenir la promesse.
+{
+  const tag = "verrou à un défi près";
+
+  // Progression vide : 1 étoile manque pour la section 2, mais 1-A est HORS
+  // d'atteinte (il faut 1-5). Rien ne doit paraître.
+  const vide = makeProgress([]);
+  check(!hasActiveDefi(vide), `${tag} : aucun défi jouable au premier lancement`);
+  check(starsMissingForSection(vide, 2) === 1, `${tag} : il manque pourtant 1 ★ pour S2`);
+  check(!sectionTeased(vide, 2), `${tag} : S2 NE DOIT PAS être annoncée au départ`);
+
+  // 1-1…1-4 : le défi 1-A est visible (disabled) mais pas encore JOUABLE.
+  // Le verrou reste muet — « visible » ne suffit pas, il faut « jouable ».
+  const presque = makeProgress(ids(1, range(1, 4)));
+  checkCell(presque, "1-A", "disabled", tag);
+  check(!hasActiveDefi(presque), `${tag} : 1-A visible mais pas jouable`);
+  check(!sectionTeased(presque, 2), `${tag} : S2 encore muette après 1-1…1-4`);
+
+  // 1-1…1-5 : 1-A devient jouable. Le défi et l'annonce de ce qu'il ouvre
+  // apparaissent au MÊME instant.
+  const prete = makeProgress(ids(1, range(1, 5)));
+  checkCell(prete, "1-A", "active", tag);
+  check(hasActiveDefi(prete), `${tag} : 1-A jouable`);
+  check(sectionTeased(prete, 2), `${tag} : S2 annoncée en même temps que 1-A`);
+  check(!sectionTeased(prete, 3), `${tag} : S3 (2 ★) reste hors de portée d'un défi`);
+  check(!sectionTeased(prete, 4), `${tag} : S4 (4 ★) idem`);
+
+  // Section déjà ouverte : jamais teasée (elle n'est plus un verrou).
+  check(!sectionTeased(prete, 1), `${tag} : une section ouverte n'est pas un verrou`);
+
+  // 3 étoiles mais AUCUN défi jouable : la section 4 est à une étoile et reste
+  // pourtant muette — c'est bien la jouabilité du défi qui commande, pas le
+  // seul compte d'étoiles.
+  const troisSansDefi = makeProgress([...ids(1, range(1, 15)), "1-A", "1-B", "1-C"]);
+  check(starCount(troisSansDefi) === 3, `${tag} : 3 étoiles`);
+  check(starsMissingForSection(troisSansDefi, 4) === 1, `${tag} : 1 ★ manque pour S4`);
+  check(!hasActiveDefi(troisSansDefi), `${tag} : aucun défi jouable (S2/S3 vierges)`);
+  check(!sectionTeased(troisSansDefi, 4), `${tag} : S4 muette sans défi jouable`);
+
+  // Au plus UN verrou teasé à la fois : les seuils (1, 2, 3, 4) sont distincts
+  // et un défi vaut une étoile — le teasé est toujours celui à une étoile.
+  for (const p of [vide, presque, prete, troisSansDefi]) {
+    const teased = /** @type {const} */ ([1, 2, 3, 4]).filter((s) => sectionTeased(p, s));
+    check(teased.length <= 1, `${tag} : au plus un verrou de section teasé (${teased})`);
+  }
+  console.log("Verrou à un défi près (sections) : OK");
 }
 
 // --- 8. Persistance et déblocage des modes (via le stub localStorage) ---------
@@ -481,7 +617,11 @@ const REFERENCE_COUNT = 27;
   check(isModeUnlocked("5x5"), `${tag} : 5x5 toujours débloqué`);
   check(!isModeUnlocked("6x6"), `${tag} : 6x6 verrouillé au départ`);
   check(nextLockedMode() === "6x6", `${tag} : prochain verrouillé = 6x6`);
-  checkEqual(visibleModes(), ["5x5", "6x6"], `${tag} : modes visibles au départ`);
+  // Au premier lancement, l'onglet 6x6 n'est PAS montré : il coûte 3 étoiles et
+  // aucun défi n'est jouable. Même règle que pour les sections — un cadenas
+  // permanent est du bruit, un cadenas qui apparaît est un événement.
+  check(!isModeTeased("6x6"), `${tag} : 6x6 pas teasé au départ (0 ★, aucun défi jouable)`);
+  checkEqual(visibleModes(), ["5x5"], `${tag} : seul 5x5 au premier lancement`);
   check(loadLastMode() === "5x5", `${tag} : dernier mode par défaut = 5x5`);
   check(modeStars("5x5") === 0, `${tag} : 0 étoile au départ`);
 
@@ -502,29 +642,41 @@ const REFERENCE_COUNT = 27;
   check(!isModeUnlocked("7x7"), `${tag} : 7x7 verrouillé`);
   check(!isModeUnlocked("8x8"), `${tag} : 8x8 verrouillé`);
   check(nextLockedMode() === "7x7", `${tag} : prochain verrouillé = 7x7`);
-  checkEqual(visibleModes(), ["5x5", "6x6", "7x7"], `${tag} : 8x8 encore caché`);
+  // Le verrou du 7x7 est tenu par le 6x6, encore vierge : rien à annoncer.
+  check(!isModeTeased("7x7"), `${tag} : 7x7 pas teasé (6x6 vierge)`);
+  checkEqual(visibleModes(), ["5x5", "6x6"], `${tag} : 7x7 encore caché`);
 
-  // 2 étoiles en 6x6 ne suffisent pas : le seuil est bien 3.
+  // 2 étoiles en 6x6 ne suffisent pas : le seuil est bien 3. Et à cet instant
+  // AUCUN défi n'y est jouable (1-C exige 1-15) — donc pas de tease non plus.
   for (const id of [...ids(1, range(1, 10)), "1-A", "1-B"]) saveValidated("6x6", id);
   check(modeStars("6x6") === 2, `${tag} : 2 étoiles en 6x6`);
   check(!isModeUnlocked("7x7"), `${tag} : 7x7 verrouillé à 2 étoiles`);
-  saveValidated("6x6", "1-11");
-  saveValidated("6x6", "1-12");
-  saveValidated("6x6", "1-13");
-  saveValidated("6x6", "1-14");
-  saveValidated("6x6", "1-15");
+  check(!isModeTeased("7x7"), `${tag} : 7x7 muet — 2 ★ mais aucun défi jouable`);
+  checkEqual(visibleModes(), ["5x5", "6x6"], `${tag} : 7x7 toujours caché`);
+
+  // 1-15 validé ⇒ 1-C devient JOUABLE. Le 6x6 est alors à un défi de sa 3e
+  // étoile : l'onglet 7x7 apparaît, verrouillé, à cet instant précis.
+  for (const n of [11, 12, 13, 14, 15]) saveValidated("6x6", `1-${n}`);
+  check(modeStars("6x6") === 2, `${tag} : toujours 2 étoiles`);
+  check(hasActiveDefi(loadProgress("6x6")), `${tag} : 1-C jouable en 6x6`);
+  check(isModeTeased("7x7"), `${tag} : 7x7 teasé — 1-C ouvrirait le mode`);
+  checkEqual(visibleModes(), ["5x5", "6x6", "7x7"], `${tag} : 7x7 paraît (verrouillé)`);
+
   saveValidated("6x6", "1-C");
   check(modeStars("6x6") === 3, `${tag} : 3 étoiles en 6x6`);
   check(isModeUnlocked("7x7"), `${tag} : 7x7 débloqué`);
+  check(!isModeTeased("7x7"), `${tag} : un mode ouvert n'est plus teasé`);
   check(!isModeUnlocked("8x8"), `${tag} : 8x8 toujours verrouillé`);
-  checkEqual(visibleModes(), ["5x5", "6x6", "7x7", "8x8"], `${tag} : 8x8 devient visible`);
+  // Le 7x7 est vierge : le 8x8 reste caché tant qu'aucun défi 7x7 n'y mène.
+  check(!isModeTeased("8x8"), `${tag} : 8x8 pas teasé (7x7 vierge)`);
+  checkEqual(visibleModes(), ["5x5", "6x6", "7x7"], `${tag} : 8x8 encore caché`);
   check(nextLockedMode() === "8x8", `${tag} : prochain verrouillé = 8x8`);
 
   // La chaîne est vérifiée en entier : un maillon vidé referme tout l'aval.
   storage.removeItem("tracemot.progress.5x5");
   check(!isModeUnlocked("6x6"), `${tag} : 5x5 vidé ⇒ 6x6 refermé`);
   check(!isModeUnlocked("7x7"), `${tag} : 5x5 vidé ⇒ 7x7 refermé malgré ses 3★ en 6x6`);
-  checkEqual(visibleModes(), ["5x5", "6x6"], `${tag} : visibleModes reste un préfixe`);
+  checkEqual(visibleModes(), ["5x5"], `${tag} : visibleModes reste un préfixe`);
   for (const id of REFERENCE) saveValidated("5x5", id); // on remet l'état
 
   // Dernier mode consulté et pastille « jamais visité ».

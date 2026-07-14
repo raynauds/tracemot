@@ -27,11 +27,15 @@ import {
   NORMALS_PER_SECTION,
   ROWS_PER_SECTION,
   ROW_LENGTH,
+  allLevelIds,
   defiId,
   defiKeyOf,
+  defiOfRow,
+  isDefi,
   lastNormalOfRow,
   levelId,
   levelNumber,
+  rowOf,
   rowOfDefi,
   sectionOf,
   type LevelId,
@@ -90,6 +94,36 @@ export function starsMissingForSection(p: ModeProgress, s: Section): number {
   return Math.max(0, STARS_FOR_SECTION[s] - starCount(p));
 }
 
+// --- Ce qu'on donne à VOIR d'un verrou ---------------------------------------
+//
+// Un verrou (section, mode) n'est montré au joueur que lorsqu'il est À UN DÉFI
+// PRÈS : il lui manque exactement une étoile, ET un défi est jouable tout de
+// suite pour la lui donner. Sinon le verrou est absent — pas de jalon, pas
+// d'onglet.
+//
+// POURQUOI : au premier lancement, il manque une étoile pour la section 2, mais
+// aucun défi n'est encore atteignable (1-A demande 1-5). Annoncer « Encore 1
+// étoile » à ce moment-là, c'est promettre avant de donner le moyen de tenir la
+// promesse. Avec cette règle, le premier défi et l'annonce de ce qu'il ouvre
+// apparaissent ENSEMBLE, au même instant : la carotte et le bâton d'un bloc.
+//
+// Conséquence utile : les seuils (1, 2, 3, 4) étant distincts et une étoile
+// valant un défi, il y a toujours AU PLUS UN verrou teasé à la fois, et il est
+// toujours à une étoile — d'où le libellé fixe « ★ Encore 1 étoile ».
+
+export function hasActiveDefi(p: ModeProgress): boolean {
+  for (const s of SECTIONS) {
+    for (const key of DEFI_KEYS) {
+      if (cellState(p, defiId(s, key)) === "active") return true;
+    }
+  }
+  return false;
+}
+
+export function sectionTeased(p: ModeProgress, s: Section): boolean {
+  return starsMissingForSection(p, s) === 1 && hasActiveDefi(p);
+}
+
 // Prédécesseur d'un niveau dans la chaîne : la seule case dont la validation
 // l'ouvre. null pour le 1-1 d'une section, dont la porte est l'étoile (donc la
 // section elle-même) et non une case.
@@ -128,6 +162,50 @@ export function cellState(p: ModeProgress, id: LevelId): CellState {
     return "disabled";
   }
   return "hidden";
+}
+
+// --- Suites d'un niveau (écran de victoire) ---------------------------------
+
+// « next » : le normal qui suit dans la chaîne. « defi » : le défi que la fin
+// d'une ligne vient d'ouvrir. « continue » : repli quand la victoire n'ouvre
+// aucune case (défi gagné, ou niveau rejoué).
+export type NextKind = "next" | "defi" | "continue";
+
+export interface NextChoice {
+  id: LevelId;
+  kind: NextKind;
+}
+
+// Cases dont `id` est le prédécesseur — l'exact miroir de predecessorOf(). Un
+// dernier de ligne (5, 10, 15) en a DEUX : le normal suivant et le défi de sa
+// ligne. Le 15 n'a que le défi (la section s'arrête là). Un défi n'ouvre aucune
+// case : il paie en étoiles.
+function successorsOf(id: LevelId): LevelId[] {
+  if (isDefi(id)) return [];
+  const s = sectionOf(id);
+  const n = levelNumber(id);
+  const out: LevelId[] = [];
+  if (n < NORMALS_PER_SECTION) out.push(levelId(s, n + 1));
+  if (n % ROW_LENGTH === 0) out.push(defiId(s, defiOfRow(rowOf(n))));
+  return out;
+}
+
+// Ce que l'écran de victoire propose de jouer : exactement ce que CETTE victoire
+// vient d'ouvrir (au plus deux cases, normal puis défi). Quand elle n'ouvre rien
+// — un défi ne débloque que des étoiles, un rejeu ne débloque rien —, on retombe
+// sur le premier niveau jouable non validé dans l'ordre canonique : le joueur a
+// toujours un pas suivant sans passer par la carte.
+//
+// `p` est la progression APRÈS la validation : les cases ouvertes par la victoire
+// y sont donc « active », et le niveau qu'on vient de gagner « validated ».
+export function nextChoices(p: ModeProgress, id: LevelId): NextChoice[] {
+  const opened = successorsOf(id).filter((x) => cellState(p, x) === "active");
+  if (opened.length > 0) {
+    return opened.map((x) => ({ id: x, kind: isDefi(x) ? "defi" : "next" }));
+  }
+  const resume = allLevelIds().find((x) => cellState(p, x) === "active");
+  // Aucun niveau jouable nulle part (mode complété) : seul le retour carte reste.
+  return resume ? [{ id: resume, kind: "continue" }] : [];
 }
 
 export interface SectionStats {
@@ -271,16 +349,32 @@ export function isModeUnlocked(modeId: ModeId): boolean {
   return true; // 5x5 (index 0) : toujours ouvert
 }
 
-// Le premier mode verrouillé : le seul montré (grisé, cadenas) ; les suivants
-// restent cachés pour ne pas dévoiler toute la série d'emblée.
+// Le premier mode verrouillé — le seul qui puisse être montré (grisé, cadenas).
+// Les suivants restent cachés : on ne dévoile pas le catalogue.
 export function nextLockedMode(): ModeId | null {
   return MODE_ORDER.find((m) => !isModeUnlocked(m)) ?? null;
+}
+
+// Même règle que pour une section verrouillée (cf. sectionTeased) : l'onglet du
+// mode suivant n'apparaît que lorsqu'il est À UN DÉFI PRÈS. Le verrou d'un mode
+// est tenu par le mode PRÉCÉDENT — c'est donc sa progression à lui qu'on
+// interroge, pas celle du mode qu'on regarde.
+export function isModeTeased(modeId: ModeId): boolean {
+  const index = MODE_ORDER.indexOf(modeId);
+  if (index <= 0 || isModeUnlocked(modeId)) return false;
+  const gate = MODE_ORDER[index - 1];
+  // Le gardien doit lui-même être ouvert : sinon le verrou n'est pas le prochain
+  // de la chaîne, et rien ne doit paraître.
+  if (!isModeUnlocked(gate)) return false;
+  const p = loadProgress(gate);
+  const missing = STARS_FOR_NEXT_MODE - starCount(p);
+  return missing === 1 && hasActiveDefi(p);
 }
 
 export function visibleModes(): ModeId[] {
   const unlocked = MODE_ORDER.filter(isModeUnlocked);
   const next = nextLockedMode();
-  return next ? [...unlocked, next] : unlocked;
+  return next && isModeTeased(next) ? [...unlocked, next] : unlocked;
 }
 
 // Aucune progression nulle part : l'accroche de la carte est alors la version

@@ -86,7 +86,28 @@ En DOM (HTML/CSS), plein écran par-dessus le canvas, dans le style papier exist
 - Dans une section, 3 lignes de 5 cases carrées (numéro `n` seul, la section donnant le contexte).
   - **Desktop** : la case défi est une grande case à droite de sa ligne (env. 2×1 unités, hauteur de la ligne).
   - **Mobile** : la case défi est un bandeau pleine largeur sous sa ligne.
-- **Croissance additive** : seules les lignes contenant au moins une case visible sont rendues. Sous la dernière section débloquée, le jalon de la section suivante est affiché **verrouillé** (nom de la difficulté grisé + « ★ Encore 1 étoile ») avec une frange de brouillard, pour donner une cible visible à la monnaie. Au-delà, rien.
+- **Croissance additive** : seules les lignes contenant au moins une case visible sont rendues. Sous la dernière section débloquée, le jalon de la section suivante peut être affiché **verrouillé** (nom de la difficulté et prix, tous deux grisés, au même ton) — mais seulement s'il est *à un défi près* (cf. « Montrer un verrou » ci-dessous). Sinon la carte s'arrête sur la frange de brouillard, qui suffit à dire « il y a une suite » sans en promettre le prix.
+
+### Montrer un verrou
+
+Règle unique, valable pour **tout ce qui se débloque à l'étoile** — sections comme onglets de mode :
+
+> Une chose verrouillée n'est montrée que lorsqu'elle est **à un défi près** : il lui manque exactement une étoile, **et** un défi est actuellement *jouable* (débloqué, non validé) pour la donner.
+
+Sinon, elle est absente : ni jalon, ni onglet. Un défi *visible mais pas encore jouable* ne suffit pas.
+
+Ce que ça donne, les seuils (1, 2, 3, 4) étant distincts et un défi valant une étoile — il y a donc toujours **au plus un verrou montré à la fois**, et il est toujours à une étoile (d'où le libellé fixe « ★ Encore 1 étoile », sans pluriel à porter) :
+
+| Étoiles du mode | Verrou montré, si un défi est jouable |
+| --------------- | ------------------------------------- |
+| 0               | Section 2 · Équilibré                 |
+| 1               | Section 3 · Relevé                    |
+| 2               | Onglet du mode suivant (cadenas)      |
+| 3               | Section 4 · Corsé                     |
+
+**Pourquoi.** Au premier lancement il manque bien une étoile pour la section 2 — mais aucun défi n'est atteignable (1-A demande 1-5). Annoncer le prix à cet instant, c'est promettre avant d'avoir donné le moyen de tenir la promesse. Avec cette règle, le premier défi et l'annonce de ce qu'il ouvre apparaissent **ensemble**, au même instant.
+
+Conséquence assumée : la barre d'onglets ne montre que « 5×5 », seul, jusqu'à ce que le mode suivant soit à un défi près. Un cadenas permanent est du bruit ; un cadenas qui apparaît est un événement.
 
 ### États des cases
 
@@ -171,13 +192,13 @@ tracemot.progress.5x5 = [
 
 soit 27 niveaux validés et **3 étoiles**.
 
-- **Onglets** : 5×5 ouvert (3 / 12 ★) ; 6×6 débloqué (3e étoile) avec pastille ; 7×7 grisé avec cadenas ; 8×8 caché.
+- **Onglets** : 5×5 ouvert (3 / 12 ★) ; 6×6 débloqué (3e étoile) avec pastille. **7×7 absent** : son verrou est tenu par le 6×6, encore vierge — il n'est donc pas à un défi près. 8×8 absent.
 - **Section 1 · Doux** : 18 ✓, ★★★ — tout validé, défis compris.
 - **Section 2 · Équilibré** : 2-1…2-5 validés ; **2-A jouable** et 2-6 jouable ; 2-7 visible désactivée ; le reste caché.
 - **Section 3 · Relevé** : 3-1…3-4 validés ; 3-5 jouable ; **3-A et 3-6 visibles désactivées** ; le reste caché.
-- **Section 4 · Corsé** : jalon **verrouillé** (« ★ Encore 1 étoile »), aucune case rendue.
+- **Section 4 · Corsé** : jalon **verrouillé** (« ★ Encore 1 étoile »), aucune case rendue — montré parce que 2-A est jouable et donnerait la 4e étoile.
 
-L'écran couvre ainsi : les 4 états d'une case normale, les 3 états visibles d'un défi (validé / jouable / visible désactivé), une section complète, deux sections en cours, une section verrouillée, et les 3 états d'onglet de mode.
+L'écran couvre ainsi : les 4 états d'une case normale, les 3 états visibles d'un défi (validé / jouable / visible désactivé), une section complète, deux sections en cours, une section verrouillée et montrée, et 2 des 3 états d'onglet de mode. L'onglet verrouillé-et-montré (cadenas) demande un autre état de progression : un mode à 2 étoiles avec un défi jouable.
 
 ## Points reportés (hors périmètre de cette spec)
 

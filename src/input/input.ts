@@ -21,7 +21,7 @@ import {
   KEY_PAN_SPEED,
 } from "../game/config.ts";
 import { state } from "../game/state.ts";
-import { buzz, renderPendingWord, replayEl } from "../render/render.ts";
+import { buzz, renderPendingWord } from "../render/render.ts";
 import {
   cellAtGlobal,
   getApp,
@@ -390,10 +390,7 @@ function edgePan(ticker: Ticker) {
 
 // --- Câblage ---------------------------------------------------------------
 
-export function attachInputHandlers(handlers: {
-  onCommit: () => void;
-  onReplay: () => void;
-}) {
+export function attachInputHandlers(handlers: { onCommit: () => void }) {
   onCommit = handlers.onCommit;
   const stage = getStage();
   const app = getApp();
@@ -431,6 +428,4 @@ export function attachInputHandlers(handlers: {
     cancelAllGestures();
     pressed.clear();
   });
-
-  replayEl.addEventListener("click", handlers.onReplay);
 }

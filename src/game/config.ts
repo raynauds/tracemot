@@ -60,7 +60,7 @@ export const DEFAULT_MODE: ModeId = "5x5";
 // Mode debug : affiche en bas de l'écran tous les mots trouvables dans la
 // grille courante - ceux du dictionnaire enfant en vert et en gras.
 // Survoler un mot met en évidence son tracé dans la grille.
-export const DEBUG = false;
+export const DEBUG = true;
 
 export type Tier = "enfant" | "ado" | "adulte" | "inconnu";
 export type Difficulty = 1 | 2 | 3 | 4 | 5;

@@ -45,7 +45,7 @@ import {
   saveLastMode,
   sectionStats,
   starCount,
-  starsMissingForSection,
+  sectionTeased,
   visibleModes,
   type CellState,
   type ModeProgress,
@@ -357,13 +357,12 @@ function buildMilestone(
 }
 
 // Jalon d'une section verrouillée : le prix affiché, sans aucune case. Il ne
-// paraît que pour LA PREMIÈRE section verrouillée (cf. renderMap) — donner à
-// voir la cible immédiate de la monnaie, pas tout le catalogue.
-function buildLockedSection(p: ModeProgress, s: Section): HTMLElement {
-  const missing = starsMissingForSection(p, s);
-  const count = `★ Encore ${missing} étoile${missing > 1 ? "s" : ""}`;
+// paraît QUE si la section est teasée (cf. sectionTeased) — donc uniquement
+// quand un défi jouable peut, à lui seul, la déverrouiller. Le prix est donc
+// toujours d'une étoile : le libellé n'a pas de pluriel à porter.
+function buildLockedSection(s: Section): HTMLElement {
   const section = el("section", "map-section");
-  section.appendChild(buildMilestone(s, count, false, null));
+  section.appendChild(buildMilestone(s, "★ Encore 1 étoile", false, null));
   return section;
 }
 
@@ -412,10 +411,12 @@ export function renderMap(modeId: ModeId): void {
   );
   const sections = el("div", "map-sections");
   // Les seuils d'étoiles étant croissants, les sections débloquées forment un
-  // préfixe : la première verrouillée rencontrée clôt la carte.
+  // préfixe : la première verrouillée rencontrée clôt la carte. On ne l'annonce
+  // que si elle est à un défi près ; sinon la carte s'arrête sur le brouillard,
+  // qui suffit à dire « il y a une suite » sans en promettre le prix.
   for (const s of SECTIONS) {
     if (!sectionStats(p, s).unlocked) {
-      sections.appendChild(buildLockedSection(p, s));
+      if (sectionTeased(p, s)) sections.appendChild(buildLockedSection(s));
       break;
     }
     const node = buildSection(modeId, p, s);

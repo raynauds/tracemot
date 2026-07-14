@@ -13,8 +13,9 @@ import type { LevelId } from "./game/levels.ts";
 import {
   loadProgress,
   migrateStorage,
-  modeStars,
+  nextChoices,
   saveValidated,
+  starCount,
   starRewardAt,
 } from "./game/progress.ts";
 import { applyLevel, state } from "./game/state.ts";
@@ -36,6 +37,7 @@ import {
 } from "./render/scene.ts";
 import {
   bindMapReturn,
+  bindWinNext,
   buildBoard,
   fillListRow,
   hideStatus,
@@ -120,6 +122,9 @@ async function startLevel(modeId: ModeId, id: LevelId) {
 // défi déjà validé n'en redonne pas. D'où la lecture de la progression AVANT
 // la sauvegarde — après, l'identifiant y est de toute façon, et la première
 // fois serait indiscernable du rejeu.
+//
+// Les suites proposées, elles, se lisent APRÈS : ce sont les cases que cette
+// victoire vient d'ouvrir, elles n'existent donc pas dans la progression d'avant.
 function triggerWin() {
   state.won = true;
   stopTimer();
@@ -131,14 +136,16 @@ function triggerWin() {
   const { modeId } = state;
   const wasValidated = loadProgress(modeId).validated.has(id);
   saveValidated(modeId, id);
+  const after = loadProgress(modeId);
+  const choices = nextChoices(after, id);
   if (!isDefi(id) || wasValidated) {
-    renderWin();
+    renderWin({ choices });
     return;
   }
   // Le défi vient d'être gagné : son rang d'étoile est le compte du mode une
   // fois la sauvegarde faite (la n-ième étoile est celle qu'on vient de poser).
-  const count = modeStars(modeId);
-  renderWin({ count, unlocked: starRewardAt(modeId, count) });
+  const count = starCount(after);
+  renderWin({ star: { count, unlocked: starRewardAt(modeId, count) }, choices });
 }
 
 // Retour à la carte : la partie en cours est abandonnée telle quelle (aucune
@@ -192,14 +199,12 @@ async function init() {
   // Après initScene : le stage Pixi existe, cible des events fédérés du tracé.
   // La grille construite là l'est pour la géométrie par défaut ; rebuildGrid
   // la refera à la forme du premier niveau lancé.
-  attachInputHandlers({
-    onCommit: commitPath,
-    onReplay: () => {
-      if (state.levelId) startLevel(state.modeId, state.levelId);
-    },
-  });
+  attachInputHandlers({ onCommit: commitPath });
   bindMap(startLevel);
   bindMapReturn(backToMap);
+  // Enchaînement depuis l'écran de victoire : toujours dans le mode courant —
+  // une étoile peut ouvrir le mode suivant, mais on ne l'y téléporte pas.
+  bindWinNext((id) => startLevel(state.modeId, id));
 
   if (DEBUG) {
     debug = await import("./debug/debug.ts");

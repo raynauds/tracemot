@@ -8,8 +8,8 @@
 // difficulté (la difficulté est une propriété de la section).
 
 import { REJECT_DISPLAY_MS } from "../game/config.ts";
-import { levelLabel } from "../game/levels.ts";
-import { MAX_STARS } from "../game/progress.ts";
+import { isDefi, levelLabel, type LevelId } from "../game/levels.ts";
+import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
 
@@ -24,13 +24,14 @@ function byId(id: string): HTMLElement {
   return el;
 }
 
-export const replayEl = byId("replay");
 const statusEl = byId("status");
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
 const winStarEl = byId("win-star");
 const winStarGainEl = byId("win-star-gain");
 const winStarUnlockEl = byId("win-star-unlock");
+const winNextEl = byId("win-next");
+const winDefiEl = byId("win-defi");
 const winMapEl = byId("win-map");
 const backMapEl = byId("back-map");
 const chronoEl = byId("chrono");
@@ -293,10 +294,56 @@ export function renderNewGame() {
   hideWin();
 }
 
+// --- Suites proposées à la victoire -----------------------------------------
+
+// Les deux boutons de tête sont des SLOTS : ce qu'ils lancent change à chaque
+// victoire (nextChoices, cf. game/progress.ts). L'identifiant visé est gardé
+// ici plutôt que sur le DOM — le clic n'a rien à re-parser, et un bouton masqué
+// ne peut pas relancer la partie précédente puisqu'on l'oublie à chaque rendu.
+let winTargets: (LevelId | null)[] = [null, null];
+let onPlayLevel: ((id: LevelId) => void) | null = null;
+
+// Libellé d'un bouton : l'identifiant seul suffit (« 1-6 »), la forme du mode
+// est déjà dans le header. Un défi s'annonce toujours comme tel, étoile comprise
+// — c'est ce qu'il rapporte —, qu'il vienne d'être ouvert ou qu'on y retombe par
+// le repli « continuer » (l'ordre canonique le place avant la ligne suivante).
+function choiceLabel(choice: NextChoice): string {
+  if (isDefi(choice.id)) return `DÉFI ${choice.id} ★`;
+  const verb = choice.kind === "next" ? "SUIVANT" : "CONTINUER";
+  return `${verb} · ${choice.id}`;
+}
+
+export function bindWinNext(onPlay: (id: LevelId) => void) {
+  onPlayLevel = onPlay;
+  [winNextEl, winDefiEl].forEach((el, slot) => {
+    el.addEventListener("click", () => {
+      const id = winTargets[slot];
+      if (id && onPlayLevel) onPlayLevel(id);
+    });
+  });
+}
+
+function renderWinActions(choices: NextChoice[]) {
+  // Le défi, quand il y est, est la SECONDE proposition : après une victoire on
+  // enchaîne sur la grille de même taille, la grille doublée reste un choix.
+  // nextChoices() les rend déjà dans cet ordre (normal puis défi).
+  [winNextEl, winDefiEl].forEach((el, slot) => {
+    const choice = choices[slot];
+    winTargets[slot] = choice ? choice.id : null;
+    el.hidden = !choice;
+    el.textContent = choice ? choiceLabel(choice) : "";
+  });
+}
+
 // star : passé par main.ts au seul cas qui vaut une récompense — un défi gagné
 // pour la première fois. Le rejeu d'un défi et les niveaux normaux laissent
 // l'écran de victoire inchangé, sans quoi l'étoile ne voudrait plus rien dire.
-export function renderWin(star?: { count: number; unlocked: string | null }) {
+// choices : ce que la victoire vient d'ouvrir (0 à 2 niveaux).
+export function renderWin(opts: {
+  star?: { count: number; unlocked: string | null };
+  choices?: NextChoice[];
+} = {}) {
+  const { star, choices = [] } = opts;
   const time = formatTime(Date.now() - state.startTime);
   chronoEl.textContent = `${time} ■`;
   chronoEl.classList.add("won");
@@ -313,10 +360,11 @@ export function renderWin(star?: { count: number; unlocked: string | null }) {
       ? `Débloque : ${star.unlocked}`
       : "";
   }
+  renderWinActions(choices);
   winEl.hidden = false;
 }
 
-// Le retour à la carte et le rejeu quittent tous deux l'écran de victoire.
+// Le retour à la carte et l'enchaînement quittent tous deux l'écran de victoire.
 export function hideWin() {
   winEl.hidden = true;
 }
