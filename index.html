@@ -23,108 +23,23 @@
          (pointer-events: none) ; seuls les contrôles interactifs les
          réactivent (pointer-events: auto). -->
 
+    <!-- Carte de progression : écran d'accueil, plein écran, au-dessus de tout
+         le reste. Son contenu est entièrement généré par src/render/map.ts ;
+         quand elle est affichée, le corps porte .map-open et le chrome de
+         partie ci-dessous est masqué (style.css). -->
+    <div class="map" id="map" hidden></div>
+
     <header class="header">
       <div class="header-left">
         <h1 class="title">Tracemot</h1>
-        <nav class="difficulty" id="difficulty-nav" aria-label="Difficulté">
-          <button
-            type="button"
-            class="diff-chip"
-            id="diff-chip"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-          >
-            <span class="diff-chip-star" aria-hidden="true">★</span>
-            <!-- Pré-rempli avec le niveau par défaut (src/game/config.ts) pour éviter
-                 un shift ; src/render/render.ts réécrit selon le niveau restauré. -->
-            <span class="diff-chip-label" id="diff-chip-label">1 · Doux</span>
-            <span class="diff-chip-caret" aria-hidden="true"></span>
-          </button>
-          <div class="diff-overlay" id="diff-overlay" hidden></div>
-          <div
-            class="diff-panel"
-            id="diff-panel"
-            role="dialog"
-            aria-label="Choix de la difficulté"
-            hidden
-          >
-            <div class="diff-panel-head">
-              <span class="diff-panel-title">DIFFICULTÉ</span>
-              <button
-                type="button"
-                class="diff-close"
-                id="diff-close"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
-            </div>
-            <div class="diff-list" id="diff-list">
-              <!-- niveaux générés par src/render/render.ts -->
-            </div>
-            <p class="diff-note">CHANGER DE NIVEAU RELANCE UNE GRILLE</p>
-          </div>
-          <div class="diff-toast" id="diff-toast" hidden>
-            <span class="diff-toast-bar" aria-hidden="true"></span>
-            <div class="diff-toast-text">
-              <span class="diff-toast-title" id="diff-toast-title"></span>
-              <span class="diff-toast-sub" id="diff-toast-sub"></span>
-            </div>
-          </div>
-        </nav>
-        <!-- Sélecteur de mode : même composant voile + panneau que la
-             difficulté (popover desktop, feuille mobile), classes .diff-*
-             réutilisées. Les modes vivent dans src/game/config.ts (GAME_MODES). -->
-        <nav class="difficulty" id="mode-nav" aria-label="Mode de jeu">
-          <button
-            type="button"
-            class="diff-chip"
-            id="mode-chip"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-          >
-            <span class="diff-chip-star" aria-hidden="true">▦</span>
-            <!-- Pré-rempli avec le mode par défaut (src/game/config.ts) pour éviter
-                 un shift ; src/render/render.ts réécrit selon le mode restauré. -->
-            <span class="diff-chip-label" id="mode-chip-label">5×5</span>
-            <span class="diff-chip-caret" aria-hidden="true"></span>
-          </button>
-          <div class="diff-overlay" id="mode-overlay" hidden></div>
-          <div
-            class="diff-panel"
-            id="mode-panel"
-            role="dialog"
-            aria-label="Choix du mode"
-            hidden
-          >
-            <div class="diff-panel-head">
-              <span class="diff-panel-title">GRILLE</span>
-              <button
-                type="button"
-                class="diff-close"
-                id="mode-close"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
-            </div>
-            <div class="diff-list" id="mode-list">
-              <!-- modes générés par src/render/render.ts -->
-            </div>
-            <p class="diff-note">CHANGER DE GRILLE RELANCE UNE PARTIE</p>
-          </div>
-          <div class="diff-toast" id="mode-toast" hidden>
-            <span class="diff-toast-bar" aria-hidden="true"></span>
-            <div class="diff-toast-text">
-              <span class="diff-toast-title" id="mode-toast-title"></span>
-              <span class="diff-toast-sub" id="mode-toast-sub"></span>
-            </div>
-          </div>
-        </nav>
-        <!-- Règle du jeu : bouton discret « ? » (subordonné à la difficulté).
-             Il ouvre le même composant voile + panneau que la difficulté
-             (popover desktop, feuille mobile). Ouvert automatiquement à la
-             première visite seulement (localStorage, src/render/render.ts). -->
+        <!-- Retour à la carte : sortie de partie, toujours disponible. -->
+        <button type="button" class="back-map" id="back-map">← CARTE</button>
+        <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
+        <span class="level-id" id="level-id"></span>
+        <!-- Règle du jeu : bouton discret « ? ». Il ouvre le composant voile +
+             panneau (popover desktop, feuille mobile) hérité du sélecteur de
+             difficulté disparu — les classes .diff-overlay / .diff-panel lui
+             survivent et restent partagées. -->
         <div class="rule" id="rule">
           <button
             type="button"
@@ -161,7 +76,7 @@
               sert qu'une fois.
             </p>
             <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
-                 src/render/render.ts réécrit selon le mode actif (src/game/config.ts). -->
+                 src/render/render.ts réécrit selon le niveau lancé. -->
             <p class="rule-spec" id="rule-spec">5 mots · 5 lettres</p>
           </div>
         </div>
@@ -185,7 +100,7 @@
       >
         <span class="ledger-label">MOTS TROUVÉS</span>
         <!-- Pré-rempli (0 / wordCount du mode par défaut) pour éviter un
-             shift ; src/render/render.ts réécrit selon le mode restauré puis à
+             shift ; src/render/render.ts réécrit selon le niveau lancé puis à
              chaque mot. -->
         <span class="counter" id="counter"
           ><span class="count">0</span> / 5</span
@@ -194,7 +109,7 @@
       </button>
       <!-- Lignes pré-rendues (mode par défaut, voir src/game/config.ts) pour éviter
            un shift au chargement ; src/render/render.ts les adopte et ajuste leur
-           nombre au mode actif (restauré ou changé à chaud). -->
+           nombre au niveau lancé (le boss double la grille). -->
       <ol class="word-list" id="word-list">
         <li class="word-row empty">
           <span class="word-num">01</span>
@@ -219,10 +134,13 @@
       </ol>
     </section>
 
-    <!-- Statut (chargement/erreur) : overlay plein écran au-dessus du canvas. -->
-    <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
+    <!-- Statut : overlay plein écran, réservé aux erreurs (chargement des
+         niveaux). Rien à annoncer au boot : la carte s'affiche sans réseau. -->
+    <div class="status" id="status" hidden></div>
 
-    <!-- Victoire : overlay plein écran au-dessus du canvas. -->
+    <!-- Victoire : overlay plein écran au-dessus du canvas. Action principale =
+         retour à la carte (la progression y est visible) ; rejouer le même
+         niveau est l'action secondaire. -->
     <div class="win" id="win" hidden>
       <span class="confetti c1"></span>
       <span class="confetti c2 cream"></span>
@@ -232,7 +150,12 @@
       <span class="confetti c6"></span>
       <div class="win-title">Gagné<span class="dot">.</span></div>
       <div class="win-sub" id="win-sub"></div>
-      <button type="button" class="win-replay" id="replay">REJOUER</button>
+      <div class="win-actions">
+        <button type="button" class="win-replay" id="win-map">
+          RETOUR À LA CARTE
+        </button>
+        <button type="button" class="win-second" id="replay">REJOUER</button>
+      </div>
     </div>
 
     <script type="module" src="src/main.ts"></script>

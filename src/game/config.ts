@@ -8,18 +8,37 @@ export type GameMode = {
   wordCount: number;
 };
 
-// Modes de jeu : forme de la grille (rows × cols) et puzzle (wordCount mots
-// de wordLength lettres). Le pavage parfait exige
-// wordCount × wordLength = rows × cols (validé ci-dessous). Tout le reste
-// (registre, compteur, condition de victoire, caméra, solveur) dérive du
-// mode actif.
-export const GAME_MODES: Record<string, GameMode> = {
-  classique: { rows: 5, cols: 5, wordLength: 5, wordCount: 5 },
-  maxi: { rows: 10, cols: 10, wordLength: 5, wordCount: 20 },
-  longs: { rows: 8, cols: 8, wordLength: 8, wordCount: 8 },
+// Série N×N : un mode = N mots de N lettres sur une grille N×N. L'identifiant
+// du mode EST sa forme (« 5x5 »), et MODE_ORDER fixe l'ordre de déblocage :
+// le mode N+1 s'ouvre quand un boss du mode N est validé (cf. progress.ts).
+export type ModeId = "5x5" | "6x6" | "7x7" | "8x8";
+export const MODE_ORDER: ModeId[] = ["5x5", "6x6", "7x7", "8x8"];
+
+// Le pavage parfait exige wordCount × wordLength = rows × cols (validé
+// ci-dessous). Tout le reste (registre, compteur, condition de victoire,
+// caméra, solveur) dérive du mode actif.
+export const GAME_MODES: Record<ModeId, GameMode> = {
+  "5x5": { rows: 5, cols: 5, wordLength: 5, wordCount: 5 },
+  "6x6": { rows: 6, cols: 6, wordLength: 6, wordCount: 6 },
+  "7x7": { rows: 7, cols: 7, wordLength: 7, wordCount: 7 },
+  "8x8": { rows: 8, cols: 8, wordLength: 8, wordCount: 8 },
 };
 
-for (const [id, m] of Object.entries(GAME_MODES)) {
+// Format « boss » (présenté au joueur comme « Défi ») : la grille double de
+// côté et le nombre de mots quadruple, à longueur de mot constante. Le pavage
+// tient par construction (4N mots de N lettres = (2N)² cases), mais le
+// garde-fou ci-dessous le vérifie quand même : c'est l'invariant central du
+// solveur, on ne le laisse pas reposer sur une lecture d'algèbre.
+export function bossMode(m: GameMode): GameMode {
+  return {
+    rows: m.rows * 2,
+    cols: m.cols * 2,
+    wordLength: m.wordLength,
+    wordCount: m.wordCount * 4,
+  };
+}
+
+function assertPavage(id: string, m: GameMode) {
   if (m.wordCount * m.wordLength !== m.rows * m.cols) {
     throw new Error(
       `Tracemot : mode « ${id} » invalide - ` +
@@ -28,29 +47,13 @@ for (const [id, m] of Object.entries(GAME_MODES)) {
   }
 }
 
-// Mode par défaut (première visite, ou mode mémorisé invalide).
-export const DEFAULT_MODE: keyof typeof GAME_MODES = "classique";
-// Modes accessibles dans l'interface (au moins un). Retirez des entrées
-// pour restreindre le jeu. Avec un seul mode accessible, le sélecteur
-// (chip du header) disparaît entièrement.
-export const ENABLED_MODES: (keyof typeof GAME_MODES)[] = [
-  "classique",
-  "maxi",
-  "longs",
-];
+for (const id of MODE_ORDER) {
+  assertPavage(id, GAME_MODES[id]);
+  assertPavage(`${id} (boss)`, bossMode(GAME_MODES[id]));
+}
 
-// Nom et description de chaque mode : chip du header, lignes de la feuille
-// de sélection et toast de confirmation. Le nom décrit le puzzle
-// (nombre de mots × nombre de lettres, PAS la grille), la description le
-// développe en toutes lettres.
-export const MODE_LABELS: Record<
-  keyof typeof GAME_MODES,
-  { name: string; desc: string }
-> = {
-  classique: { name: "5×5", desc: "5 mots de 5 lettres" },
-  maxi: { name: "20×5", desc: "20 mots de 5 lettres" },
-  longs: { name: "8×8", desc: "8 mots de 8 lettres" },
-};
+// Mode par défaut : le seul accessible au premier lancement.
+export const DEFAULT_MODE: ModeId = "5x5";
 
 // Mode debug : affiche en bas de l'écran tous les mots trouvables dans la
 // grille courante - ceux du dictionnaire enfant en vert et en gras.
@@ -60,12 +63,18 @@ export const DEBUG = false;
 export type Tier = "enfant" | "ado" | "adulte" | "inconnu";
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 
+// Une section d'un mode = une difficulté (section s ⇒ difficulté s). Les
+// quatre sections couvrent donc 1..4 ; « Brûlant » (5) reste défini mais
+// n'est plus employé par la progression.
+export type Section = 1 | 2 | 3 | 4;
+
 // Difficultés (nombre d'étoiles). Chaque niveau fixe la composition des
 // mots cachés parmi les quatre paliers de vocabulaire : bornes [min, max]
 // en FRACTION du nombre de mots du mode (arrondies au plus proche par le
 // solveur) pour les paliers « ado », « adulte » et « inconnu », le reste
 // venant du palier « enfant ». Sur 5 mots, 0.2 = 1 mot ; le barème reste
-// cohérent quel que soit wordCount.
+// cohérent quel que soit wordCount. Utilisé hors runtime, par le script de
+// génération des niveaux.
 export const DIFFICULTY_QUOTAS: Record<
   Difficulty,
   {
@@ -80,14 +89,9 @@ export const DIFFICULTY_QUOTAS: Record<
   4: { ado: [0.2, 0.4], adulte: [0.2, 0.4], inconnu: [0, 0] },
   5: { ado: [0, 1], adulte: [0.2, 0.4], inconnu: [0.2, 0.4] },
 };
-export const DEFAULT_DIFFICULTY: Difficulty = 1;
-// Difficultés accessibles dans l'interface (au moins une). Retirez des
-// entrées pour restreindre le jeu. Avec une seule difficulté accessible,
-// le sélecteur (chip du header) disparaît entièrement.
-export const ENABLED_DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5];
 
-// Nom et description de chaque difficulté : chip du header, lignes de la
-// feuille de sélection et toast de confirmation.
+// Nom et description de chaque difficulté : titre du jalon de section sur la
+// carte (le nom décrit la grille, pas le joueur).
 export const DIFFICULTY_LABELS: Record<
   Difficulty,
   { name: string; desc: string }
@@ -98,9 +102,6 @@ export const DIFFICULTY_LABELS: Record<
   4: { name: "Corsé", desc: "Quelques mots recherchés dans le lot" },
   5: { name: "Brûlant", desc: "Une ou deux perles rares dans le lot" },
 };
-
-// Durée d'affichage des toasts de confirmation (difficulté, mode).
-export const TOAST_MS = 2000;
 
 // Tentatives complètes (choix des mots + placement + réparations +
 // vérification) avant de rendre la meilleure grille imparfaite rencontrée.

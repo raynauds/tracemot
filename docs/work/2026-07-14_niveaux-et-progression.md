@@ -125,7 +125,7 @@ tracemot.progress.5x5 = [
 ]
 ```
 
-soit 51 niveaux validés. États dérivés :
+soit 52 niveaux validés. États dérivés :
 
 - **Onglets** : 5×5 ouvert ; 6×6 débloqué (boss 1-25 validé) ; 7×7 grisé avec cadenas ; 8×8 caché.
 - **Section 1 · Doux** : tout validé, boss compris → _boss validé_.

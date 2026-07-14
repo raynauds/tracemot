@@ -310,9 +310,12 @@ function isTypingTarget(target: EventTarget | null) {
   );
 }
 
+// Hors partie (carte affichée), les flèches appartiennent à la carte, qui
+// défile : les capturer ici les lui volerait pour translater une caméra que
+// personne ne voit.
 function onKeyDown(e: KeyboardEvent) {
   const dir = KEY_DIRS[e.key.toLowerCase()];
-  if (!dir || isTypingTarget(e.target)) return;
+  if (!dir || !state.ready || isTypingTarget(e.target)) return;
   e.preventDefault();
   pressed.add(dir);
 }

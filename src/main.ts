@@ -1,19 +1,24 @@
-// Orchestration : initialisation, déroulement d'une partie, validation
-// des mots. Seul module à écrire le déroulement dans state.
+// Orchestration : initialisation, cycle carte ↔ partie, validation des mots.
+// Seul module à écrire le déroulement dans state.
+//
+// Le jeu n'a plus de générateur au runtime : la carte de progression est
+// l'écran d'accueil, elle demande un niveau, on charge sa grille prégénérée
+// et on la joue. Aucun dictionnaire n'est chargé (sauf par le panneau debug,
+// qui charge le sien).
 
-import {
-  DEBUG,
-  DEFAULT_DIFFICULTY,
-  DEFAULT_MODE,
-  ENABLED_DIFFICULTIES,
-  ENABLED_MODES,
-  GAME_MODES,
-} from "./game/config.ts";
-import { applyMode, state } from "./game/state.ts";
-import { buildLengthSets, loadDictionaries } from "./game/dictionary.ts";
-import { createGridGenerator } from "./game/solver.ts";
+import { DEBUG } from "./game/config.ts";
+import type { ModeId } from "./game/config.ts";
+import { loadModeLevels } from "./game/levels.ts";
+import type { LevelId } from "./game/levels.ts";
+import { purgeLegacyKeys, saveValidated } from "./game/progress.ts";
+import { applyLevel, state } from "./game/state.ts";
 import { wordRejectReason } from "./game/rules.ts";
-import { attachInputHandlers, cancelAllGestures, clearPath } from "./input/input.ts";
+import {
+  attachInputHandlers,
+  cancelAllGestures,
+  clearPath,
+} from "./input/input.ts";
+import { bindMap, hideMap, showMap } from "./render/map.ts";
 import {
   flashPath,
   initScene,
@@ -24,38 +29,64 @@ import {
   stampWord,
 } from "./render/scene.ts";
 import {
-  bindDifficultyBar,
-  bindModeBar,
+  bindMapReturn,
   buildBoard,
   fillListRow,
   hideStatus,
   renderCounter,
-  renderDifficultyBar,
+  renderLevelHeader,
   renderLoadError,
-  renderModeBar,
   renderNewGame,
   renderWin,
-  showDifficultyToast,
-  showModeToast,
   showReject,
   showRuleOnFirstVisit,
   startTimer,
   stopTimer,
 } from "./render/render.ts";
 
-const DIFFICULTY_STORAGE_KEY = "tracemot.difficulty";
-const MODE_STORAGE_KEY = "tracemot.mode";
-
 /** Module debug, chargé si DEBUG. */
 let debug: typeof import("./debug/debug.ts") | null = null;
 
-/** Générateur du mode
- *  actif, fermé sur la géométrie et les dictionnaires (créé au premier
- *  lancement de partie, après le chargement des dictionnaires ; invalidé
- *  — remis à null — au changement de mode). */
-let generator: ReturnType<typeof createGridGenerator> | null = null;
+// Demande de niveau en vol. Le chargement du mode est asynchrone et la carte
+// reste cliquable pendant ce temps (elle n'est masquée qu'une fois la grille
+// prête) : un double-clic, ou un clic sur une autre case avant l'arrivée du
+// JSON, met deux startLevel en vol. Seule la DERNIÈRE demande doit aboutir —
+// sinon la reprise périmée reconstruit une grille par-dessus la bonne, relance
+// son chrono et, en cas d'échec, affiche une erreur pour un niveau que le
+// joueur ne demande plus.
+let selection = 0;
 
-function startGame() {
+// Lance un niveau : charge sa grille, reconstruit tout ce qui dépend de la
+// géométrie (elle change d'un niveau à l'autre — un boss double le côté) et
+// remet le déroulé à zéro. Sert aussi de rejeu (même identifiant).
+async function startLevel(modeId: ModeId, id: LevelId) {
+  const token = ++selection;
+  let level;
+  try {
+    const { levels } = await loadModeLevels(modeId);
+    level = levels[id];
+    if (!level) throw new Error(`niveau « ${id} » absent du mode ${modeId}`);
+  } catch (err) {
+    if (token !== selection) return; // demande périmée : elle n'a plus la parole
+    console.error("Tracemot : échec du chargement du niveau", err);
+    renderLoadError(
+      "Impossible de charger le niveau. Servez le jeu via HTTP " +
+        "(ex. « npm run dev ») - l’ouverture directe en file:// ne fonctionne pas." +
+        "\n\nCliquez pour revenir à la carte.",
+    );
+    // L'échec laisse le joueur sur la carte : aucune partie n'est en place.
+    state.ready = false;
+    stopTimer();
+    showMap(); // la carte est re-rendue dessous : le clic sur le message la révèle
+    return;
+  }
+  if (token !== selection) return; // une demande plus récente a pris la main
+
+  cancelAllGestures(); // un geste en vol référencerait l'ancienne grille
+  applyLevel(modeId, level);
+  buildBoard(); // registre : wordCount lignes du niveau (boss compris)
+  rebuildGrid(); // scène Pixi : cases recréées, caméra recadrée
+
   state.won = false;
   state.found = [];
   state.usedCells = new Set();
@@ -63,31 +94,36 @@ function startGame() {
   state.path = [];
   state.pointerId = null;
 
-  if (!generator) {
-    const sets = buildLengthSets(
-      state.words,
-      state.tierWords,
-      state.mode.wordLength,
-    );
-    generator = createGridGenerator(state.geometry, state.mode, sets);
-  }
-  const grid = generator.generate(state.difficulty);
-  state.letters = grid.letters;
-  state.gridTries = grid.tries;
-  state.solution = grid.solution;
-
   renderNewGame();
   renderSceneGrid(); // rendu Pixi de la grille (lettres + fonds)
-  if (debug) debug.renderDebugPanel();
-
+  hideMap();
+  renderLevelHeader();
   state.ready = true;
   startTimer(); // le chrono démarre quand la grille est prête
+  // Première visite : on présente la règle d'emblée (la carte est masquée,
+  // le panneau est donc visible).
+  showRuleOnFirstVisit();
+  if (debug) debug.renderDebugPanel();
 }
 
+// Le niveau est acquis : la carte en tiendra compte au prochain affichage
+// (cases voisines débloquées). saveValidated est idempotent — rejouer un
+// niveau déjà validé ne change rien.
 function triggerWin() {
   state.won = true;
   stopTimer();
+  if (state.levelId) saveValidated(state.modeId, state.levelId);
   renderWin();
+}
+
+// Retour à la carte : la partie en cours est abandonnée telle quelle (aucune
+// reprise n'est promise). showMap re-rend la carte, donc les cases que la
+// victoire vient de débloquer.
+function backToMap() {
+  cancelAllGestures();
+  stopTimer();
+  state.ready = false;
+  showMap();
 }
 
 function commitPath() {
@@ -123,120 +159,31 @@ function commitPath() {
   if (state.found.length >= state.mode.wordCount) triggerWin();
 }
 
-function setDifficulty(difficulty: number) {
-  const valid = ENABLED_DIFFICULTIES.find((d) => d === difficulty);
-  if (!valid || valid === state.difficulty || !state.ready) return;
-  state.difficulty = valid;
-  try {
-    localStorage.setItem(DIFFICULTY_STORAGE_KEY, String(valid));
-  } catch (_) {
-    /* stockage indisponible : la difficulté ne survivra pas au rechargement */
-  }
-  renderDifficultyBar();
-  showDifficultyToast();
-  startGame();
-}
-
-// Changement de mode à chaud : la partie en cours est abandonnée, la grille
-// Pixi et le registre sont reconstruits à la forme du nouveau mode, et une
-// partie est relancée (le générateur, fermé sur l'ancienne géométrie et les
-// anciens sets de longueur, est invalidé — startGame le recrée).
-function setMode(id: string) {
-  const valid = ENABLED_MODES.find((m) => m === id);
-  if (!valid || valid === state.modeId || !state.ready) return;
-  cancelAllGestures(); // un geste en vol référencerait l'ancienne grille
-  applyMode(valid);
-  try {
-    localStorage.setItem(MODE_STORAGE_KEY, valid);
-  } catch (_) {
-    /* stockage indisponible : le mode ne survivra pas au rechargement */
-  }
-  generator = null;
-  buildBoard(); // registre : wordCount lignes du nouveau mode
-  rebuildGrid(); // scène Pixi : cases recréées, caméra recadrée
-  renderModeBar();
-  showModeToast();
-  startGame();
-}
-
-function restoreMode() {
-  let stored: string | null = null;
-  try {
-    stored = localStorage.getItem(MODE_STORAGE_KEY);
-  } catch (_) {
-    /* stockage indisponible */
-  }
-  const valid = ENABLED_MODES.find((m) => m === stored);
-  applyMode(
-    valid ??
-      (ENABLED_MODES.includes(DEFAULT_MODE) ? DEFAULT_MODE : ENABLED_MODES[0]),
-  );
-}
-
-function restoreDifficulty() {
-  let stored = NaN;
-  try {
-    stored = Number(localStorage.getItem(DIFFICULTY_STORAGE_KEY));
-  } catch (_) {
-    /* stockage indisponible */
-  }
-  const valid = ENABLED_DIFFICULTIES.find((d) => d === stored);
-  state.difficulty =
-    valid ??
-    (ENABLED_DIFFICULTIES.includes(DEFAULT_DIFFICULTY)
-      ? DEFAULT_DIFFICULTY
-      : ENABLED_DIFFICULTIES[0]);
-}
-
 async function init() {
-  restoreMode(); // avant tout lecteur de state.mode/geometry (board, scène)
-  restoreDifficulty();
+  purgeLegacyKeys(); // vestiges du jeu libre (mode et difficulté au choix)
   buildBoard();
   renderCounter();
-  renderModeBar();
-  bindModeBar(setMode);
-  renderDifficultyBar();
-  bindDifficultyBar(setDifficulty);
   await initScene(); // Application Pixi + graphe de scène (canvas de fond)
   // Après initScene : le stage Pixi existe, cible des events fédérés du tracé.
-  attachInputHandlers({ onCommit: commitPath, onReplay: startGame });
-
-  try {
-    // Préfixes du dictionnaire complet : mode debug uniquement, plafonnés à
-    // la longueur maximale d'un tracé sur le plus grand des modes accessibles
-    // (le mode peut changer à chaud sans recharger les dictionnaires).
-    const maxCellCount = Math.max(
-      ...ENABLED_MODES.map((m) => GAME_MODES[m].rows * GAME_MODES[m].cols),
-    );
-    const { full, tiers } = await loadDictionaries(DEBUG ? maxCellCount : 0);
-    state.words = full.words;
-    state.fullPrefixes = full.prefixes;
-    state.tierWords = {
-      enfant: tiers.enfant.words,
-      ado: tiers.ado.words,
-      adulte: tiers.adulte.words,
-      inconnu: tiers.inconnu.words,
-    };
-  } catch (err) {
-    console.error("Tracemot : échec du chargement des dictionnaires", err);
-    renderLoadError(
-      "Impossible de charger le dictionnaire. Servez le jeu via HTTP " +
-        "(ex. « python -m http.server ») - l’ouverture directe en file:// ne fonctionne pas.",
-    );
-    return;
-  }
-
-  hideStatus();
+  // La grille construite là l'est pour la géométrie par défaut ; rebuildGrid
+  // la refera à la forme du premier niveau lancé.
+  attachInputHandlers({
+    onCommit: commitPath,
+    onReplay: () => {
+      if (state.levelId) startLevel(state.modeId, state.levelId);
+    },
+  });
+  bindMap(startLevel);
+  bindMapReturn(backToMap);
 
   if (DEBUG) {
     debug = await import("./debug/debug.ts");
     debug.buildDebugPanel();
   }
 
-  startGame();
-  // Première visite : on présente la règle d'emblée (le statut de chargement
-  // vient d'être masqué, le panneau est donc visible).
-  showRuleOnFirstVisit();
+  hideStatus();
+  showMap(); // la carte est l'écran d'accueil : aucune partie tant qu'on n'a
+  // pas choisi de niveau.
 }
 
 init();

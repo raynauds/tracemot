@@ -9,12 +9,17 @@
   --muted: #6e6656;
   --line: #d8cfbc;
   --ghost: #b9af9c;
-  --foot: #a99f8a;
-  --star-off: #cfc6b2;
-  --level-selected: #efe7d6;
-  --level-pressed: #e7dcc3;
   --serif: "Source Serif 4", serif;
   --mono: "IBM Plex Mono", monospace;
+
+  /* Carte de progression : un papier plus sourd que celui du jeu, pour que
+     l'accueil et la partie ne se confondent jamais. */
+  --map-paper: #efe9da;
+  --map-validated: #e6e8d6;
+  --map-rule: #c6bca6;
+  --map-dash: #c1b7a2;
+  --map-count: #8a806c;
+  --map-hint: #4a4438;
 }
 
 * {
@@ -104,75 +109,46 @@ body {
   color: var(--vermilion);
 }
 
-/* ---------- Sélecteurs du header (chip + popover / feuille) ---------- */
+/* ---------- Retour à la carte + identifiant du niveau (header) ---------- */
 
-/* Composant partagé par la difficulté (« ★ 1 · Doux ») et le mode
-   (« ▦ 5×5 »). Un tap ouvre le popover sous la chip (desktop) ou la
-   feuille en bas d'écran (mobile) ; choisir une ligne ferme aussitôt et
-   confirme par un toast d'environ 2 s. */
-.difficulty {
-  position: relative;
+/* Sortie de partie. Filet encre plein : c'est l'action la plus structurante
+   du header, elle prime sur le « ? » (filet clair). */
+.back-map {
   align-self: center;
-  /* Réactive les events : seul contrôle interactif du header (overlay). */
   pointer-events: auto;
-  /* Invisible mais emprise réservée tant que le niveau restauré n'est pas
-     écrit dans la chip (classe posée par renderDifficultyBar) : évite de
-     voir le placeholder HTML se corriger, sans pop-in au dévoilement. */
-  visibility: hidden;
-}
-
-.difficulty.ready {
-  visibility: visible;
-}
-
-.diff-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border: 1.5px solid var(--ink);
-  background: var(--card);
-  color: var(--ink);
   padding: 8px 13px;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
   cursor: pointer;
 }
 
-.diff-chip-star {
-  color: var(--vermilion);
-  font-size: 16px;
-  line-height: 1;
-}
-
-.diff-chip-label {
-  font-family: var(--mono);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.diff-chip-caret {
-  font-size: 10px;
-  color: var(--muted);
-}
-
-.diff-chip-caret::before {
-  content: "▾";
-}
-
-/* Panneau ouvert : chip inversée, caret retourné */
-.diff-chip.open {
+.back-map:hover {
   background: var(--ink);
   color: var(--paper);
 }
 
-.diff-chip.open .diff-chip-caret {
-  color: var(--ghost);
+/* Étiquette du niveau en cours : information, pas commande — mono estompé. */
+.level-id {
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--muted);
 }
 
-.diff-chip.open .diff-chip-caret::before {
-  content: "▴";
-}
+/* ---------- Voile + panneau (composant partagé) ---------- */
 
-/* Voile + panneau : composant partagé avec la règle (voir .rule plus bas), qui
-   réutilise .diff-overlay / .diff-panel / .diff-panel-head / .diff-close. */
+/* Hérité du sélecteur de difficulté disparu ; seule la règle du jeu l'emploie
+   encore (popover desktop, feuille mobile). Les classes gardent leur nom :
+   elles restent le composant « panneau du header ». */
 .diff-overlay {
   position: fixed;
   inset: 0;
@@ -223,179 +199,20 @@ body {
   background: var(--card-hover);
 }
 
-.diff-list {
-  display: flex;
-  flex-direction: column;
-  margin-top: 10px;
-}
-
-.diff-level {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 56px;
-  padding: 0 10px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--line);
-  font-family: var(--serif);
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
-}
-
-.diff-level-bar {
-  flex: 0 0 auto;
-  width: 4px;
-  align-self: stretch;
-  margin: 6px 0;
-  background: transparent;
-}
-
-.diff-level-stars {
-  flex: 0 0 auto;
-  width: 82px;
-  font-size: 14px;
-  letter-spacing: 1px;
-  line-height: 1;
-}
-
-.diff-level-stars .on {
-  color: var(--vermilion);
-}
-
-.diff-level-stars .off {
-  color: var(--star-off);
-}
-
-.diff-level-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.diff-level-name {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.diff-level-desc {
-  font-size: 12.5px;
-  font-style: italic;
-  color: var(--muted);
-}
-
-/* Coche réservée en largeur sur chaque ligne, encrée sur la sélection */
-.diff-level-check {
-  font-size: 16px;
-  font-weight: 700;
-  color: transparent;
-}
-
-.diff-level.selected {
-  background: var(--level-selected);
-}
-
-.diff-level.selected .diff-level-bar {
-  background: var(--vermilion);
-}
-
-.diff-level.selected .diff-level-check {
-  color: var(--vermilion);
-}
-
-@media (hover: hover) {
-  .diff-level:not(:disabled):not(.selected):hover {
-    background: var(--card-hover);
-  }
-}
-
-.diff-level:not(:disabled):active {
-  background: var(--level-pressed);
-}
-
-.diff-level:not(:disabled):active .diff-level-bar {
-  background: var(--line);
-}
-
-/* Difficulté retirée de ENABLED_DIFFICULTIES : ligne inerte, estompée */
-.diff-level:disabled {
-  cursor: default;
-  opacity: 0.35;
-}
-
-.diff-note {
-  margin: 12px 0 0;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 1px;
-  color: var(--foot);
-}
-
-/* Toast de confirmation, par-dessus la grille (non interactif) */
-.diff-toast {
-  position: fixed;
-  z-index: 22;
-  pointer-events: none;
-  left: 50%;
-  top: 56%;
-  transform: translateX(-50%);
-  width: min(440px, 100vw - 32px);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  background: var(--ink);
-  color: var(--paper);
-  box-shadow: 0 12px 30px rgba(38, 34, 28, 0.35);
-  animation: toast-in 0.2s ease;
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(8px);
-  }
-}
-
-.diff-toast-bar {
-  flex: 0 0 auto;
-  width: 6px;
-  align-self: stretch;
-  background: var(--vermilion);
-}
-
-.diff-toast-text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.diff-toast-title {
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.diff-toast-sub {
-  font-family: var(--mono);
-  font-size: 11.5px;
-  letter-spacing: 1px;
-  color: var(--ghost);
-  text-transform: uppercase;
-}
-
 /* La grille, le tracé et leurs feedbacks (deal, pop, flash, shake, stamp)
    sont rendus par PixiJS sur le canvas de fond (src/render/scene.ts). Il ne reste
    ici que le chrome en surimpression. */
 
 /* ---------- Chargement / erreur ---------- */
 
-/* Overlay plein écran au-dessus du canvas Pixi. */
+/* Overlay plein écran au-dessus de TOUT, carte comprise (d'où z-index > 40) :
+   l'échec de chargement d'un niveau renvoie à la carte, et le message serait
+   masqué par elle s'il passait dessous — l'échec deviendrait silencieux.
+   Un clic le referme et rend la carte, déjà re-rendue, au joueur. */
 .status {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -412,6 +229,8 @@ body {
   color: var(--vermilion);
   letter-spacing: 0.5px;
   line-height: 1.6;
+  white-space: pre-line; /* le message est écrit en textContent, sauts compris */
+  cursor: pointer; /* le message se referme d'un clic (voir renderLoadError) */
 }
 
 /* ---------- Bloc victoire (overlay plein écran) ---------- */
@@ -457,10 +276,19 @@ body {
   color: var(--ghost);
 }
 
-.win-replay {
-  align-self: center;
+/* Deux actions empilées : la carte d'abord (c'est là que la progression se
+   voit et que le niveau suivant se choisit), le rejeu ensuite — utile mais
+   marginal, donc en bouton fantôme. */
+.win-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
   width: min(360px, 100%);
   margin-top: 18px;
+}
+
+.win-replay {
   height: 62px;
   background: var(--vermilion);
   color: var(--paper);
@@ -477,6 +305,23 @@ body {
 }
 .win-replay:active {
   filter: brightness(0.94);
+}
+
+.win-second {
+  height: 54px;
+  background: none;
+  color: var(--paper);
+  border: 1.5px solid var(--ghost);
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+
+.win-second:hover {
+  border-color: var(--paper);
+  background: rgba(246, 241, 231, 0.08);
 }
 
 /* Confettis - positions et tailles proportionnelles à l'emprise */
@@ -869,8 +714,8 @@ body {
   }
   .header-left {
     gap: 10px;
-    /* Titre + chips mode/difficulté + « ? » : sur très petit écran, les
-       chips passent à la ligne plutôt que de déborder du header. */
+    /* Titre + « ← CARTE » + niveau + « ? » : sur très petit écran, ils passent
+       à la ligne plutôt que de déborder du header. */
     flex-wrap: wrap;
   }
   .title {
@@ -883,20 +728,13 @@ body {
     font-size: 17px;
   }
 
-  /* La chip reste dans la ligne du header (plus basse que le titre) :
-     la hauteur totale du contenu ne bouge pas. */
-  .diff-chip {
-    gap: 6px;
+  .back-map {
     padding: 7px 10px;
+    font-size: 12px;
   }
-  .diff-chip-star {
-    font-size: 14px;
-  }
-  .diff-chip-label {
-    font-size: 12.5px;
-  }
-  .diff-chip-caret {
-    font-size: 9px;
+  .level-id {
+    font-size: 12px;
+    letter-spacing: 1px;
   }
 
   /* Feuille en bas d'écran à la place du popover, voile plus dense */
@@ -927,12 +765,6 @@ body {
     height: 32px;
     font-size: 14px;
   }
-  .diff-list {
-    margin-top: 12px;
-  }
-  .diff-note {
-    margin-top: 14px;
-  }
 
   .win {
     gap: 16px;
@@ -946,10 +778,13 @@ body {
     letter-spacing: 2px;
   }
   .win-replay {
-    margin-top: 14px;
     height: 56px;
     font-size: 19px;
     letter-spacing: 3px;
+  }
+  .win-second {
+    height: 50px;
+    font-size: 15px;
   }
 
   /* Registre : pastille compacte ancrée en bas à droite ; dépliée en tiroir
@@ -1065,5 +900,631 @@ body {
 @media (pointer: coarse) {
   .zoom-btn--step {
     display: none;
+  }
+}
+
+/* ---------- Carte de progression (src/render/map.ts) --------------------- */
+
+/* Overlay plein écran au-dessus de TOUT le chrome de partie (statut et
+   victoire compris, z-index 30) : la carte est un écran, pas un panneau. Elle
+   capte les events, ce qui suffit à neutraliser les gestes Pixi dessous —
+   aucun détachement d'écouteur nécessaire. Elle porte son propre scroll : le
+   body reste `overflow: hidden` (le canvas ne doit jamais défiler). */
+.map {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  background: var(--map-paper);
+  color: var(--ink);
+  font-family: var(--serif);
+}
+
+/* Carte ouverte : le chrome de partie disparaît d'un bloc. La carte n'a donc
+   pas à connaître ces éléments un par un. */
+body.map-open .header,
+body.map-open .ledger,
+body.map-open .zoom-controls,
+body.map-open .win {
+  display: none;
+}
+
+/* --- En-tête de la carte --- */
+
+.map-header {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 18px 32px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.map-brand {
+  font-size: 26px;
+  font-weight: 700;
+}
+
+/* Pousse le compteur à droite sans marge auto (le gap resterait appliqué). */
+.map-spring {
+  flex: 1;
+}
+
+.map-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.map-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.map-tab:hover {
+  background: var(--card-hover);
+}
+
+.map-tab.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Prochain mode verrouillé : montré (on sait ce qui vient) mais inerte. */
+.map-tab.is-locked {
+  background: transparent;
+  border: 1.5px dashed var(--map-dash);
+  color: var(--ghost);
+  cursor: default;
+}
+
+.map-tab.is-locked:hover {
+  background: transparent;
+}
+
+.map-tab-lock {
+  width: 10px;
+  height: 12px;
+  fill: var(--ghost);
+  stroke: var(--ghost);
+  stroke-width: 1.5;
+}
+
+/* Débloqué mais jamais ouvert : le seul signal « nouveau » de l'interface. */
+.map-tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vermilion);
+}
+
+.map-total {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--mono);
+}
+
+.map-total-num {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--vermilion);
+  white-space: nowrap;
+}
+
+.map-total-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--map-count);
+  white-space: nowrap;
+}
+
+/* --- Corps : accroche, sections, brouillard --- */
+
+/* `position: relative` : le brouillard est un absolu ancré sur ce bloc. */
+.map-body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  padding: 30px 32px 0;
+}
+
+.map-hint {
+  margin: 0;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--map-hint);
+}
+
+.map-sections {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Jalon de section : deux filets qui enserrent le nom de la difficulté. Pas
+   d'encadré — la carte est continue, la section n'est qu'une graduation. */
+.map-milestone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 0 14px;
+}
+
+.map-milestone-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--map-rule);
+}
+
+.map-milestone-label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.map-milestone-name {
+  font-size: 18px;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.map-milestone-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--map-count);
+  white-space: nowrap;
+}
+
+.map-milestone-count.is-complete {
+  color: var(--vermilion);
+}
+
+.map-section-body {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.map-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 64px);
+  grid-auto-rows: 64px;
+  gap: 8px;
+}
+
+/* --- Cases --- */
+
+.map-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 1.5px solid transparent;
+  font-family: var(--serif);
+}
+
+/* Validée et jouable partagent le même relief : elles sont « allumées ». */
+.map-cell.is-validated,
+.map-cell.is-active {
+  border-color: var(--ink);
+  box-shadow: 2.5px 2.5px 0 var(--ink);
+  cursor: pointer;
+}
+
+.map-cell.is-validated {
+  background: var(--map-validated);
+}
+
+.map-cell.is-active {
+  background: var(--card);
+}
+
+.map-cell.is-active:hover,
+.map-cell.is-validated:hover {
+  background: var(--card-hover);
+}
+
+/* Enfoncement : la case rejoint son ombre. */
+.map-cell.is-active:active,
+.map-cell.is-validated:active {
+  transform: translate(2.5px, 2.5px);
+  box-shadow: none;
+}
+
+/* Visible mais pas encore atteignable : pointillé, pas d'ombre, pas de relief. */
+.map-cell.is-disabled {
+  border: 1.5px dashed var(--map-rule);
+}
+
+.map-cell-num {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.map-cell.is-disabled .map-cell-num {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ghost);
+}
+
+.map-cell-mark {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--vermilion);
+}
+
+/* --- Boss (« Défi ») --- */
+
+/* Deux nœuds, un seul affiché : grande case à droite du bloc (desktop),
+   bandeau sous la grille (mobile). La bascule est ici, pas en JS. */
+.map-boss {
+  box-sizing: border-box;
+  background: transparent;
+  border: 1.5px solid transparent;
+  font-family: var(--serif);
+  text-align: center;
+}
+
+.map-boss--card {
+  width: 280px; /* = 4×64 + 3×8 : la case couvre les 4 lignes de la section */
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0;
+}
+
+.map-boss--band {
+  display: none;
+}
+
+.map-boss.is-validated,
+.map-boss.is-active {
+  border-color: var(--ink);
+  box-shadow: 2.5px 2.5px 0 var(--ink);
+  cursor: pointer;
+}
+
+.map-boss.is-validated {
+  background: var(--map-validated);
+}
+
+/* Prêt à jouer : c'est l'événement de la section — filet et ombre plus lourds
+   que ceux d'une case ordinaire. */
+.map-boss.is-active {
+  background: var(--card);
+  border-width: 2px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.map-boss.is-validated:hover,
+.map-boss.is-active:hover {
+  background: var(--card-hover);
+}
+
+.map-boss.is-disabled {
+  border: 1.5px dashed var(--map-rule);
+}
+
+.map-boss-mark {
+  font-size: 26px;
+  line-height: 1;
+  color: var(--vermilion);
+}
+
+.map-boss-title {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.map-boss.is-disabled .map-boss-title {
+  color: var(--ghost);
+}
+
+.map-boss-texts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 85%;
+}
+
+.map-boss-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.map-boss.is-validated .map-boss-sub {
+  color: var(--map-count);
+}
+
+.map-boss.is-disabled .map-boss-sub {
+  color: var(--map-rule);
+}
+
+.map-boss-caption {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+  color: var(--map-count);
+}
+
+/* Seule la mention « PRÊT À JOUER » est vermillon : c'est un appel à l'action. */
+.map-boss.is-active .map-boss-caption {
+  color: var(--vermilion);
+}
+
+.map-boss.is-disabled .map-boss-caption {
+  color: var(--ghost);
+}
+
+/* --- Frange de brouillard --- */
+
+/* Le spacer réserve la hauteur que le dégradé va noyer : la dernière ligne
+   rendue ne doit jamais passer sous le brouillard. */
+.map-spacer {
+  height: 150px;
+  flex: 0 0 auto;
+}
+
+.map-fog {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 190px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 26px;
+  background: linear-gradient(
+    to bottom,
+    rgba(239, 233, 218, 0) 0%,
+    rgba(239, 233, 218, 0.9) 55%,
+    var(--map-paper) 100%
+  );
+}
+
+.map-fog-text {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ghost);
+}
+
+/* --- Légende --- */
+
+.map-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  padding: 0 32px 28px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  color: var(--map-count);
+}
+
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-legend-swatch {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: var(--vermilion);
+}
+
+.map-legend-swatch.is-validated {
+  background: var(--map-validated);
+  border: 1.5px solid var(--ink);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+
+.map-legend-swatch.is-validated::before {
+  content: "✓";
+}
+
+.map-legend-swatch.is-active {
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+}
+
+.map-legend-swatch.is-disabled {
+  border: 1.5px dashed var(--map-rule);
+}
+
+/* --- Carte : mobile --- */
+
+@media (max-width: 640px) {
+  .map-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 16px 16px 12px;
+  }
+  .map-brand {
+    font-size: 20px;
+  }
+  /* Le ressort passe AVANT les onglets (ordre visuel) : marque et compteur sur
+     la première ligne, onglets sur la seconde. */
+  .map-spring {
+    order: 1;
+    flex: 1 0 0;
+  }
+  .map-total {
+    order: 2;
+    gap: 8px;
+  }
+  .map-total-num {
+    font-size: 15px;
+  }
+  .map-total-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+  }
+  .map-tabs {
+    order: 3;
+    flex-basis: 100%;
+    gap: 8px;
+  }
+  .map-tab {
+    gap: 7px;
+    padding: 6px 13px;
+    font-size: 12px;
+  }
+  .map-tab-lock {
+    width: 9px;
+    height: 11px;
+  }
+
+  .map-body {
+    align-items: stretch;
+    gap: 4px;
+    padding: 16px 16px 0;
+  }
+  .map-hint {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .map-milestone {
+    gap: 11px;
+    padding: 18px 0 12px;
+  }
+  .map-milestone-name {
+    font-size: 16px;
+  }
+  .map-milestone-count {
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  /* La grille prend toute la largeur : les cases se répartissent. */
+  .map-grid {
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 53px;
+    gap: 6px;
+    flex: 1;
+  }
+  .map-cell-num {
+    font-size: 17px;
+  }
+  .map-cell.is-disabled .map-cell-num {
+    font-size: 11px;
+  }
+  .map-cell-mark {
+    font-size: 11px;
+  }
+
+  /* Le boss quitte la droite pour un bandeau sous la grille : à cette largeur,
+     une case de 280px écraserait la grille. */
+  .map-boss--card {
+    display: none;
+  }
+  .map-boss--band {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    height: 64px;
+    padding: 0 14px;
+    text-align: left;
+  }
+  .map-boss--band .map-boss-mark {
+    font-size: 19px;
+  }
+  .map-boss--band .map-boss-title {
+    font-size: 19px;
+  }
+  /* Poussés à droite du bandeau, alignés en colonne serrée. */
+  .map-boss--band .map-boss-texts {
+    margin-left: auto;
+    align-items: flex-end;
+    gap: 4px;
+    max-width: none;
+    text-align: right;
+  }
+  .map-boss--band .map-boss-sub {
+    font-size: 9.5px;
+    letter-spacing: 1px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .map-boss--band .map-boss-caption {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .map-spacer {
+    height: 120px;
+  }
+  .map-fog {
+    height: 150px;
+    padding-bottom: 20px;
+  }
+  .map-fog-text {
+    font-size: 9.5px;
+    letter-spacing: 1.5px;
+  }
+
+  .map-legend {
+    gap: 10px 18px;
+    padding: 0 16px 24px;
+    font-size: 9.5px;
+    letter-spacing: 0.5px;
+  }
+  .map-legend-item {
+    gap: 6px;
+  }
+  .map-legend-swatch {
+    width: 11px;
+    height: 11px;
+    font-size: 7px;
+  }
+  .map-legend-swatch.is-validated,
+  .map-legend-swatch.is-active {
+    box-shadow: 1px 1px 0 var(--ink);
   }
 }

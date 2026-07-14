@@ -601,10 +601,11 @@ export async function initScene(): Promise<void> {
   buildZoomControls();
 }
 
-// Reconstruit la grille Pixi pour le mode actif (changement de mode à
-// chaud) : annule les animations en cours, détruit cases et lettres, recadre
-// la caméra sur la nouvelle forme, recrée la grille. Les lettres sont
-// reposées par renderSceneGrid (startGame).
+// Reconstruit la grille Pixi à la forme du niveau lancé (elle change d'un
+// niveau à l'autre — un boss double le côté) : annule les animations en cours,
+// détruit cases et lettres, recadre la caméra sur la nouvelle forme, recrée la
+// grille. Les lettres sont reposées ensuite par renderSceneGrid (main.ts,
+// startLevel).
 export function rebuildGrid(): void {
   if (!app) return;
   cancelTweens(); // aucun onUpdate ne doit toucher une case détruite
