@@ -183,14 +183,16 @@ Un quatrième groupe, `map-*`, existe pour la carte de progression seule. Son
 papier est délibérément plus sourd que celui du jeu : l'accueil et la partie ne
 doivent jamais se confondre à l'œil.
 
-**Duplication à connaître.** Ces couleurs vivent à deux endroits, tenus
-synchronisés à la main :
+**Une seule source.** La palette est écrite dans `src/theme/tokens.ts`, et elle
+seule. Le DOM et PixiJS — qui ne lit pas les variables CSS — en sont deux
+consommateurs, dans leurs formats respectifs :
 
-- `style.css` → `:root`, en custom properties (`--paper`, `--ink`…), pour le DOM.
-- `src/game/config.ts`, en hexadécimal numérique (`PAPER = 0xf6f1e7`), parce que
-  PixiJS ne lit pas les variables CSS.
+- `src/theme/tokens.css`, custom properties (`--paper`, `--ink`…) pour le DOM :
+  **fichier généré**, jamais édité à la main (`npm run generate:tokens`, contrôlé
+  par `npm run check:tokens`).
+- `src/game/config.ts`, hexadécimal numérique (`PAPER = hex("paper")`) pour Pixi.
 
-Changer une couleur impose de la changer **aux deux endroits**. Une seule couleur
+Changer une couleur = la changer dans `tokens.ts` et régénérer. Une seule couleur
 échappe aux tokens : le vert `#2e7d32` du panneau de debug — c'est volontaire, le
 debug n'est pas de l'interface produit.
 

@@ -19,6 +19,7 @@ import {
   VERMILION,
   ZOOM_STEP,
 } from "../game/config.ts";
+import { SERIF_NAME } from "../theme/tokens.ts";
 import { state } from "../game/state.ts";
 import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.ts";
 
@@ -222,7 +223,7 @@ function buildGrid(): void {
     const text = new Text({
       text: "",
       style: {
-        fontFamily: "Source Serif 4",
+        fontFamily: SERIF_NAME,
         fontWeight: "700",
         fontSize: metrics.font,
         fill: INK,
@@ -578,7 +579,7 @@ export async function initScene(): Promise<void> {
 
   // Polices prêtes avant de créer les Text (sinon fallback figé en texture).
   try {
-    await document.fonts.load('700 42px "Source Serif 4"');
+    await document.fonts.load(`700 42px "${SERIF_NAME}"`);
     await document.fonts.ready;
   } catch (_) {
     /* API Font indisponible : on construit quand même */

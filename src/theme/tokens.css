@@ -1,0 +1,22 @@
+/* FICHIER GÉNÉRÉ — ne pas éditer à la main.
+   Source : src/theme/tokens.ts · Régénérer : npm run generate:tokens */
+
+:root {
+  --paper: #f6f1e7;
+  --card: #fdfbf5;
+  --card-hover: #f3ecdc;
+  --ink: #26221c;
+  --muted: #6e6656;
+  --ghost: #b9af9c;
+  --vermilion: #b3402a;
+  --line: #d8cfbc;
+  --map-paper: #efe9da;
+  --map-validated: #e6e8d6;
+  --map-rule: #c6bca6;
+  --map-dash: #c1b7a2;
+  --map-count: #8a806c;
+  --map-hint: #4a4438;
+
+  --serif: "Source Serif 4", serif;
+  --mono: "IBM Plex Mono", monospace;
+}

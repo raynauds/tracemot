@@ -1,6 +1,8 @@
 // Réglages du jeu. GAME_MODES, DEFAULT_MODE et DEBUG sont faits pour être
 // modifiés, le reste décrit la grille et l'interface.
 
+import { hex } from "../theme/tokens.ts";
+
 export type GameMode = {
   rows: number;
   cols: number;
@@ -183,12 +185,14 @@ export const EDGE_PAN_MARGIN = 64;
 export const EDGE_PAN_MAX_SPEED = 700;
 
 // --- Palette numérique (0xRRGGBB) pour Pixi -------------------------------
-// Portée depuis style.css : Pixi attend des couleurs numériques.
-export const PAPER = 0xf6f1e7;
-export const CARD = 0xfdfbf5;
-export const CARD_HOVER = 0xf3ecdc;
-export const INK = 0x26221c;
-export const VERMILION = 0xb3402a;
-export const MUTED = 0x6e6656;
-export const LINE = 0xd8cfbc;
-export const GHOST = 0xb9af9c;
+// DÉRIVÉE de src/theme/tokens.ts, la source unique de la palette : Pixi attend
+// des nombres, le DOM des variables CSS (tokens.css, généré depuis le même
+// module). Aucune couleur n'est recopiée, changer un token suffit.
+export const PAPER = hex("paper");
+export const CARD = hex("card");
+export const CARD_HOVER = hex("card-hover");
+export const INK = hex("ink");
+export const VERMILION = hex("vermilion");
+export const MUTED = hex("muted");
+export const LINE = hex("line");
+export const GHOST = hex("ghost");

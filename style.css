@@ -1,26 +1,9 @@
 /* Tracemot - Lexique v2 (design section 2a) */
 
-:root {
-  --paper: #f6f1e7;
-  --card: #fdfbf5;
-  --card-hover: #f3ecdc;
-  --ink: #26221c;
-  --vermilion: #b3402a;
-  --muted: #6e6656;
-  --line: #d8cfbc;
-  --ghost: #b9af9c;
-  --serif: "Source Serif 4", serif;
-  --mono: "IBM Plex Mono", monospace;
-
-  /* Carte de progression : un papier plus sourd que celui du jeu, pour que
-     l'accueil et la partie ne se confondent jamais. */
-  --map-paper: #efe9da;
-  --map-validated: #e6e8d6;
-  --map-rule: #c6bca6;
-  --map-dash: #c1b7a2;
-  --map-count: #8a806c;
-  --map-hint: #4a4438;
-}
+/* Palette et polices : variables CSS générées depuis src/theme/tokens.ts, la
+   source unique dont Pixi tire aussi ses couleurs (src/game/config.ts). Ne pas
+   redéfinir de couleur en dur ici — l'ajouter aux tokens et régénérer. */
+@import "./src/theme/tokens.css";
 
 * {
   box-sizing: border-box;
