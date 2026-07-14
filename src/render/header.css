@@ -56,7 +56,16 @@
   cursor: pointer;
 }
 
-.back-map:hover {
+/* Survol réservé à la souris : au doigt, le navigateur simule un :hover au tap
+   et le laisse collé jusqu'au tap suivant — la flèche resterait vermillon après
+   le relâchement. L'appui, lui (:active), se relâche partout. */
+@media (hover: hover) {
+  .back-map:hover {
+    color: var(--vermilion);
+  }
+}
+
+.back-map:active {
   color: var(--vermilion);
 }
 

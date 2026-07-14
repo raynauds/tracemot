@@ -28,7 +28,17 @@
   cursor: pointer;
 }
 
-.rule-chip:hover,
+/* .open est un vrai état (le panneau est ouvert), il vaut partout. Le survol,
+   lui, n'est réservé qu'à la souris : au doigt, le navigateur simule un :hover
+   au tap et le laisse collé jusqu'au tap suivant — le « i » resterait encré
+   après la fermeture du panneau. */
+@media (hover: hover) {
+  .rule-chip:hover {
+    color: var(--ink);
+  }
+}
+
+.rule-chip:active,
 .rule-chip.open {
   color: var(--ink);
 }

@@ -32,8 +32,15 @@
   cursor: pointer;
 }
 
-.zoom-btn:hover {
-  background: var(--card-hover);
+/* Le survol n'existe que là où un pointeur peut se poser sans appuyer. Au
+   doigt, le navigateur simule quand même un :hover au tap et le LAISSE collé
+   jusqu'au tap suivant, ailleurs : le bouton resterait allumé après le
+   relâchement. `(hover: hover)` réserve donc l'état à la souris ; le doigt,
+   lui, a :active, qui se relâche. */
+@media (hover: hover) {
+  .zoom-btn:hover {
+    background: var(--card-hover);
+  }
 }
 
 .zoom-btn:active {
@@ -51,7 +58,15 @@
   font-size: 24px;
 }
 
-.zoom-btn--fit:hover,
+@media (hover: hover) {
+  .zoom-btn--fit:hover {
+    background: none;
+    color: var(--vermilion);
+  }
+}
+
+/* Sans fond à inverser, l'appui se dit par l'encre qui vire au vermillon — et
+   revient au noir au relâchement. */
 .zoom-btn--fit:active {
   background: none;
   color: var(--vermilion);
