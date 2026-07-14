@@ -1,7 +1,7 @@
 // Scène Pixi : rendu plein écran de la grille (fonds de cases + lettres),
 // tracé actif et tracés fantômes. Le chrome (registre, chrono, difficulté,
-// victoire) reste piloté par render.js. La caméra (zoom molette/boutons,
-// cadrage) vit dans camera.js. L'arbitrage des gestes vit dans input.js, qui
+// victoire) reste piloté par render.ts. La caméra (zoom molette/boutons,
+// cadrage) vit dans camera.ts. L'arbitrage des gestes vit dans input.ts, qui
 // s'appuie sur cellAtGlobal / getStage exposés ici.
 
 import { Application, Container, Graphics, Text } from "pixi.js";
@@ -18,8 +18,8 @@ import {
   PAPER,
   VERMILION,
   ZOOM_STEP,
-} from "./config.ts";
-import { state } from "./state.ts";
+} from "../game/config.ts";
+import { state } from "../game/state.ts";
 import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.ts";
 
 // Géométrie de la grille, tirée du mode actif. Réadoptée au changement de
@@ -127,7 +127,7 @@ function cellState(i: number): "disabled" | "head" | "sel" | "normal" {
   return "normal";
 }
 
-// Peint fond + lettre d'une case selon son état (couleurs de config.js).
+// Peint fond + lettre d'une case selon son état (couleurs de config.ts).
 function paintCell(i: number): void {
   let fill: number, stroke: number, textFill: number;
   switch (cellState(i)) {
@@ -429,7 +429,7 @@ export function renderUsedCells(): void {
 
 // Survol d'un mot du panneau debug : surligne les cases de son tracé (apparence
 // « hover »), ou efface le surlignage si path est null. Sans effet hors debug
-// (setDebugHint n'est appelé que par debug.js, chargé si DEBUG).
+// (setDebugHint n'est appelé que par debug.ts, chargé si DEBUG).
 export function setDebugHint(path: number[] | null): void {
   if (!app) return;
   debugHint.clear();
@@ -437,7 +437,7 @@ export function setDebugHint(path: number[] | null): void {
   repaintCells();
 }
 
-// --- Hit-test / accès stage (pour input.js) --------------------------------
+// --- Hit-test / accès stage (pour input.ts) --------------------------------
 
 // Case sous un point écran (Point global d'un event fédéré), ou null.
 // Conversion écran→monde via world.toLocal, puis tolérance rayon cell/2
@@ -459,13 +459,13 @@ export function getStage(): Container {
   return app.stage;
 }
 
-// Application Pixi : input.js s'en sert pour le canvas (contextmenu/dragstart)
+// Application Pixi : input.ts s'en sert pour le canvas (contextmenu/dragstart)
 // et le Ticker (pan clavier).
 export function getApp(): Application {
   return app;
 }
 
-// Caméra : input.js la pilote pour le pan (translation) et le pinch (zoom
+// Caméra : input.ts la pilote pour le pan (translation) et le pinch (zoom
 // autour du milieu des doigts). Le zoom molette/boutons reste géré ici.
 export function getCamera(): Camera {
   return camera;

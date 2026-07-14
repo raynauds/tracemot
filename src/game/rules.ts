@@ -1,5 +1,5 @@
 // Validation d'un mot. Partagé entre la validation au lâcher du tracé
-// (main.js) et le hint d'encre du registre (render.js).
+// (main.ts) et le hint d'encre du registre (render.ts).
 
 import { state } from "./state.ts";
 

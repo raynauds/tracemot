@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- La grille et le tracé sont rendus par PixiJS (js/scene.js) sur un
+    <!-- La grille et le tracé sont rendus par PixiJS (src/render/scene.ts) sur un
          canvas plein écran en fond (position: fixed, z-index: 0). Tout le
          chrome ci-dessous est en surimpression (overlays position: fixed).
          Les conteneurs d'overlay laissent passer les events de tracé
@@ -35,8 +35,8 @@
             aria-expanded="false"
           >
             <span class="diff-chip-star" aria-hidden="true">★</span>
-            <!-- Pré-rempli avec le niveau par défaut (config.js) pour éviter
-                 un shift ; js/render.js réécrit selon le niveau restauré. -->
+            <!-- Pré-rempli avec le niveau par défaut (src/game/config.ts) pour éviter
+                 un shift ; src/render/render.ts réécrit selon le niveau restauré. -->
             <span class="diff-chip-label" id="diff-chip-label">1 · Doux</span>
             <span class="diff-chip-caret" aria-hidden="true"></span>
           </button>
@@ -60,7 +60,7 @@
               </button>
             </div>
             <div class="diff-list" id="diff-list">
-              <!-- niveaux générés par js/render.js -->
+              <!-- niveaux générés par src/render/render.ts -->
             </div>
             <p class="diff-note">CHANGER DE NIVEAU RELANCE UNE GRILLE</p>
           </div>
@@ -74,7 +74,7 @@
         </nav>
         <!-- Sélecteur de mode : même composant voile + panneau que la
              difficulté (popover desktop, feuille mobile), classes .diff-*
-             réutilisées. Les modes vivent dans config.js (GAME_MODES). -->
+             réutilisées. Les modes vivent dans src/game/config.ts (GAME_MODES). -->
         <nav class="difficulty" id="mode-nav" aria-label="Mode de jeu">
           <button
             type="button"
@@ -84,8 +84,8 @@
             aria-expanded="false"
           >
             <span class="diff-chip-star" aria-hidden="true">▦</span>
-            <!-- Pré-rempli avec le mode par défaut (config.js) pour éviter
-                 un shift ; js/render.js réécrit selon le mode restauré. -->
+            <!-- Pré-rempli avec le mode par défaut (src/game/config.ts) pour éviter
+                 un shift ; src/render/render.ts réécrit selon le mode restauré. -->
             <span class="diff-chip-label" id="mode-chip-label">5×5</span>
             <span class="diff-chip-caret" aria-hidden="true"></span>
           </button>
@@ -109,7 +109,7 @@
               </button>
             </div>
             <div class="diff-list" id="mode-list">
-              <!-- modes générés par js/render.js -->
+              <!-- modes générés par src/render/render.ts -->
             </div>
             <p class="diff-note">CHANGER DE GRILLE RELANCE UNE PARTIE</p>
           </div>
@@ -124,7 +124,7 @@
         <!-- Règle du jeu : bouton discret « ? » (subordonné à la difficulté).
              Il ouvre le même composant voile + panneau que la difficulté
              (popover desktop, feuille mobile). Ouvert automatiquement à la
-             première visite seulement (localStorage, js/render.js). -->
+             première visite seulement (localStorage, src/render/render.ts). -->
         <div class="rule" id="rule">
           <button
             type="button"
@@ -161,7 +161,7 @@
               sert qu'une fois.
             </p>
             <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
-                 js/render.js réécrit selon le mode actif (config.js). -->
+                 src/render/render.ts réécrit selon le mode actif (src/game/config.ts). -->
             <p class="rule-spec" id="rule-spec">5 mots · 5 lettres</p>
           </div>
         </div>
@@ -174,7 +174,7 @@
 
     <!-- Registre « Mots trouvés » : panneau flottant repliable ancré à droite.
          Ouvert par défaut sur desktop, replié en pastille (n / N) sur mobile
-         (js/render.js pose la classe .collapsed selon la largeur). -->
+         (src/render/render.ts pose la classe .collapsed selon la largeur). -->
     <section class="ledger" id="ledger">
       <button
         type="button"
@@ -185,15 +185,15 @@
       >
         <span class="ledger-label">MOTS TROUVÉS</span>
         <!-- Pré-rempli (0 / wordCount du mode par défaut) pour éviter un
-             shift ; js/render.js réécrit selon le mode restauré puis à
+             shift ; src/render/render.ts réécrit selon le mode restauré puis à
              chaque mot. -->
         <span class="counter" id="counter"
           ><span class="count">0</span> / 5</span
         >
         <span class="ledger-caret" aria-hidden="true"></span>
       </button>
-      <!-- Lignes pré-rendues (mode par défaut, voir config.js) pour éviter
-           un shift au chargement ; js/render.js les adopte et ajuste leur
+      <!-- Lignes pré-rendues (mode par défaut, voir src/game/config.ts) pour éviter
+           un shift au chargement ; src/render/render.ts les adopte et ajuste leur
            nombre au mode actif (restauré ou changé à chaud). -->
       <ol class="word-list" id="word-list">
         <li class="word-row empty">
@@ -235,6 +235,6 @@
       <button type="button" class="win-replay" id="replay">REJOUER</button>
     </div>
 
-    <script type="module" src="js/main.ts"></script>
+    <script type="module" src="src/main.ts"></script>
   </body>
 </html>

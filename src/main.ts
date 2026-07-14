@@ -8,12 +8,12 @@ import {
   ENABLED_DIFFICULTIES,
   ENABLED_MODES,
   GAME_MODES,
-} from "./config.ts";
-import { applyMode, state } from "./state.ts";
-import { buildLengthSets, loadDictionaries } from "./dictionary.ts";
-import { createGridGenerator } from "./solver.ts";
-import { wordRejectReason } from "./rules.ts";
-import { attachInputHandlers, cancelAllGestures, clearPath } from "./input.ts";
+} from "./game/config.ts";
+import { applyMode, state } from "./game/state.ts";
+import { buildLengthSets, loadDictionaries } from "./game/dictionary.ts";
+import { createGridGenerator } from "./game/solver.ts";
+import { wordRejectReason } from "./game/rules.ts";
+import { attachInputHandlers, cancelAllGestures, clearPath } from "./input/input.ts";
 import {
   flashPath,
   initScene,
@@ -22,7 +22,7 @@ import {
   renderUsedCells,
   shakeGrid,
   stampWord,
-} from "./scene.ts";
+} from "./render/scene.ts";
 import {
   bindDifficultyBar,
   bindModeBar,
@@ -41,13 +41,13 @@ import {
   showRuleOnFirstVisit,
   startTimer,
   stopTimer,
-} from "./render.ts";
+} from "./render/render.ts";
 
 const DIFFICULTY_STORAGE_KEY = "tracemot.difficulty";
 const MODE_STORAGE_KEY = "tracemot.mode";
 
 /** Module debug, chargé si DEBUG. */
-let debug: typeof import("./debug.ts") | null = null;
+let debug: typeof import("./debug/debug.ts") | null = null;
 
 /** Générateur du mode
  *  actif, fermé sur la géométrie et les dictionnaires (créé au premier
@@ -229,7 +229,7 @@ async function init() {
   hideStatus();
 
   if (DEBUG) {
-    debug = await import("./debug.ts");
+    debug = await import("./debug/debug.ts");
     debug.buildDebugPanel();
   }
 

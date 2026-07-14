@@ -23,4 +23,4 @@ Cinq niveaux nommés dosent le vocabulaire des mots cachés, tiré de quatre pal
 
 Le niveau se change depuis la chip du header, qui ouvre une feuille sur mobile ou un popover sur desktop. Changer de niveau relance une grille, confirmé par un toast. La difficulté choisie est mémorisée (`localStorage`).
 
-Les quotas exacts par niveau sont dans `DIFFICULTY_QUOTAS` (`js/config.js`), voir [stack-et-architecture.md](stack-et-architecture.md).
+Les quotas exacts par niveau sont dans `DIFFICULTY_QUOTAS` (`src/game/config.ts`), voir [stack-et-architecture.md](stack-et-architecture.md).

@@ -2,28 +2,28 @@
 
 ## Stack
 
-JS + HTML + CSS, modules ES natifs. Build **Vite**, une seule dépendance runtime : **PixiJS v8** (`pixi.js`). La grille (cases, lettres, tracé) est rendue en WebGL par Pixi ; le chrome (header, difficulté, règle, registre, zoom, victoire, debug) reste en HTML/CSS en surimpression. Ressources externes : les polices Google Fonts (Source Serif 4, IBM Plex Mono). Assets servis tels quels depuis `public/` (dictionnaires).
+TypeScript + HTML + CSS, modules ES natifs. Build **Vite** (`tsc --noEmit` pour le typage, script `npm run check`), une seule dépendance runtime : **PixiJS v8** (`pixi.js`). La grille (cases, lettres, tracé) est rendue en WebGL par Pixi ; le chrome (header, difficulté, règle, registre, zoom, victoire, debug) reste en HTML/CSS en surimpression. Ressources externes : les polices Google Fonts (Source Serif 4, IBM Plex Mono). Assets servis tels quels depuis `public/` (dictionnaires).
 
 ## Modules
 
-Tout le code vit sous `js/` :
+Tout le code vit sous `src/`, découpé en couches — `src/game/` est le domaine pur (zéro import `pixi.js`, réutilisable en Node), `src/render/` tout ce qui touche Pixi, et `game/` n'importe jamais `render/` ni `input/` :
 
-- `config.js` - réglages (dont modes de jeu, géométrie du monde Pixi et palette numérique).
-- `geometry.js` - géométrie d'une grille rows × cols (indices, voisins orthogonaux), partagée par le solveur, la scène et l'input.
-- `state.js` - état partagé (dont le mode actif et sa géométrie, changés à chaud via `applyMode`).
-- `dictionary.js` et `solver.js` - logique pure, sans DOM ni état (chargement des dictionnaires, génération et résolution de la grille) ; réutilisée telle quelle par le harnais Node `tools/solver-check.mjs`.
-- `rules.js` - validation d'un mot.
-- `scene.js` - scène Pixi : `Application`, couches, cases, lettres, tracé, tracés fantômes, animations et feedbacks (deal, pop, flash, shake, stamp).
-- `camera.js` - modèle caméra (scale + position du container monde) : fit, clamp, zoom, pan, conversions écran ↔ monde.
-- `tween.js` - petit moteur d'interpolations sur le Ticker Pixi.
-- `render.js` - chrome DOM (registre, mode, difficulté, règle, chrono, statut, victoire).
-- `input.js` - arbitrage des gestes (tracé / pan / pinch / molette / clavier / auto-pan) via les events fédérés Pixi.
-- `debug.js` - chargé si `DEBUG`.
-- `main.js` - orchestration (dont `await` de l'init Pixi).
+- `main.ts` - composition root : orchestration (dont `await` de l'init Pixi), seul endroit qui branche toutes les couches.
+- `game/config.ts` - réglages (dont modes de jeu, géométrie du monde Pixi et palette numérique).
+- `game/geometry.ts` - géométrie d'une grille rows × cols (indices, voisins orthogonaux), partagée par le solveur, la scène et l'input.
+- `game/state.ts` - état partagé (dont le mode actif et sa géométrie, changés à chaud via `applyMode`).
+- `game/dictionary.ts` et `game/solver.ts` - logique pure, sans DOM ni état (chargement des dictionnaires, génération et résolution de la grille) ; réutilisée telle quelle par le harnais Node `tools/solver-check.mjs`.
+- `game/rules.ts` - validation d'un mot.
+- `render/scene.ts` - scène Pixi : `Application`, couches, cases, lettres, tracé, tracés fantômes, animations et feedbacks (deal, pop, flash, shake, stamp).
+- `render/camera.ts` - modèle caméra (scale + position du container monde) : fit, clamp, zoom, pan, conversions écran ↔ monde.
+- `render/tween.ts` - petit moteur d'interpolations sur le Ticker Pixi.
+- `render/render.ts` - chrome DOM (registre, mode, difficulté, règle, chrono, statut, victoire).
+- `input/input.ts` - arbitrage des gestes (tracé / pan / pinch / molette / clavier / auto-pan) via les events fédérés Pixi.
+- `debug/debug.ts` - chargé si `DEBUG`.
 
 ## Configuration
 
-Tous les réglages sont dans `js/config.js` :
+Tous les réglages sont dans `src/game/config.ts` :
 
 - `GAME_MODES` / `DEFAULT_MODE` / `ENABLED_MODES` / `MODE_LABELS` - modes de jeu : forme de la grille (`rows` × `cols`) et puzzle (`wordCount` mots de `wordLength` lettres), avec l'invariant `wordCount × wordLength = rows × cols` validé au chargement. Le mode se change à chaud depuis la chip du header (grille Pixi, caméra et registre reconstruits) ; tout le reste (solveur, registre, compteur, victoire, caméra) dérive du mode actif.
 - `DEBUG` - active le mode debug (voir [fonctionnalites.md](fonctionnalites.md)).

@@ -1,10 +1,10 @@
 // Panneau debug : liste tous les mots trouvables dans la grille courante,
 // ceux du dictionnaire enfant en évidence. Survoler un mot met son tracé
-// en évidence dans la grille. Chargé dynamiquement par main.js si DEBUG.
+// en évidence dans la grille. Chargé dynamiquement par main.ts si DEBUG.
 
-import { state } from "./state.ts";
-import { findAllWords } from "./solver.ts";
-import { setDebugHint } from "./scene.ts";
+import { state } from "../game/state.ts";
+import { findAllWords } from "../game/solver.ts";
+import { setDebugHint } from "../render/scene.ts";
 
 let debugPanelEl: HTMLElement | null = null;
 

@@ -9,7 +9,7 @@ import {
   FIT_MARGIN_PX,
   VIEW_MARGIN,
   ZOOM_MAX_CELLS,
-} from "./config.ts";
+} from "../game/config.ts";
 
 import type { Application, Container } from "pixi.js";
 

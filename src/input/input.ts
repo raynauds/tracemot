@@ -10,7 +10,7 @@
 //   - "pinch" : 2e pointeur posé → abandonne un tracé en cours, puis
 //               scale *= dist/dist0 autour du milieu des deux doigts, plus
 //               pan par delta du milieu.
-// Le zoom molette et les boutons +/− vivent dans scene.js (Phase 2), intacts.
+// Le zoom molette et les boutons +/− vivent dans scene.ts (Phase 2), intacts.
 // Flèches et ZQSD/WASD → pan clavier via une boucle app.ticker.
 // Auto-pan : en mode "trace", approcher un bord du viewport translate la
 // caméra (boucle app.ticker) pour continuer le mot hors de la vue courante.
@@ -19,9 +19,9 @@ import {
   EDGE_PAN_MARGIN,
   EDGE_PAN_MAX_SPEED,
   KEY_PAN_SPEED,
-} from "./config.ts";
-import { state } from "./state.ts";
-import { buzz, renderPendingWord, replayEl } from "./render.ts";
+} from "../game/config.ts";
+import { state } from "../game/state.ts";
+import { buzz, renderPendingWord, replayEl } from "../render/render.ts";
 import {
   cellAtGlobal,
   getApp,
@@ -29,7 +29,7 @@ import {
   getStage,
   renderTrace,
   updateSelection,
-} from "./scene.ts";
+} from "../render/scene.ts";
 import type { FederatedPointerEvent, Ticker } from "pixi.js";
 
 export type Vec2 = { x: number; y: number };
@@ -54,7 +54,7 @@ let pinchMid0 = { x: 0, y: 0 };
 let pinchScale0 = 1;
 let pinchCam0 = { x: 0, y: 0 };
 
-// --- Tracé (repris de l'ancien input.js) -----------------------------------
+// --- Tracé (repris de l'ancien input.ts) -----------------------------------
 
 export function clearPath() {
   state.path = [];

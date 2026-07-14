@@ -1,6 +1,6 @@
 // Chrome DOM en surimpression : registre repliable des mots trouvés,
 // sélecteurs de mode et de difficulté, consigne, chrono, statut et victoire.
-// La grille, le tracé et leurs animations sont rendus par PixiJS (js/scene.js).
+// La grille, le tracé et leurs animations sont rendus par PixiJS (render/scene.ts).
 
 import {
   DIFFICULTY_LABELS,
@@ -9,9 +9,9 @@ import {
   MODE_LABELS,
   REJECT_DISPLAY_MS,
   TOAST_MS,
-} from "./config.ts";
-import { state } from "./state.ts";
-import { wordRejectReason } from "./rules.ts";
+} from "../game/config.ts";
+import { state } from "../game/state.ts";
+import { wordRejectReason } from "../game/rules.ts";
 
 // Ligne vide du registre : un point par lettre attendue (mode actif).
 function wordDots() {
@@ -336,7 +336,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !rulePanelEl.hidden) setRulePanelOpen(false);
 });
 
-// Appelée une fois la partie prête (js/main.js) : avant, l'overlay de statut
+// Appelée une fois la partie prête (main.ts) : avant, l'overlay de statut
 // (« chargement du dictionnaire ») couvrirait le panneau.
 export function showRuleOnFirstVisit() {
   let seen = null;
@@ -432,7 +432,7 @@ export function renderPendingWord() {
 export function showReject(word: string, reason: string) {
   const row = listRows[state.found.length];
   if (!row) return;
-  // Le flash et la secousse de la grille sont rendus par js/scene.js (Pixi).
+  // Le flash et la secousse de la grille sont rendus par render/scene.ts (Pixi).
   row.className = "word-row rejected";
   const content = row.children[1];
   content.className = "word-text rejected";
@@ -462,7 +462,7 @@ export function renderCounter() {
 
 // --- Grille (feedbacks portés en Pixi) -------------------------------------
 // La sélection, le tracé, les fantômes, les cases consommées et les feedbacks
-// (deal, pop, flash, shake, stamp) sont désormais rendus par js/scene.js.
+// (deal, pop, flash, shake, stamp) sont désormais rendus par render/scene.ts.
 
 // Retour haptique discret (mobile) quand une lettre rejoint le tracé.
 export function buzz() {
@@ -491,7 +491,7 @@ export function stopTimer() {
 
 // Remet le chrome à neuf pour une nouvelle partie : registre vidé, compteur
 // et chrono réinitialisés, consigne rétablie, victoire masquée. La grille
-// Pixi est réaffichée par js/scene.js (renderSceneGrid).
+// Pixi est réaffichée par render/scene.ts (renderSceneGrid).
 export function renderNewGame() {
   if (state.rejectTimer !== null) {
     clearTimeout(state.rejectTimer);

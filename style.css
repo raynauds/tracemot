@@ -386,7 +386,7 @@ body {
 }
 
 /* La grille, le tracé et leurs feedbacks (deal, pop, flash, shake, stamp)
-   sont rendus par PixiJS sur le canvas de fond (js/scene.js). Il ne reste
+   sont rendus par PixiJS sur le canvas de fond (src/render/scene.ts). Il ne reste
    ici que le chrome en surimpression. */
 
 /* ---------- Chargement / erreur ---------- */
@@ -815,7 +815,7 @@ body {
   color: var(--muted);
 }
 
-/* ---------- Mode debug (flag DEBUG dans js/config.js) ---------- */
+/* ---------- Mode debug (flag DEBUG dans src/game/config.ts) ---------- */
 
 .debug-panel {
   position: fixed;
@@ -953,7 +953,7 @@ body {
   }
 
   /* Registre : pastille compacte ancrée en bas à droite ; dépliée en tiroir
-     depuis le bas (scrollable). Repliée par défaut (js/render.js). */
+     depuis le bas (scrollable). Repliée par défaut (src/render/render.ts). */
   .ledger {
     top: auto;
     bottom: max(14px, env(safe-area-inset-bottom));

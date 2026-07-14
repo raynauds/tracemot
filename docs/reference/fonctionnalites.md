@@ -35,4 +35,4 @@ Un bouton « ? » dans le header ouvre le panneau de règle (même voile et mêm
 
 ## Mode debug
 
-`DEBUG = true` dans `js/config.js` : liste tous les mots trouvables de la grille, survol pour voir leur tracé.
+`DEBUG = true` dans `src/game/config.ts` : liste tous les mots trouvables de la grille, survol pour voir leur tracé.

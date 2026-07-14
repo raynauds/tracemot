@@ -1,7 +1,7 @@
-// État centralisé de la partie. main.js écrit le déroulement, render.js
-// et input.js le lisent (input.js ne modifie que path et pointerId).
+// État centralisé de la partie. main.ts écrit le déroulement, render.ts
+// et input.ts le lisent (input.ts ne modifie que path et pointerId).
 // Le mode de jeu (forme de grille + puzzle) et sa géométrie changent à
-// chaud via applyMode (main.js) : tout le reste en dérive.
+// chaud via applyMode (main.ts) : tout le reste en dérive.
 
 import { DEFAULT_MODE, GAME_MODES } from "./config.ts";
 import type { Difficulty, GameMode, Tier } from "./config.ts";
@@ -80,7 +80,7 @@ export const state: GameState = {
 };
 
 // Adopte un mode : identifiant, mode et géométrie dérivée. Seule écriture
-// autorisée de state.mode/geometry (main.js, au boot et au changement à
+// autorisée de state.mode/geometry (main.ts, au boot et au changement à
 // chaud — le rebuild de la scène et du registre incombe à l'appelant).
 export function applyMode(modeId: keyof typeof GAME_MODES): void {
   state.modeId = modeId;
