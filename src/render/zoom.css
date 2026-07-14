@@ -1,0 +1,61 @@
+/* Contrôles de zoom de la caméra Pixi. Injectés dans le body par
+   buildZoomControls (src/render/scene.ts). */
+
+/* Boutons flottants + / − / tout voir, ancrés en coin, au-dessus du canvas.
+   Style « chip » : mono, bordure INK. Le conteneur laisse passer les events
+   de tracé ; seuls les boutons les interceptent. */
+.zoom-controls {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 15;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zoom-btn {
+  width: 40px;
+  height: 40px;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.zoom-btn:hover {
+  background: var(--card-hover);
+}
+
+.zoom-btn:active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Sur écran tactile, le pinch remplace les boutons de pas : on ne garde que
+   « tout voir ». `(pointer: coarse)` = dispositif de pointage grossier (doigt),
+   indépendant de la largeur d'écran. */
+@media (pointer: coarse) {
+  .zoom-btn--step {
+    display: none;
+  }
+}
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  /* Zoom déplacé à gauche : la pastille registre occupe le coin bas-droit. */
+  .zoom-controls {
+    right: auto;
+    left: max(14px, env(safe-area-inset-left));
+  }
+}

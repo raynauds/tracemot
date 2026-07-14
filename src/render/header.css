@@ -1,0 +1,133 @@
+/* Header (overlay haut) : titre, retour à la carte, identifiant du niveau,
+   chrono. Écrit par src/render/render.ts. */
+
+
+/* Barre en surimpression au-dessus du canvas. Le conteneur laisse passer les
+   events de tracé (pointer-events: none) ; seul le sélecteur de difficulté
+   est réactivé plus bas. Léger dégradé pour la lisibilité sur la grille. */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Contexte d'empilement du header : il englobe les modales de difficulté et
+     de règle (diff-overlay/panel, imbriqués). Placé au-dessus du registre (16)
+     et du zoom (15) pour que le voile et le panneau couvrent bien tout — mais
+     sous le statut/victoire (30). */
+  z-index: 25;
+  pointer-events: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px max(24px, env(safe-area-inset-right)) 20px
+    max(24px, env(safe-area-inset-left));
+  background: linear-gradient(
+    var(--paper) 55%,
+    rgba(246, 241, 231, 0)
+  );
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+}
+
+.title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.header-right {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.chrono-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+.chrono {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.chrono.won {
+  color: var(--vermilion);
+}
+
+
+/* Sortie de partie. Filet encre plein : c'est l'action la plus structurante
+   du header, elle prime sur le « ? » (filet clair). */
+.back-map {
+  align-self: center;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 13px;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.back-map:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Étiquette du niveau en cours : information, pas commande — mono estompé. */
+.level-id {
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  .header {
+    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+      18px max(14px, env(safe-area-inset-left));
+  }
+  .header-left {
+    gap: 10px;
+    /* Titre + « ← CARTE » + niveau + « ? » : sur très petit écran, ils passent
+       à la ligne plutôt que de déborder du header. */
+    flex-wrap: wrap;
+  }
+  .title {
+    font-size: 19px;
+  }
+  .chrono-label {
+    display: none;
+  }
+  .chrono {
+    font-size: 17px;
+  }
+
+  .back-map {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  .level-id {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+}

@@ -1,0 +1,85 @@
+/* Règle du jeu : bouton « ? » du header. Son panneau réutilise le composant
+   partagé de src/render/panel.css. */
+
+
+/* Voisin de la chip de difficulté, mais volontairement subordonné : action
+   rare (on lit la règle une fois), donc filet clair au lieu du filet encre.
+   Le panneau et le voile sont ceux de la difficulté (.diff-overlay /
+   .diff-panel), ici juste rétréci et rempli d'un contenu propre. */
+.rule {
+  position: relative;
+  align-self: center;
+  /* Réactive les events : le header (overlay) les laisse passer par défaut. */
+  pointer-events: auto;
+}
+
+.rule-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rule-chip:hover {
+  background: var(--card-hover);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* Panneau ouvert : bouton inversé, comme la chip de difficulté. */
+.rule-chip.open {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* Le panneau règle tient en deux lignes : plus étroit que celui des niveaux. */
+.rule-panel {
+  width: 340px;
+}
+
+/* Le « comment » : une phrase serif, sobre. */
+.rule-line {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* La bande « specs » : dimensions du puzzle en mono, écho du chrono/compteur. */
+.rule-spec {
+  margin: 13px 0 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  /* Règle : bouton « ? » resserré à la hauteur de la chip de difficulté.
+     Le panneau, lui, hérite de la feuille .diff-panel définie plus haut. */
+  .rule-chip {
+    width: 30px;
+    height: 30px;
+    font-size: 13.5px;
+  }
+  .rule-line {
+    font-size: 14.5px;
+  }
+}

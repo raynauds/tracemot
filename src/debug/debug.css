@@ -1,0 +1,47 @@
+/* Panneau debug (flag DEBUG dans src/game/config.ts). Hors interface produit :
+   c'est la seule feuille autorisée à sortir de la palette. */
+
+
+.debug-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  max-height: 150px;
+  overflow-y: auto;
+  background: var(--card);
+  border-top: 2px solid var(--ink);
+  padding: 10px 16px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.debug-label {
+  flex-basis: 100%;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+.debug-word {
+  color: var(--ink);
+  cursor: default;
+}
+
+.debug-word:hover {
+  text-decoration: underline;
+}
+
+/* Mot présent dans le dictionnaire enfant */
+.debug-word.child {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+/* Le surlignage du tracé au survol d'un mot du panneau debug sera porté en
+   Pixi (phase 8) ; il n'y a plus de case DOM à styler ici. */
+

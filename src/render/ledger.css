@@ -1,0 +1,254 @@
+/* Registre des mots : panneau flottant repliable (pastille + tiroir sur
+   mobile). Écrit par src/render/render.ts. */
+
+
+/* Ancré au bord droit, sous le header. Interactif (pointer-events: auto) :
+   la barre d'en-tête plie/déplie, la liste scrolle si besoin. */
+.ledger {
+  position: fixed;
+  top: 96px;
+  right: max(20px, env(safe-area-inset-right));
+  /* Au-dessus des boutons zoom (15) : déplié, l'encart couvre le bouton « fit »
+     au lieu de le laisser dépasser. */
+  z-index: 16;
+  width: 300px;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 14px 34px rgba(38, 34, 28, 0.2);
+  pointer-events: auto;
+}
+
+/* Barre d'en-tête = bouton plein largeur (plier/déplier). */
+.ledger-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--serif);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ledger.collapsed .ledger-head {
+  border-bottom: none;
+}
+
+.ledger-caret {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ledger-caret::before {
+  content: "▾";
+}
+
+.ledger.collapsed .ledger-caret::before {
+  content: "▸";
+}
+
+/* Repliée : seule la barre reste (pastille compteur n / N). */
+.ledger.collapsed .word-list {
+  display: none;
+}
+
+.ledger-label {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 2.5px;
+  color: var(--ink);
+}
+
+.counter {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.counter .count {
+  color: var(--vermilion);
+}
+.counter.full {
+  color: var(--vermilion);
+}
+
+.word-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.word-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 48px;
+  flex-shrink: 0; /* liste compressée : on scrolle, on n'aplatit pas */
+  border-bottom: 1px solid var(--line);
+}
+
+.word-row:last-child {
+  border-bottom: none;
+}
+
+.word-num {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--vermilion);
+  width: 20px;
+  flex: 0 0 auto;
+}
+
+.word-row.empty .word-num {
+  color: var(--ghost);
+}
+
+.word-text {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 3px;
+}
+
+/* Effet tampon : descente accélérée vers la page (à peine visible),
+   l'encre apparaît d'un coup à l'impact avec un léger écrasement,
+   puis se pose - pas de rebond élastique. */
+.word-text.stamp {
+  animation: word-stamp 0.28s both;
+  transform-origin: 50% 60%;
+}
+
+@keyframes word-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.45) rotate(-2deg);
+    animation-timing-function: cubic-bezier(
+      0.5,
+      0,
+      0.9,
+      0.4
+    ); /* accélère vers l'impact */
+  }
+  40% {
+    opacity: 0.25;
+    transform: scale(1.18) rotate(-1.4deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.4);
+  }
+  50% {
+    opacity: 1; /* impact : l'empreinte apparaît d'un coup */
+    transform: scale(0.97) rotate(-0.6deg);
+    animation-timing-function: ease-out;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.word-dots {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: var(--ghost);
+  letter-spacing: 4px;
+}
+
+/* Tracé en cours : lettres ternes, le mot n'est pas encore validé */
+.word-row.pending .word-num {
+  color: var(--ghost);
+}
+
+.word-text.pending {
+  color: var(--ghost);
+  transition: color 0.15s ease;
+}
+
+/* Le tracé courant forme un mot valide : l'encre se densifie */
+.word-text.pending.valid {
+  color: var(--ink);
+}
+
+/* Mot refusé : lettres en rouge, motif du refus poussé à droite */
+.word-text.rejected {
+  color: var(--vermilion);
+}
+
+.word-reason {
+  margin-left: auto;
+  flex: 0 1 auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-align: right;
+  color: var(--vermilion);
+  animation: word-in 0.3s ease;
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  /* Registre : pastille compacte ancrée en bas à droite ; dépliée en tiroir
+     depuis le bas (scrollable). Repliée par défaut (src/render/render.ts). */
+  .ledger {
+    top: auto;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    right: max(14px, env(safe-area-inset-right));
+    width: auto;
+    max-width: calc(100vw - 28px);
+    max-height: 60dvh;
+  }
+  .ledger:not(.collapsed) {
+    left: max(14px, env(safe-area-inset-left));
+  }
+  .ledger-head {
+    padding: 11px 14px;
+  }
+  .ledger-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+  .counter {
+    font-size: 15px;
+  }
+
+  .word-list {
+    padding: 0 14px;
+  }
+  .word-row {
+    height: 40px;
+    gap: 14px;
+  }
+  .word-num {
+    font-size: 12px;
+    width: 18px;
+  }
+  .word-text {
+    font-size: 19px;
+    letter-spacing: 2.5px;
+  }
+  .word-dots {
+    font-size: 13px;
+    letter-spacing: 3px;
+  }
+  .word-reason {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+}

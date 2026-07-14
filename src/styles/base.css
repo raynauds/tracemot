@@ -1,0 +1,45 @@
+/* Socle : reset, page, boot. Les tokens (couleurs, polices) sont importés par
+   style.css avant cette feuille. */
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  /* La grille Pixi occupe tout l'écran (canvas fixe) ; le chrome est en
+     overlays fixes. Aucun flux : pas de scroll de page. */
+  overflow: hidden;
+}
+
+
+/* Au chargement, l'écran ne montre QUE le papier de la carte : le HTML peint
+   sinon le chrome de partie (header, chrono, registre) que showMap() escamote
+   aussitôt après, et les polices arrivent en swap — deux sauts pour rien.
+   Le fond est celui de la carte, seul écran possible au boot.
+
+   visibility (et non display) : la mise en page et les mesures de police se
+   font pendant ce temps, la révélation ne re-layoute donc rien. main.ts retire
+   .booting quand la carte est en place. */
+body.booting {
+  background: var(--map-paper);
+}
+
+/* Pas de fondu à la révélation : la carte s'ouvrirait en transparence sur le
+   canvas Pixi posé dessous, et on reverrait la grille passer. */
+body.booting > * {
+  visibility: hidden;
+}
+
