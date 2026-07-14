@@ -112,8 +112,10 @@ components:
     backgroundColor: transparent
     textColor: "{colors.ink}" # règle du jeu : {colors.muted}, action rare
     size: 24px # règle du jeu : 20px
-  button-icon-hover:
-    textColor: "{colors.vermilion}" # règle du jeu : {colors.ink}
+  button-icon-hover: # au survol comme à l'appui, sur toutes les icônes nues
+    textColor: "{colors.vermilion}"
+  button-icon-open: # état (panneau ouvert), pas survol : règle du jeu
+    textColor: "{colors.ink}"
   panel: # règle du jeu, modales — filet encre 2px + ombre floue
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
@@ -284,10 +286,12 @@ La hiérarchie est portée par le remplissage, pas par la taille.
   l'application.
 - **`button-icon`** — une icône, rien autour : ni fond, ni filet. Pour les
   commandes que leur dessin dit mieux qu'un mot : le retour à la carte et la
-  règle du jeu dans le header, le « tout voir » du zoom. Le rang se lit à
-  l'encre, pas au cadre : la flèche du retour est pleine, le « i » de la règle
-  est estompé (action rare, qu'on lit une fois) et ne prend l'encre qu'au
-  survol.
+  règle du jeu dans le header, le « tout voir » du zoom. Le rang se lit au
+  repos, à l'encre plutôt qu'au cadre : la flèche du retour est pleine, le « i »
+  de la règle est estompé (action rare, qu'on lit une fois). Sous le pointeur —
+  survol à la souris, appui au doigt — toutes virent au **vermillon** : une
+  icône nue n'a que sa couleur pour dire qu'elle répond, elles doivent donc la
+  dire pareil. L'encre reste réservée à l'état (le « i », panneau ouvert).
 
 ### Panneaux
 

@@ -12,8 +12,7 @@
 }
 
 /* Icône « info » nue (cf. src/render/icons.ts) : ni cadre ni fond, comme la
-   flèche du retour. Estompée au repos — on lit la règle une fois — elle prend
-   l'encre au survol et la garde tant que le panneau est ouvert. Le padding
+   flèche du retour. Estompée au repos — on lit la règle une fois. Le padding
    n'est là que pour la cible du doigt, la marge négative le reprend. */
 .rule-chip {
   display: inline-flex;
@@ -28,17 +27,24 @@
   cursor: pointer;
 }
 
-/* .open est un vrai état (le panneau est ouvert), il vaut partout. Le survol,
-   lui, n'est réservé qu'à la souris : au doigt, le navigateur simule un :hover
-   au tap et le laisse collé jusqu'au tap suivant — le « i » resterait encré
-   après la fermeture du panneau. */
+/* Le vermillon dit « le pointeur est dessus », comme sur la flèche du retour et
+   sur « tout voir » : les icônes nues répondent toutes de la même couleur.
+   L'encre, elle, est réservée à l'état — ici le panneau ouvert.
+
+   Le survol n'est réservé qu'à la souris : au doigt, le navigateur simule un
+   :hover au tap et le laisse collé jusqu'au tap suivant — le « i » resterait
+   allumé après la fermeture du panneau. L'appui (:active), lui, se relâche. */
 @media (hover: hover) {
   .rule-chip:hover {
-    color: var(--ink);
+    color: var(--vermilion);
   }
 }
 
-.rule-chip:active,
+.rule-chip:active {
+  color: var(--vermilion);
+}
+
+/* Panneau ouvert : un état, pas un survol — il vaut donc partout. */
 .rule-chip.open {
   color: var(--ink);
 }
