@@ -32,6 +32,7 @@ import {
   defiOfRow,
   levelId,
 } from "../game/levels.ts";
+import { checkIcon, starIcon } from "./icons.ts";
 import {
   cellState,
   isFirstLaunch,
@@ -201,8 +202,8 @@ function buildStars(p: ModeProgress): HTMLElement | null {
     `${stars} ${stars > 1 ? "étoiles" : "étoile"} — ce qu'elles ouvrent`,
   );
   chip.appendChild(el("span", "map-stars-count", String(stars)));
-  const icon = el("span", "map-stars-icon", "★");
-  icon.setAttribute("aria-hidden", "true");
+  const icon = starIcon();
+  icon.classList.add("map-stars-icon");
   chip.appendChild(icon);
   box.appendChild(chip);
 
@@ -238,7 +239,9 @@ function buildCell(id: LevelId, n: number, state: CellState): HTMLElement {
     : el("div", `map-cell ${stateClass(state)}`);
   cell.appendChild(el("span", "map-cell-num", String(n)));
   if (state === "validated") {
-    cell.appendChild(el("span", "map-cell-mark", "✓"));
+    const mark = checkIcon();
+    mark.classList.add("map-cell-mark");
+    cell.appendChild(mark);
   }
   if (playable) {
     const button = cell as HTMLButtonElement;
@@ -266,19 +269,20 @@ function defiSub(modeId: ModeId, short: boolean): string {
     : `${shape} · ${m.wordCount} MOTS DE ${m.wordLength} LETTRES`;
 }
 
-// Validé : aucune légende — la coche qui remplace l'étoile devant « DÉFI » le
-// dit déjà, et le répéter en toutes lettres n'ajoute rien.
+// Validé : aucune légende — l'étoile pleine devant « DÉFI » le dit déjà, et le
+// répéter en toutes lettres n'ajoute rien.
 const DEFI_CAPTION: Record<Exclude<CellState, "hidden">, string | null> = {
   validated: null,
   active: "PRÊT À JOUER",
   disabled: "TERMINEZ LA LIGNE",
 };
 
-const DEFI_MARK: Record<Exclude<CellState, "hidden">, string> = {
-  validated: "✓",
-  active: "★",
-  disabled: "★",
-};
+// Le défi porte l'étoile qu'il met en jeu, et son remplissage EST le score :
+// creuse tant qu'elle reste à prendre, pleine une fois gagnée. Même signe que
+// dans les jalons de section — un joueur n'a qu'une lecture à apprendre.
+function defiMark(state: Exclude<CellState, "hidden">): SVGSVGElement {
+  return starIcon(state === "validated");
+}
 
 // Un seul contenu, deux enveloppes (`variant`) : la carte desktop et le bandeau
 // mobile ne diffèrent que par leur mise en page, tranchée en CSS.
@@ -295,8 +299,8 @@ function buildDefi(
   const playable = state === "active" || state === "validated";
   const defi = playable ? el("button", cls) : el("div", cls);
 
-  const mark = el("span", "map-defi-mark", DEFI_MARK[state]);
-  mark.setAttribute("aria-hidden", "true");
+  const mark = defiMark(state);
+  mark.classList.add("map-defi-mark");
   defi.appendChild(mark);
   defi.appendChild(el("span", "map-defi-title", "DÉFI"));
   const texts = el("span", "map-defi-texts");
@@ -365,16 +369,17 @@ function buildRow(
   return node;
 }
 
-// Étoiles gagnées dans la section : « ★★☆ » — pleines à gauche, creuses à
-// droite, toujours trois glyphes pour que la ligne ne danse pas.
-function starGlyphs(stars: number): string {
-  return "★".repeat(stars) + "☆".repeat(SECTION_STARS - stars);
+// Étoiles gagnées dans la section : pleines à gauche, creuses à droite,
+// toujours trois pour que la ligne ne danse pas d'une section à l'autre.
+function buildStarRow(stars: number): HTMLElement {
+  const row = el("span", "map-milestone-stars");
+  for (let i = 0; i < SECTION_STARS; i++) row.appendChild(starIcon(i < stars));
+  return row;
 }
 
 function buildMilestone(
   s: Section,
-  count: string,
-  complete: boolean,
+  count: HTMLElement | null,
   stars: number | null,
 ): HTMLElement {
   const milestone = el(
@@ -386,14 +391,13 @@ function buildMilestone(
   label.appendChild(
     el("span", "map-milestone-name", DIFFICULTY_LABELS[s].name),
   );
-  label.appendChild(
-    el("span", `map-milestone-count${complete ? " is-complete" : ""}`, count),
-  );
+  // Le décompte des niveaux validés se lit sur la carte elle-même : le jalon ne
+  // le répète pas. Il ne reste que la section complète (« 18 ✓ ») et la section
+  // verrouillée (son prix).
+  if (count) label.appendChild(count);
   // Section verrouillée : pas d'étoiles à montrer (aucune n'y a été gagnée) —
   // le compteur porte déjà le prix à payer.
-  if (stars !== null) {
-    label.appendChild(el("span", "map-milestone-stars", starGlyphs(stars)));
-  }
+  if (stars !== null) label.appendChild(buildStarRow(stars));
   milestone.appendChild(label);
   milestone.appendChild(el("span", "map-milestone-rule"));
   return milestone;
@@ -404,8 +408,12 @@ function buildMilestone(
 // quand un défi jouable peut, à lui seul, la déverrouiller. Le prix est donc
 // toujours d'une étoile : le libellé n'a pas de pluriel à porter.
 function buildLockedSection(s: Section): HTMLElement {
+  const price = el("span", "map-milestone-count");
+  price.appendChild(starIcon());
+  price.appendChild(el("span", undefined, "Encore 1 étoile"));
+
   const section = el("section", "map-section");
-  section.appendChild(buildMilestone(s, "★ Encore 1 étoile", false, null));
+  section.appendChild(buildMilestone(s, price, null));
   return section;
 }
 
@@ -417,17 +425,16 @@ function buildSection(
   const stats = sectionStats(p, s);
   if (!stats.anyVisible) return null;
 
+  // Complète, la section porte son total coché ; sinon aucun compteur.
+  let count: HTMLElement | null = null;
+  if (stats.complete) {
+    count = el("span", "map-milestone-count is-complete");
+    count.appendChild(el("span", undefined, String(LEVELS_PER_SECTION)));
+    count.appendChild(checkIcon());
+  }
+
   const section = el("section", "map-section");
-  section.appendChild(
-    buildMilestone(
-      s,
-      stats.complete
-        ? `${LEVELS_PER_SECTION} ✓`
-        : `${stats.validatedCount} validé${stats.validatedCount > 1 ? "s" : ""}`,
-      stats.complete,
-      stats.stars,
-    ),
-  );
+  section.appendChild(buildMilestone(s, count, stats.stars));
 
   // Croissance additive : aucune ligne au-delà de la dernière visible — la
   // carte grandit vers le bas, elle ne réserve pas de vide.
@@ -479,6 +486,8 @@ function legendItem(className: string, label: string): HTMLElement {
   const item = el("div", "map-legend-item");
   const swatch = el("span", `map-legend-swatch ${className}`);
   swatch.setAttribute("aria-hidden", "true");
+  // La pastille « validé » porte la même coche que les cases qu'elle décrit.
+  if (className === "is-validated") swatch.appendChild(checkIcon());
   item.appendChild(swatch);
   item.appendChild(el("span", "map-legend-text", label));
   return item;

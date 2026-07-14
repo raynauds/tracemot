@@ -12,6 +12,7 @@ import { isDefi, levelLabel, type LevelId } from "../game/levels.ts";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
+import { starIcon } from "./icons.ts";
 
 // Ligne vide du registre : un point par lettre attendue (mode actif).
 function wordDots() {
@@ -307,10 +308,13 @@ let onPlayLevel: ((id: LevelId) => void) | null = null;
 // est déjà dans le header. Un défi s'annonce toujours comme tel, étoile comprise
 // — c'est ce qu'il rapporte —, qu'il vienne d'être ouvert ou qu'on y retombe par
 // le repli « continuer » (l'ordre canonique le place avant la ligne suivante).
-function choiceLabel(choice: NextChoice): string {
-  if (isDefi(choice.id)) return `DÉFI ${choice.id} ★`;
+function fillChoice(el: HTMLElement, choice: NextChoice): void {
+  if (isDefi(choice.id)) {
+    el.append(`DÉFI ${choice.id}`, starIcon());
+    return;
+  }
   const verb = choice.kind === "next" ? "SUIVANT" : "CONTINUER";
-  return `${verb} · ${choice.id}`;
+  el.append(`${verb} · ${choice.id}`);
 }
 
 export function bindWinNext(onPlay: (id: LevelId) => void) {
@@ -331,7 +335,8 @@ function renderWinActions(choices: NextChoice[]) {
     const choice = choices[slot];
     winTargets[slot] = choice ? choice.id : null;
     el.hidden = !choice;
-    el.textContent = choice ? choiceLabel(choice) : "";
+    el.textContent = "";
+    if (choice) fillChoice(el, choice);
   });
 }
 
@@ -352,7 +357,11 @@ export function renderWin(opts: {
   winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} EN ${time}`;
   winStarEl.hidden = !star;
   if (star) {
-    winStarGainEl.textContent = `★ Étoile gagnée — ${star.count} / ${MAX_STARS}`;
+    winStarGainEl.textContent = "";
+    winStarGainEl.append(
+      starIcon(),
+      `Étoile gagnée — ${star.count} / ${MAX_STARS}`,
+    );
     // Les étoiles au-delà des paliers ne débloquent rien : elles ne comptent
     // que pour la complétion du mode, on n'annonce donc que le gain.
     winStarUnlockEl.hidden = star.unlocked === null;

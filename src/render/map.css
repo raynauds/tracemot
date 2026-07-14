@@ -216,7 +216,12 @@ body.map-open .win {
   font-style: italic;
 }
 
+/* Compteur : un texte et une icône (le total coché, ou l'étoile du prix). Le
+   `font-size` règle les deux — l'icône fait 1em. */
 .map-milestone-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 1px;
@@ -228,11 +233,13 @@ body.map-open .win {
   color: var(--vermilion);
 }
 
-/* Les trois étoiles de la section, en un seul texte (« ★★☆ ») : les pleines
-   sont vermillon, les creuses se lisent d'elles-mêmes par leur glyphe. */
+/* Les trois étoiles de la section : les gagnées pleines à gauche, les restantes
+   en contour — même vermillon, seul le remplissage les sépare. */
 .map-milestone-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 13px;
-  letter-spacing: 2px;
   line-height: 1;
   color: var(--vermilion);
 }
@@ -572,10 +579,6 @@ body.map-open .win {
   box-shadow: 1.5px 1.5px 0 var(--ink);
 }
 
-.map-legend-swatch.is-validated::before {
-  content: "✓";
-}
-
 .map-legend-swatch.is-active {
   background: var(--card);
   border: 1.5px solid var(--ink);
@@ -652,8 +655,8 @@ body.map-open .win {
     letter-spacing: 0.5px;
   }
   .map-milestone-stars {
+    gap: 2px;
     font-size: 12px;
-    letter-spacing: 1px;
   }
 
   /* La ligne s'empile : les 5 cases, puis le bandeau du défi juste dessous —

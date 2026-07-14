@@ -25,19 +25,35 @@ body {
 }
 
 
-/* Au chargement, l'écran ne montre QUE le papier de la carte : le HTML peint
-   sinon le chrome de partie (header, chrono, registre) que showMap() escamote
-   aussitôt après, et les polices arrivent en swap — deux sauts pour rien.
-   Le fond est celui de la carte, seul écran possible au boot.
+/* Icônes (src/render/icons.ts) : les fichiers SVG de src/assets/icons, inlinés
+   dans le DOM. Ils portent déjà leur tracé (stroke: currentColor, fill: none) ;
+   ces deux règles ne disent que ce que le CSS doit imposer par-dessus — et le
+   fait, les attributs de présentation d'un SVG cédant à toute règle CSS.
+
+   1em de côté : l'icône se règle comme le texte qui l'entoure, par le
+   `font-size` du contexte — exactement là où un glyphe ★ ou ✓ se réglait. */
+.icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+
+/* Étoile gagnée : pleine. Restant à gagner, elle garde le seul contour du
+   fichier. */
+.icon-star.is-filled {
+  fill: currentColor;
+}
+
+
+/* Au chargement, l'écran ne montre QUE le papier du body : le HTML peint sinon
+   le chrome de partie (header, chrono, registre) que showMap() escamote aussitôt
+   après, et les polices arrivent en swap — deux sauts pour rien.
 
    visibility (et non display) : la mise en page et les mesures de police se
    font pendant ce temps, la révélation ne re-layoute donc rien. main.ts retire
-   .booting quand la carte est en place. */
-body.booting {
-  background: var(--map-paper);
-}
+   .booting quand la carte est en place.
 
-/* Pas de fondu à la révélation : la carte s'ouvrirait en transparence sur le
+   Pas de fondu à la révélation : la carte s'ouvrirait en transparence sur le
    canvas Pixi posé dessous, et on reverrait la grille passer. */
 body.booting > * {
   visibility: hidden;

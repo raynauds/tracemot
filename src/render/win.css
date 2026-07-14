@@ -66,7 +66,12 @@
   }
 }
 
+/* L'étoile précède le texte : le gap la décolle de la première lettre, que le
+   letter-spacing pousserait sinon contre elle. */
 .win-star-gain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 3px;
@@ -91,6 +96,16 @@
   gap: 10px;
   width: min(360px, 100%);
   margin-top: 18px;
+}
+
+/* Flex plutôt que texte centré : l'un des deux slots peut porter un défi, donc
+   une étoile à côté de son libellé — le gap la tient à distance des lettres. */
+.win-primary,
+.win-defi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .win-primary {

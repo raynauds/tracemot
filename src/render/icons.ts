@@ -1,0 +1,44 @@
+// Icônes de l'interface : étoile et coche, dessinées en SVG plutôt qu'en glyphe
+// (★ ☆ ✓). Un glyphe dépend de la fonte qui le rend — corps, graisse et
+// alignement varient d'une plateforme à l'autre —, alors que ces tracés tiennent
+// la même graisse que les filets de la carte, partout.
+//
+// Les fichiers (src/assets/icons, jeu Feather) sont la source unique du dessin :
+// `?raw` les inline dans le bundle à la compilation. On les pose donc en SVG
+// vivant dans le DOM — sans requête, et coloriables par le CSS, ce qu'aucune
+// <img> ni background-image ne permet (`currentColor` ne les traverse pas).
+//
+// Le CSS l'emporte sur les attributs de présentation du fichier : .icon impose
+// 1em de côté (contre width/height="24") et .is-filled remplit l'étoile (contre
+// fill="none") — cf. src/theme/base.css. Le fichier reste donc modifiable sans
+// que le code ait à suivre.
+
+import checkSvg from "../assets/icons/check.svg?raw";
+import starSvg from "../assets/icons/star.svg?raw";
+
+// Parsé une fois : chaque icône posée n'est qu'un clone du nœud modèle.
+function template(source: string, className: string): SVGSVGElement {
+  const host = document.createElement("div");
+  host.innerHTML = source;
+  const svg = host.firstElementChild as SVGSVGElement;
+  svg.setAttribute("class", `icon ${className}`); // écrase la classe Feather
+  svg.setAttribute("aria-hidden", "true");
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
+  return svg;
+}
+
+const STAR = template(starSvg, "icon-star");
+const CHECK = template(checkSvg, "icon-check");
+
+// filled : l'étoile gagnée est pleine, celle qui reste à gagner est creuse —
+// c'est le seul écart entre les deux, le contour est le même.
+export function starIcon(filled = true): SVGSVGElement {
+  const icon = STAR.cloneNode(true) as SVGSVGElement;
+  if (filled) icon.classList.add("is-filled");
+  return icon;
+}
+
+export function checkIcon(): SVGSVGElement {
+  return CHECK.cloneNode(true) as SVGSVGElement;
+}
