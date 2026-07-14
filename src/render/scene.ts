@@ -521,7 +521,7 @@ function buildZoomControls(): void {
     () => camera.zoomAt(camera.screenCenter(), 1 / ZOOM_STEP),
     "zoom-btn--step",
   );
-  addButton(maximizeIcon(), "Tout voir", () => camera.fit());
+  addButton(maximizeIcon(), "Tout voir", () => camera.fit(), "zoom-btn--fit");
   document.body.appendChild(bar);
 }
 

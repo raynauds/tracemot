@@ -108,7 +108,7 @@ components:
     textColor: "{colors.vermilion}"
     height: 54px
     rounded: "{rounded.none}"
-  button-icon: # header : retour à la carte, règle du jeu — icône nue
+  button-icon: # retour à la carte, règle du jeu, tout voir — icône nue
     backgroundColor: transparent
     textColor: "{colors.ink}" # règle du jeu : {colors.muted}, action rare
     size: 24px # règle du jeu : 20px
@@ -282,11 +282,12 @@ La hiérarchie est portée par le remplissage, pas par la taille.
   retour à la carte, onglet de mode. Au survol comme à l'état sélectionné, il
   **s'inverse** (fond encre, texte papier) — c'est l'idiome d'interaction de
   l'application.
-- **`button-icon`** — une icône, rien autour : ni fond, ni filet. Pour les deux
-  commandes du header, que leur dessin dit mieux qu'un mot (retour à la carte,
-  règle du jeu). Le rang se lit à l'encre, pas au cadre : la flèche du retour
-  est pleine, le « i » de la règle est estompé (action rare, qu'on lit une
-  fois) et ne prend l'encre qu'au survol.
+- **`button-icon`** — une icône, rien autour : ni fond, ni filet. Pour les
+  commandes que leur dessin dit mieux qu'un mot : le retour à la carte et la
+  règle du jeu dans le header, le « tout voir » du zoom. Le rang se lit à
+  l'encre, pas au cadre : la flèche du retour est pleine, le « i » de la règle
+  est estompé (action rare, qu'on lit une fois) et ne prend l'encre qu'au
+  survol.
 
 ### Panneaux
 

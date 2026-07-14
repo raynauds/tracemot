@@ -2,8 +2,9 @@
    buildZoomControls (src/render/scene.ts). */
 
 /* Boutons flottants + / − / tout voir (icônes, cf. src/render/icons.ts), ancrés
-   en coin, au-dessus du canvas. Style « chip » : bordure INK. Le conteneur
-   laisse passer les events de tracé ; seuls les boutons les interceptent. */
+   en coin, au-dessus du canvas. Les pas gardent la chip (filet encre), « tout
+   voir » est une icône nue. Le conteneur laisse passer les events de tracé ;
+   seuls les boutons les interceptent. */
 .zoom-controls {
   position: fixed;
   right: max(16px, env(safe-area-inset-right));
@@ -38,6 +39,22 @@
 .zoom-btn:active {
   background: var(--ink);
   color: var(--paper);
+}
+
+/* « Tout voir » : icône nue, comme les commandes du header. C'est le seul
+   bouton que le tactile garde (le pinch remplace les pas) — sans cadre, il ne
+   pose plus qu'un signe sur la grille. Déclaré après .zoom-btn : à
+   spécificité égale, c'est l'ordre qui tranche. */
+.zoom-btn--fit {
+  border: none;
+  background: none;
+  font-size: 24px;
+}
+
+.zoom-btn--fit:hover,
+.zoom-btn--fit:active {
+  background: none;
+  color: var(--vermilion);
 }
 
 /* Sur écran tactile, le pinch remplace les boutons de pas : on ne garde que
