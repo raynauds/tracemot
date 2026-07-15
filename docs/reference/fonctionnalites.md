@@ -1,38 +1,35 @@
 # Fonctionnalités
 
+## Deux écrans : carte et partie
+
+L'écran d'accueil est la **carte de progression** (`src/render/map.ts`) : on y choisit un mode et un niveau, sa grille prégénérée est chargée, et la partie démarre plein écran. Un bouton « retour carte » du header ramène à la carte à tout moment. `src/main.ts` orchestre ce cycle carte ↔ partie (`startLevel`, `backToMap`).
+
 ## Modes de jeu
 
-Trois grilles prédéfinies (`GAME_MODES`), nommées « nombre de mots × nombre de lettres » : 5×5 (grille 5×5), 20×5 (grille 10×10) et 8×8 (grille 8×8). Le mode se change à chaud depuis la chip « ▦ » du header (même feuille/popover que la difficulté) : la grille Pixi, la caméra et le registre sont reconstruits et une partie est relancée, confirmé par un toast. Le mode choisi est mémorisé (`localStorage`).
+Une série de grilles carrées **N×N** (`GAME_MODES`, `@tracemot/core`) : `5x5`, `6x6`, `7x7`, `8x8` — N mots de N lettres sur une grille N×N. L'identifiant du mode *est* sa forme. Les modes se débloquent à l'étoile (voir [progression](regles-et-difficultes.md)) ; le mode par défaut, seul ouvert au premier lancement, est `5x5`. Le dernier mode consulté est mémorisé (`localStorage`, `tracemot.lastMode`).
 
-## Génération de la grille
+## Niveaux prégénérés
 
-Découpe en pavage (backtracking randomisé, élagage par composantes connexes) puis vérification d'exclusivité contre le dictionnaire complet, avec réparation hill-climbing : le mot impliqué dans un tracé parasite est mis en concurrence avec plusieurs remplaçants, le meilleur est retenu. En pratique la grille converge au premier tirage : quelques ms en 5×5, ~15-30 ms en 8×8, ~150-250 ms en 20×5. Le harnais `npm run check:solver` (Node, `tools/solver-check.mjs`) vérifie les invariants sur N grilles par mode et difficulté, avec un énumérateur de tracés indépendant du solveur.
-
-## Dictionnaires
-
-Cinq fichiers de mots dans `public/dictionnaires/` :
-
-- `dictionnaire.txt` - dictionnaire complet, valide les mots joués.
-- `1_dico_entree_enfant.txt`, `2_dico_entree_ado.txt`, `3_dico_entree_adulte.txt`, `4_dico_entree_non_connu.txt` - quatre paliers de vocabulaire, disjoints entre eux, d'où sont tirés les mots cachés selon la difficulté.
+Le runtime **ne génère plus rien** et ne charge aucun dictionnaire. Toutes les grilles sont produites **hors-ligne** par le studio (`npm run generate:levels`, voir [stack-et-architecture.md](stack-et-architecture.md)) et versionnées en un JSON par mode dans `public/levels/<mode>.json` (lettres + solution + tracés). `src/game/level-loader.ts` les charge par `fetch` (cache de promesses). Servir le jeu en HTTP est donc requis : ouvrir en `file://` échoue et affiche un overlay d'erreur qui renvoie à la carte.
 
 ## Tracé
 
-Au doigt ou à la souris (events fédérés Pixi), avec backtrack, vibration sur mobile et ligne d'encre suivant le tracé, rendue en WebGL par PixiJS. Feedbacks Pixi-natifs : distribution en cascade, rebond d'une case rejoignant le tracé, flash et secousse au refus, tampon à la validation.
+Au doigt ou à la souris (events fédérés Pixi, `src/input/input.ts`), avec backtrack, vibration sur mobile et ligne d'encre suivant le tracé, rendue en WebGL par PixiJS. Feedbacks Pixi-natifs (`src/render/scene.ts`) : distribution en cascade, rebond d'une case rejoignant le tracé, flash et secousse au refus, tampon à la validation.
 
 ## Caméra : zoom & pan
 
-La grille est rendue plein écran par Pixi et cadrée par une caméra. Zoom à la molette (centré sur le pointeur), au pinch tactile ou via les boutons flottants + / − / tout voir ; pan par glissé hors case, au clavier (flèches, ZQSD/WASD) et auto-pan quand le tracé approche un bord. Sur écran tactile, les boutons + / − sont masqués (le pinch les remplace) ; seul « tout voir » reste.
+La grille est rendue plein écran par Pixi et cadrée par une caméra (`src/render/camera.ts`). Zoom à la molette (centré sur le pointeur), au pinch tactile ou via les boutons flottants + / − / tout voir ; pan par glissé hors case et au clavier (flèches, ZQSD/WASD). Sur écran tactile, les boutons + / − sont masqués (le pinch les remplace) ; seul « tout voir » reste.
 
-Le zoom est borné entre le dézoom maximum (grille entière plus une marge tout autour, `VIEW_MARGIN`) et 3×3 cases. Le zoom affiché au chargement est distinct de ces bornes : c'est le cadrage « tout voir », plus serré, qui vise `FIT_MARGIN_PX` de marge horizontale (la grille remplit la largeur sur mobile) tout en gardant la marge verticale du dézoom maximum (pour ne pas coller au header sur desktop).
+Le zoom est borné entre le dézoom maximum (grille entière plus une marge tout autour, `VIEW_MARGIN`) et 3×3 cases (`ZOOM_MAX_CELLS`). Le zoom affiché au chargement est distinct de ces bornes : c'est le cadrage « tout voir », qui vise `FIT_MARGIN_PX` de marge horizontale tout en gardant la marge verticale du dézoom maximum.
 
 ## Registre des mots
 
-Aperçu du tracé en cours, motif de refus affiché (n lettres requises selon le mode, déjà trouvé, absent du dictionnaire), animations de validation.
+Panneau flottant (`src/render/render.ts`) : aperçu du tracé en cours, motif de refus affiché (`N LETTRES REQUISES`, `DÉJÀ TROUVÉ`, `INCORRECTE`), animations de validation. Repliable en pastille compteur *n / N* — ouvert par défaut sur desktop, replié sur mobile (le repli n'est pas mémorisé, il suit la largeur d'écran).
+
+## Écran de victoire
+
+Quand tous les mots du niveau sont trouvés (`src/main.ts:triggerWin`). Un **défi** gagné pour la première fois annonce l'étoile obtenue (*n / 12*) et ce qu'elle débloque. L'écran propose ensuite les suites du niveau (`nextChoices`) : le niveau suivant (`SUIVANT`), le défi qui vient de s'ouvrir (`DÉFI`), ou un repli `CONTINUER` vers le premier niveau jouable ; plus le retour à la carte.
 
 ## Règle du jeu
 
-Un bouton « ? » dans le header ouvre le panneau de règle (même voile et même feuille/popover que la difficulté). Il s'ouvre automatiquement à la première visite seulement : la mécanique n'étant pas devinable, elle est présentée d'emblée, puis ne revient plus (`localStorage`).
-
-## Mode debug
-
-`DEBUG = true` dans `src/game/config.ts` : liste tous les mots trouvables de la grille, survol pour voir leur tracé.
+Une chip « i » du header ouvre le panneau de règle. Il s'ouvre automatiquement au tout premier niveau lancé seulement : la mécanique n'étant pas devinable, elle est présentée d'emblée, puis ne revient plus (`localStorage`, `tracemot.rule-seen`).

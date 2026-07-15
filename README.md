@@ -1,6 +1,6 @@
 # Tracemot
 
-Jeu de lettres dans le navigateur : on trace des mots du doigt ou à la souris sur une grille de 5×5 lettres. Chaque grille cache exactement 5 mots de 5 lettres qui pavent les 25 cases ; la partie est gagnée quand les 5 sont trouvés. Cinq niveaux de difficulté dosent le vocabulaire, de Doux à Brûlant.
+Jeu de lettres dans le navigateur : on trace des mots du doigt ou à la souris sur une grille de 5×5 lettres. Chaque grille cache exactement 5 mots de 5 lettres qui pavent les 25 cases ; la partie est gagnée quand les 5 sont trouvés. Quatre niveaux de difficulté dosent le vocabulaire, de Doux à Corsé.
 
 Vanilla JS, HTML, CSS - aucune dépendance, aucun build.
 
