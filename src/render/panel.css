@@ -1,0 +1,135 @@
+/* Voile + panneau : composant partagé (popover desktop, feuille mobile).
+   Hérité du sélecteur de difficulté disparu — d'où les classes .diff-* ; la
+   règle du jeu s'en sert (src/render/rule.css). */
+
+
+/* Hérité du sélecteur de difficulté disparu ; seule la règle du jeu l'emploie
+   encore (popover desktop, feuille mobile). Les classes gardent leur nom :
+   elles restent le composant « panneau du header ». */
+.diff-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(38, 34, 28, 0.18);
+}
+
+/* Desktop : popover ancré sous la chip */
+.diff-panel {
+  position: absolute;
+  z-index: 21;
+  top: calc(100% + 14px);
+  left: 0;
+  width: 440px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 0 20px 44px rgba(38, 34, 28, 0.35);
+  padding: 16px 16px 18px;
+}
+
+.diff-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.diff-panel-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 2.5px;
+}
+
+/* Icône nue (cf. src/render/icons.ts), comme la flèche du retour et le « i » de
+   la règle : aucun cadre ne double la croix. Estompée au repos — fermer n'est
+   pas l'action du panneau, juste sa sortie.
+
+   Le padding n'est là que pour la cible du doigt ; la marge négative le reprend,
+   pour que la croix s'aligne quand même sur le bord du panneau et n'étire pas
+   la ligne de titre. */
+.diff-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
+  /* Le bouton ne contient qu'une icône, qui tient 1em de côté : sa taille se
+     règle donc ici, par le font-size. */
+  font-size: 18px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* Vermillon au pointeur, comme toutes les icônes nues. Le survol est réservé à
+   la souris : au doigt, le navigateur simule un :hover au tap et le laisse
+   collé. L'appui (:active), lui, se relâche partout. */
+@media (hover: hover) {
+  .diff-close:hover {
+    color: var(--vermilion);
+  }
+}
+
+.diff-close:active {
+  color: var(--vermilion);
+}
+
+/* Corps du panneau : une phrase serif, et la bande « specs » en mono sous un
+   filet. Partagés par la règle du jeu et le panneau des étoiles — deux panneaux
+   qui expliquent, dans la même voix. */
+.panel-line {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* Écho du compteur : le chiffre de l'interface, pas la prose. */
+.panel-spec {
+  margin: 13px 0 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* La grille, le tracé et leurs feedbacks (deal, pop, flash, shake, stamp)
+   sont rendus par PixiJS sur le canvas de fond (src/render/scene.ts). Il ne reste
+   ici que le chrome en surimpression. */
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  /* Feuille en bas d'écran à la place du popover, voile plus dense */
+  .diff-overlay {
+    background: rgba(38, 34, 28, 0.45);
+  }
+  .diff-panel {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    border: none;
+    border-top: 2px solid var(--ink);
+    box-shadow: none;
+    padding: 18px 16px max(24px, env(safe-area-inset-bottom));
+    animation: sheet-up 0.22s ease;
+  }
+  @keyframes sheet-up {
+    from {
+      opacity: 0.6;
+      transform: translateY(24px);
+    }
+  }
+  .diff-close {
+    font-size: 20px;
+  }
+  .panel-line {
+    font-size: 14.5px;
+  }
+}

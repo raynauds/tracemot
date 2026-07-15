@@ -1,0 +1,95 @@
+/* Contrôles de zoom de la caméra Pixi. Injectés dans le body par
+   buildZoomControls (src/render/scene.ts). */
+
+/* Boutons flottants + / − / tout voir (icônes, cf. src/render/icons.ts), ancrés
+   en coin, au-dessus du canvas. Les pas gardent la chip (filet encre), « tout
+   voir » est une icône nue. Le conteneur laisse passer les events de tracé ;
+   seuls les boutons les interceptent. */
+.zoom-controls {
+  position: fixed;
+  /* Le cadre de l'application (--edge, src/theme/base.css) : le zoom est au pied
+     de l'écran ce que le header est à sa tête — même retrait des trois bords
+     qu'il touche. */
+  right: max(var(--edge), env(safe-area-inset-right));
+  bottom: max(var(--edge), env(safe-area-inset-bottom));
+  z-index: 15;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zoom-btn {
+  width: 40px;
+  height: 40px;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  /* Le bouton ne contient qu'une icône (src/render/icons.ts), qui tient 1em de
+     côté : sa taille se règle donc ici, par le font-size. */
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Le survol n'existe que là où un pointeur peut se poser sans appuyer. Au
+   doigt, le navigateur simule quand même un :hover au tap et le LAISSE collé
+   jusqu'au tap suivant, ailleurs : le bouton resterait allumé après le
+   relâchement. `(hover: hover)` réserve donc l'état à la souris ; le doigt,
+   lui, a :active, qui se relâche. */
+@media (hover: hover) {
+  .zoom-btn:hover {
+    background: var(--card-hover);
+  }
+}
+
+.zoom-btn:active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* « Tout voir » : icône nue, comme les commandes du header. C'est le seul
+   bouton que le tactile garde (le pinch remplace les pas) — sans cadre, il ne
+   pose plus qu'un signe sur la grille. Déclaré après .zoom-btn : à
+   spécificité égale, c'est l'ordre qui tranche. */
+.zoom-btn--fit {
+  border: none;
+  background: none;
+  font-size: 24px;
+}
+
+@media (hover: hover) {
+  .zoom-btn--fit:hover {
+    background: none;
+    color: var(--vermilion);
+  }
+}
+
+/* Sans fond à inverser, l'appui se dit par l'encre qui vire au vermillon — et
+   revient au noir au relâchement. */
+.zoom-btn--fit:active {
+  background: none;
+  color: var(--vermilion);
+}
+
+/* Sur écran tactile, le pinch remplace les boutons de pas : on ne garde que
+   « tout voir ». `(pointer: coarse)` = dispositif de pointage grossier (doigt),
+   indépendant de la largeur d'écran. */
+@media (pointer: coarse) {
+  .zoom-btn--step {
+    display: none;
+  }
+}
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  /* Zoom déplacé à gauche : la pastille registre occupe le coin bas-droit. */
+  .zoom-controls {
+    right: auto;
+    left: max(var(--edge), env(safe-area-inset-left));
+  }
+}

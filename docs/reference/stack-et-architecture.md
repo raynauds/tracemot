@@ -17,7 +17,7 @@ Tout le code vit sous `src/`, découpé en couches — `src/game/` est le domain
 - `render/scene.ts` - scène Pixi : `Application`, couches, cases, lettres, tracé, tracés fantômes, animations et feedbacks (deal, pop, flash, shake, stamp).
 - `render/camera.ts` - modèle caméra (scale + position du container monde) : fit, clamp, zoom, pan, conversions écran ↔ monde.
 - `render/tween.ts` - petit moteur d'interpolations sur le Ticker Pixi.
-- `render/render.ts` - chrome DOM (registre, mode, difficulté, règle, chrono, statut, victoire).
+- `render/render.ts` - chrome DOM (registre, mode, difficulté, règle, statut, victoire).
 - `input/input.ts` - arbitrage des gestes (tracé / pan / pinch / molette / clavier / auto-pan) via les events fédérés Pixi.
 - `debug/debug.ts` - chargé si `DEBUG`.
 
@@ -29,7 +29,7 @@ Tous les réglages sont dans `src/game/config.ts` :
 - `DEBUG` - active le mode debug (voir [fonctionnalites.md](fonctionnalites.md)).
 - Difficultés : `ENABLED_DIFFICULTIES`, `DEFAULT_DIFFICULTY`, quotas par palier dans `DIFFICULTY_QUOTAS` (bornes en fraction du nombre de mots du mode).
 - Génération : `MAX_GRID_TRIES`, `GRID_REPAIRS_PER_WORD` (budget de réparation ∝ nombre de mots du mode), `REPAIR_CANDIDATES` (réparation hill-climbing).
-- Monde Pixi et caméra : `CELL_SIZE`, `CELL_GAP`, `VIEW_MARGIN` (jusqu'où on peut dézoomer et écarter la grille de l'interface), `FIT_MARGIN_PX` (marge visée par le cadrage d'ouverture), `ZOOM_MAX_CELLS`, `ZOOM_STEP`, `KEY_PAN_SPEED`, `EDGE_PAN_MARGIN`, `EDGE_PAN_MAX_SPEED`, plus la palette numérique (`PAPER`, `CARD`, `INK`…).
+- Monde Pixi et caméra : `CELL_SIZE`, `CELL_GAP`, `VIEW_MARGIN` (jusqu'où on peut dézoomer et écarter la grille de l'interface), `FIT_MARGIN_PX` (marge visée par le cadrage d'ouverture), `ZOOM_MAX_CELLS`, `ZOOM_STEP`, `KEY_PAN_SPEED`, plus la palette numérique (`PAPER`, `CARD`, `INK`…).
 
 ## Persistance
 

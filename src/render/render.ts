@@ -1,17 +1,24 @@
-// Chrome DOM en surimpression : registre repliable des mots trouvés,
-// sélecteurs de mode et de difficulté, consigne, chrono, statut et victoire.
-// La grille, le tracé et leurs animations sont rendus par PixiJS (render/scene.ts).
+// Chrome DOM en surimpression : header de partie (niveau, retour carte),
+// registre repliable des mots trouvés, consigne, statut et victoire.
+// La grille, le tracé et leurs animations sont rendus par PixiJS
+// (render/scene.ts) ; la carte de progression par render/map.ts.
+//
+// Ce module ne connaît que la PARTIE : le choix du niveau appartient à la
+// carte, il n'y a donc plus ici ni sélecteur de mode ni sélecteur de
+// difficulté (la difficulté est une propriété de la section).
 
-import {
-  DIFFICULTY_LABELS,
-  ENABLED_DIFFICULTIES,
-  ENABLED_MODES,
-  MODE_LABELS,
-  REJECT_DISPLAY_MS,
-  TOAST_MS,
-} from "../game/config.ts";
+import { REJECT_DISPLAY_MS } from "../game/config.ts";
+import { isDefi, levelLabel, type LevelId } from "../game/levels.ts";
+import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
+import {
+  arrowLeftIcon,
+  chevronIcon,
+  closeIcon,
+  infoIcon,
+  starIcon,
+} from "./icons.ts";
 
 // Ligne vide du registre : un point par lettre attendue (mode actif).
 function wordDots() {
@@ -24,11 +31,17 @@ function byId(id: string): HTMLElement {
   return el;
 }
 
-export const replayEl = byId("replay");
 const statusEl = byId("status");
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
-const chronoEl = byId("chrono");
+const winStarEl = byId("win-star");
+const winStarGainEl = byId("win-star-gain");
+const winStarUnlockEl = byId("win-star-unlock");
+const winNextEl = byId("win-next");
+const winDefiEl = byId("win-defi");
+const winMapEl = byId("win-map");
+const backMapEl = byId("back-map");
+const levelIdEl = byId("level-id");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
 const ruleSpecEl = byId("rule-spec");
@@ -36,13 +49,6 @@ const ruleSpecEl = byId("rule-spec");
 const listRows: HTMLElement[] = []; // les wordCount lignes du registre
 
 // --- Utilitaires --------------------------------------------------------
-
-function formatTime(ms: number) {
-  const total = Math.floor(ms / 1000);
-  const m = String(Math.floor(total / 60)).padStart(2, "0");
-  const s = String(total % 60).padStart(2, "0");
-  return `${m}:${s}`;
-}
 
 // Bande « specs » du panneau règle : dimensions du puzzle, tirées du mode
 // actif (mises en capitales par le CSS). La phrase serif au-dessus est
@@ -52,235 +58,26 @@ function renderRuleSpec() {
   ruleSpecEl.textContent = `${wordCount} mots · ${wordLength} lettres`;
 }
 
-// --- Sélecteur de difficulté (chip + popover / feuille + toast) ------------
+// --- Header de partie -------------------------------------------------------
 
-const difficultyNav = byId("difficulty-nav");
-const diffChipEl = byId("diff-chip");
-const diffChipLabelEl = byId("diff-chip-label");
-const diffPanelEl = byId("diff-panel");
-const diffListEl = byId("diff-list");
-const diffOverlayEl = byId("diff-overlay");
-const diffCloseEl = byId("diff-close");
-const diffToastEl = byId("diff-toast");
-const diffToastTitleEl = byId("diff-toast-title");
-const diffToastSubEl = byId("diff-toast-sub");
+// Deux boutons muets dans le HTML (leur sens tient dans l'aria-label) : la
+// flèche du retour et le « i » de la règle sont des icônes, elles viennent
+// d'ici (cf. ./icons.ts).
+backMapEl.appendChild(arrowLeftIcon());
 
-/** Lignes du panneau, une par difficulté. */
-const diffRows: HTMLButtonElement[] = [];
-let diffToastTimer: ReturnType<typeof setTimeout> | null = null;
-
-// Lignes du panneau générées depuis DIFFICULTY_LABELS : étoiles pleines
-// jusqu'au niveau, nom, description, coche sur le niveau courant.
-const maxLevel = Object.keys(DIFFICULTY_LABELS).length;
-for (const [levelStr, { name, desc }] of Object.entries(DIFFICULTY_LABELS)) {
-  const level = Number(levelStr);
-  const row = document.createElement("button");
-  row.type = "button";
-  row.className = "diff-level";
-  row.dataset.difficulty = levelStr;
-
-  const bar = document.createElement("span");
-  bar.className = "diff-level-bar";
-  const stars = document.createElement("span");
-  stars.className = "diff-level-stars";
-  const on = document.createElement("span");
-  on.className = "on";
-  on.textContent = "★".repeat(level);
-  const off = document.createElement("span");
-  off.className = "off";
-  off.textContent = "★".repeat(maxLevel - level);
-  stars.append(on, off);
-  const text = document.createElement("span");
-  text.className = "diff-level-text";
-  const nameEl = document.createElement("span");
-  nameEl.className = "diff-level-name";
-  nameEl.textContent = name;
-  const descEl = document.createElement("span");
-  descEl.className = "diff-level-desc";
-  descEl.textContent = desc;
-  text.append(nameEl, descEl);
-  const check = document.createElement("span");
-  check.className = "diff-level-check";
-  check.textContent = "✓";
-
-  row.append(bar, stars, text, check);
-  diffListEl.appendChild(row);
-  diffRows.push(row);
+// Identité du niveau en cours (« 5×5 · 1-12 ») : le seul repère du joueur une
+// fois la carte masquée.
+export function renderLevelHeader() {
+  levelIdEl.textContent = state.levelId
+    ? levelLabel(state.modeId, state.levelId)
+    : "";
 }
 
-function setDifficultyPanelOpen(open: boolean) {
-  // Les trois panneaux partagent le voile : jamais ouverts en même temps.
-  if (open) {
-    setRulePanelOpen(false);
-    setModePanelOpen(false);
-  }
-  diffPanelEl.hidden = !open;
-  diffOverlayEl.hidden = !open;
-  diffChipEl.classList.toggle("open", open);
-  diffChipEl.setAttribute("aria-expanded", String(open));
-}
-
-export function renderDifficultyBar() {
-  // Une seule difficulté accessible : le sélecteur disparaît, le jeu se
-  // présente sans notion de difficulté.
-  difficultyNav.hidden = ENABLED_DIFFICULTIES.length <= 1;
-  const label = DIFFICULTY_LABELS[state.difficulty];
-  diffChipLabelEl.textContent = `${state.difficulty} · ${label.name}`;
-  // La chip démarre en visibility:hidden (CSS) : dévoilée maintenant que
-  // le niveau affiché est le vrai.
-  difficultyNav.classList.add("ready");
-  for (const row of diffRows) {
-    const level = Number(row.dataset.difficulty);
-    row.classList.toggle("selected", level === state.difficulty);
-    row.disabled = !ENABLED_DIFFICULTIES.some((d) => d === level);
-  }
-}
-
-// Confirmation d'un changement de niveau : la feuille s'est refermée,
-// le toast rappelle le niveau choisi et qu'une grille est relancée.
-export function showDifficultyToast() {
-  const label = DIFFICULTY_LABELS[state.difficulty];
-  diffToastTitleEl.textContent = `Niveau ${state.difficulty} — ${label.name}`;
-  diffToastSubEl.textContent = `${label.desc} · Nouvelle grille`;
-  diffToastEl.hidden = false;
-  if (diffToastTimer !== null) clearTimeout(diffToastTimer);
-  diffToastTimer = setTimeout(() => {
-    diffToastTimer = null;
-    diffToastEl.hidden = true;
-  }, TOAST_MS);
-}
-
-export function bindDifficultyBar(onSelect: (difficulty: number) => void) {
-  diffChipEl.addEventListener("click", () =>
-    // hidden est typé string | boolean (« until-found ») mais on n'y écrit
-    // que des booléens.
-    setDifficultyPanelOpen(diffPanelEl.hidden as boolean),
-  );
-  diffCloseEl.addEventListener("click", () => setDifficultyPanelOpen(false));
-  diffOverlayEl.addEventListener("click", () => setDifficultyPanelOpen(false));
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !diffPanelEl.hidden) setDifficultyPanelOpen(false);
-  });
-  for (const row of diffRows) {
-    row.addEventListener("click", () => {
-      // Sélection = fermeture immédiate ; re-choisir le niveau courant
-      // referme simplement, sans relancer de grille.
-      setDifficultyPanelOpen(false);
-      const level = Number(row.dataset.difficulty);
-      if (level !== state.difficulty) onSelect(level);
-    });
-  }
-}
-
-// --- Sélecteur de mode (chip + popover / feuille + toast) -------------------
-
-// Même composant que la difficulté : chip du header ouvrant une feuille de
-// choix, toast de confirmation. Les classes CSS .diff-* sont réutilisées
-// (comme le panneau règle) ; seules les lignes diffèrent (pas d'étoiles).
-const modeNav = byId("mode-nav");
-const modeChipEl = byId("mode-chip");
-const modeChipLabelEl = byId("mode-chip-label");
-const modePanelEl = byId("mode-panel");
-const modeListEl = byId("mode-list");
-const modeOverlayEl = byId("mode-overlay");
-const modeCloseEl = byId("mode-close");
-const modeToastEl = byId("mode-toast");
-const modeToastTitleEl = byId("mode-toast-title");
-const modeToastSubEl = byId("mode-toast-sub");
-
-/** Lignes du panneau, une par mode. */
-const modeRows: HTMLButtonElement[] = [];
-let modeToastTimer: ReturnType<typeof setTimeout> | null = null;
-
-// Lignes du panneau générées depuis MODE_LABELS : nom de la grille
-// (largeur × hauteur), description du puzzle, coche sur le mode courant.
-for (const [id, { name, desc }] of Object.entries(MODE_LABELS)) {
-  const row = document.createElement("button");
-  row.type = "button";
-  row.className = "diff-level";
-  row.dataset.mode = id;
-
-  const bar = document.createElement("span");
-  bar.className = "diff-level-bar";
-  const text = document.createElement("span");
-  text.className = "diff-level-text";
-  const nameEl = document.createElement("span");
-  nameEl.className = "diff-level-name";
-  nameEl.textContent = name;
-  const descEl = document.createElement("span");
-  descEl.className = "diff-level-desc";
-  descEl.textContent = desc;
-  text.append(nameEl, descEl);
-  const check = document.createElement("span");
-  check.className = "diff-level-check";
-  check.textContent = "✓";
-
-  row.append(bar, text, check);
-  modeListEl.appendChild(row);
-  modeRows.push(row);
-}
-
-function setModePanelOpen(open: boolean) {
-  // Les trois panneaux partagent le voile : jamais ouverts en même temps.
-  if (open) {
-    setDifficultyPanelOpen(false);
-    setRulePanelOpen(false);
-  }
-  modePanelEl.hidden = !open;
-  modeOverlayEl.hidden = !open;
-  modeChipEl.classList.toggle("open", open);
-  modeChipEl.setAttribute("aria-expanded", String(open));
-}
-
-export function renderModeBar() {
-  // Un seul mode accessible : le sélecteur disparaît, le jeu se présente
-  // sans notion de mode.
-  modeNav.hidden = ENABLED_MODES.length <= 1;
-  modeChipLabelEl.textContent = MODE_LABELS[state.modeId].name;
-  // La chip démarre en visibility:hidden (CSS) : dévoilée maintenant que
-  // le mode affiché est le vrai.
-  modeNav.classList.add("ready");
-  for (const row of modeRows) {
-    const id = row.dataset.mode ?? "";
-    row.classList.toggle("selected", id === state.modeId);
-    row.disabled = !ENABLED_MODES.includes(id);
-  }
-}
-
-// Confirmation d'un changement de mode : la feuille s'est refermée, le toast
-// rappelle la grille choisie et qu'une partie est relancée.
-export function showModeToast() {
-  const label = MODE_LABELS[state.modeId];
-  modeToastTitleEl.textContent = `Grille ${label.name}`;
-  modeToastSubEl.textContent = `${label.desc} · Nouvelle grille`;
-  modeToastEl.hidden = false;
-  if (modeToastTimer !== null) clearTimeout(modeToastTimer);
-  modeToastTimer = setTimeout(() => {
-    modeToastTimer = null;
-    modeToastEl.hidden = true;
-  }, TOAST_MS);
-}
-
-export function bindModeBar(onSelect: (id: string) => void) {
-  modeChipEl.addEventListener("click", () =>
-    // hidden est typé string | boolean (« until-found ») mais on n'y écrit
-    // que des booléens.
-    setModePanelOpen(modePanelEl.hidden as boolean),
-  );
-  modeCloseEl.addEventListener("click", () => setModePanelOpen(false));
-  modeOverlayEl.addEventListener("click", () => setModePanelOpen(false));
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !modePanelEl.hidden) setModePanelOpen(false);
-  });
-  for (const row of modeRows) {
-    row.addEventListener("click", () => {
-      // Sélection = fermeture immédiate ; re-choisir le mode courant
-      // referme simplement, sans relancer de grille.
-      setModePanelOpen(false);
-      const id = row.dataset.mode ?? "";
-      if (id !== state.modeId) onSelect(id);
-    });
-  }
+// Retour à la carte : même action depuis le header et depuis l'écran de
+// victoire (où elle est l'action principale).
+export function bindMapReturn(onReturn: () => void) {
+  backMapEl.addEventListener("click", onReturn);
+  winMapEl.addEventListener("click", onReturn);
 }
 
 // --- Registre repliable ----------------------------------------------------
@@ -289,6 +86,9 @@ export function bindModeBar(onSelect: (id: string) => void) {
 // pastille (compteur n / N) sur mobile. Le bouton d'en-tête plie/déplie.
 const ledgerEl = byId("ledger");
 const ledgerToggleEl = byId("ledger-toggle");
+
+// Le chevron du repli : posé une fois ici, orienté par le CSS selon l'état.
+byId("ledger-caret").appendChild(chevronIcon());
 
 function setLedgerCollapsed(collapsed: boolean) {
   ledgerEl.classList.toggle("collapsed", collapsed);
@@ -301,24 +101,20 @@ ledgerToggleEl.addEventListener("click", () =>
 // État initial : replié sur mobile (pastille), déplié sur desktop.
 setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 
-// --- Règle du jeu (bouton « ? » du header) ---------------------------------
+// --- Règle du jeu (bouton « info » du header) ------------------------------
 
-// La règle n'est plus affichée en permanence : elle vit dans le même panneau
-// que la difficulté, ouvert par le bouton « ? ». Comme la mécanique n'est pas
-// devinable, on l'ouvre d'office à la toute première visite (et seulement
-// celle-là) : le drapeau « vu » est mémorisé en localStorage.
+// La règle vit dans un panneau ouvert par le bouton « info ». Comme la mécanique
+// n'est pas devinable, on l'ouvre d'office au tout premier niveau lancé (et
+// seulement celui-là) : le drapeau « vu » est mémorisé en localStorage.
 const RULE_SEEN_KEY = "tracemot.rule-seen";
 const ruleChipEl = byId("rule-chip");
+ruleChipEl.appendChild(infoIcon());
 const rulePanelEl = byId("rule-panel");
 const ruleOverlayEl = byId("rule-overlay");
 const ruleCloseEl = byId("rule-close");
+ruleCloseEl.appendChild(closeIcon());
 
 function setRulePanelOpen(open: boolean) {
-  // Les trois panneaux partagent le voile : jamais ouverts en même temps.
-  if (open) {
-    setDifficultyPanelOpen(false);
-    setModePanelOpen(false);
-  }
   rulePanelEl.hidden = !open;
   ruleOverlayEl.hidden = !open;
   ruleChipEl.classList.toggle("open", open);
@@ -336,8 +132,8 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !rulePanelEl.hidden) setRulePanelOpen(false);
 });
 
-// Appelée une fois la partie prête (main.ts) : avant, l'overlay de statut
-// (« chargement du dictionnaire ») couvrirait le panneau.
+// Appelée au premier niveau lancé (main.ts) : avant, la carte couvrirait le
+// panneau.
 export function showRuleOnFirstVisit() {
   let seen = null;
   try {
@@ -358,9 +154,11 @@ export function showRuleOnFirstVisit() {
 
 export function buildBoard() {
   // Les lignes du registre sont pré-rendues dans le HTML (anti-shift au
-  // chargement, calées sur le mode par défaut) : on les adopte, et on
-  // ajuste leur nombre au mode actif. Rappelée au changement de mode :
-  // listRows est reconstruit de zéro (les lignes adoptées restent valides).
+  // chargement, calées sur le mode par défaut) : on les adopte, et on ajuste
+  // leur nombre au niveau actif. Rappelée à chaque niveau : le nombre de mots
+  // varie du simple au quadruple (un défi du 8×8 en demande 32 quand le HTML
+  // n'en pré-rend que 5 — les 27 manquantes sont créées ici), et listRows est
+  // reconstruit de zéro (les lignes adoptées restent valides).
   const { wordCount } = state.mode;
   listRows.length = 0;
   while (wordListEl.children.length > wordCount) {
@@ -469,29 +267,11 @@ export function buzz() {
   if (navigator.vibrate) navigator.vibrate(8);
 }
 
-// --- Chrono ------------------------------------------------------------
-
-export function startTimer() {
-  stopTimer();
-  state.startTime = Date.now();
-  chronoEl.textContent = "00:00";
-  state.timerId = setInterval(() => {
-    chronoEl.textContent = formatTime(Date.now() - state.startTime);
-  }, 500);
-}
-
-export function stopTimer() {
-  if (state.timerId !== null) {
-    clearInterval(state.timerId);
-    state.timerId = null;
-  }
-}
-
 // --- États de partie --------------------------------------------------------
 
-// Remet le chrome à neuf pour une nouvelle partie : registre vidé, compteur
-// et chrono réinitialisés, consigne rétablie, victoire masquée. La grille
-// Pixi est réaffichée par render/scene.ts (renderSceneGrid).
+// Remet le chrome à neuf pour un nouveau niveau : registre vidé, compteur
+// réinitialisé, consigne rétablie, victoire masquée. La grille Pixi est
+// réaffichée par render/scene.ts (renderSceneGrid).
 export function renderNewGame() {
   if (state.rejectTimer !== null) {
     clearTimeout(state.rejectTimer);
@@ -500,24 +280,99 @@ export function renderNewGame() {
   listRows.forEach(resetListRow);
   renderCounter();
   counterEl.classList.remove("full");
-  chronoEl.classList.remove("won");
   renderRuleSpec();
-  winEl.hidden = true;
+  hideWin();
 }
 
-export function renderWin() {
-  const time = formatTime(Date.now() - state.startTime);
-  chronoEl.textContent = `${time} ■`;
-  chronoEl.classList.add("won");
+// --- Suites proposées à la victoire -----------------------------------------
+
+// Les deux boutons de tête sont des SLOTS : ce qu'ils lancent change à chaque
+// victoire (nextChoices, cf. game/progress.ts). L'identifiant visé est gardé
+// ici plutôt que sur le DOM — le clic n'a rien à re-parser, et un bouton masqué
+// ne peut pas relancer la partie précédente puisqu'on l'oublie à chaque rendu.
+let winTargets: (LevelId | null)[] = [null, null];
+let onPlayLevel: ((id: LevelId) => void) | null = null;
+
+// Libellé d'un bouton : l'identifiant seul suffit (« 1-6 »), la forme du mode
+// est déjà dans le header. Un défi s'annonce toujours comme tel, étoile comprise
+// — c'est ce qu'il rapporte —, qu'il vienne d'être ouvert ou qu'on y retombe par
+// le repli « continuer » (l'ordre canonique le place avant la ligne suivante).
+function fillChoice(el: HTMLElement, choice: NextChoice): void {
+  if (isDefi(choice.id)) {
+    el.append(`DÉFI ${choice.id}`, starIcon());
+    return;
+  }
+  const verb = choice.kind === "next" ? "SUIVANT" : "CONTINUER";
+  el.append(`${verb} · ${choice.id}`);
+}
+
+export function bindWinNext(onPlay: (id: LevelId) => void) {
+  onPlayLevel = onPlay;
+  [winNextEl, winDefiEl].forEach((el, slot) => {
+    el.addEventListener("click", () => {
+      const id = winTargets[slot];
+      if (id && onPlayLevel) onPlayLevel(id);
+    });
+  });
+}
+
+function renderWinActions(choices: NextChoice[]) {
+  // Le défi, quand il y est, est la SECONDE proposition : après une victoire on
+  // enchaîne sur la grille de même taille, la grille doublée reste un choix.
+  // nextChoices() les rend déjà dans cet ordre (normal puis défi).
+  [winNextEl, winDefiEl].forEach((el, slot) => {
+    const choice = choices[slot];
+    winTargets[slot] = choice ? choice.id : null;
+    el.hidden = !choice;
+    el.textContent = "";
+    if (choice) fillChoice(el, choice);
+  });
+}
+
+// star : passé par main.ts au seul cas qui vaut une récompense — un défi gagné
+// pour la première fois. Le rejeu d'un défi et les niveaux normaux laissent
+// l'écran de victoire inchangé, sans quoi l'étoile ne voudrait plus rien dire.
+// choices : ce que la victoire vient d'ouvrir (0 à 2 niveaux).
+export function renderWin(opts: {
+  star?: { count: number; unlocked: string | null };
+  choices?: NextChoice[];
+} = {}) {
+  const { star, choices = [] } = opts;
   counterEl.classList.add("full");
   const { wordCount } = state.mode;
-  winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} EN ${time}`;
+  winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} TROUVÉ${wordCount > 1 ? "S" : ""}`;
+  winStarEl.hidden = !star;
+  if (star) {
+    winStarGainEl.textContent = "";
+    winStarGainEl.append(
+      starIcon(),
+      `Étoile gagnée — ${star.count} / ${MAX_STARS}`,
+    );
+    // Les étoiles au-delà des paliers ne débloquent rien : elles ne comptent
+    // que pour la complétion du mode, on n'annonce donc que le gain.
+    winStarUnlockEl.hidden = star.unlocked === null;
+    winStarUnlockEl.textContent = star.unlocked
+      ? `Débloque : ${star.unlocked}`
+      : "";
+  }
+  renderWinActions(choices);
   winEl.hidden = false;
 }
 
+// Le retour à la carte et l'enchaînement quittent tous deux l'écran de victoire.
+export function hideWin() {
+  winEl.hidden = true;
+}
+
+// Échec de chargement d'un niveau. L'overlay est opaque et couvre la carte
+// (z-index 50) : sans quoi le retour à la carte, qui suit immédiatement, le
+// masquerait. Il est donc refermable d'un clic — sinon le joueur y resterait
+// enfermé, alors que l'échec est rattrapable (autre niveau, autre mode).
 export function renderLoadError(message: string) {
   statusEl.classList.add("error");
   statusEl.textContent = message;
+  statusEl.hidden = false;
+  statusEl.addEventListener("click", hideStatus, { once: true });
 }
 
 export function hideStatus() {

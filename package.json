@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "generate:levels": "node scripts/generate-levels.ts",
+    "generate:tokens": "node scripts/generate-tokens.ts",
+    "check:tokens": "node scripts/generate-tokens.ts --check",
     "check:solver": "node tools/solver-check.mjs",
+    "check:progress": "node tools/progress-check.mjs",
     "check": "tsc --noEmit"
   },
   "devDependencies": {

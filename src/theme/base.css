@@ -1,0 +1,92 @@
+/* Socle : reset, page, boot. Les tokens (couleurs, polices) sont importés par
+   style.css avant cette feuille. */
+
+/* --edge : LA marge de l'application. Une seule valeur, tous écrans, tous bords.
+   Elle vit ici et pas dans tokens.css, qui est généré depuis src/theme/tokens.ts
+   pour ce que Pixi partage avec le DOM (couleurs, polices) : un espacement n'a
+   rien à y faire.
+
+   Ce que la règle veut dire, concrètement :
+   — un en-tête a le MÊME retrait en haut, à gauche et à droite (son retrait bas
+     ne regarde que son contenu, il est libre) ;
+   — un pied a le même à gauche, en bas et à droite (son retrait haut est libre) ;
+   — et les deux valent --edge. Le header de la carte, celui de la partie, le
+     zoom et le registre se posent donc sur le même cadre : rien ne bouge quand
+     on passe de la carte au jeu.
+
+   Chaque bord s'écrit `max(var(--edge), env(safe-area-inset-*))` : la marge est
+   un plancher, l'encoche ou la barre home peut la pousser, jamais la réduire. */
+:root {
+  --edge: 24px;
+  /* Hauteur du header de partie : la marge haute, la flèche (24px — l'item le
+     plus haut), son retrait bas (src/render/header.css). Le registre s'y
+     accroche au lieu de la deviner ; ce calc et le padding du header doivent
+     bouger ensemble. */
+  --header-h: calc(var(--edge) + 24px + 20px);
+}
+
+@media (max-width: 860px) {
+  :root {
+    --edge: 14px;
+    --header-h: calc(var(--edge) + 22px + 18px);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  /* La grille Pixi occupe tout l'écran (canvas fixe) ; le chrome est en
+     overlays fixes. Aucun flux : pas de scroll de page. */
+  overflow: hidden;
+}
+
+
+/* Icônes (src/render/icons.ts) : les fichiers SVG de src/assets/icons, inlinés
+   dans le DOM. Ils portent déjà leur tracé (stroke: currentColor, fill: none) ;
+   ces deux règles ne disent que ce que le CSS doit imposer par-dessus — et le
+   fait, les attributs de présentation d'un SVG cédant à toute règle CSS.
+
+   1em de côté : l'icône se règle comme le texte qui l'entoure, par le
+   `font-size` du contexte — exactement là où un glyphe ★ ou ✓ se réglait. */
+.icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+
+/* Étoile gagnée : pleine. Restant à gagner, elle garde le seul contour du
+   fichier. */
+.icon-star.is-filled {
+  fill: currentColor;
+}
+
+
+/* Au chargement, l'écran ne montre QUE le papier du body : le HTML peint sinon
+   le chrome de partie (header, registre) que showMap() escamote aussitôt
+   après, et les polices arrivent en swap — deux sauts pour rien.
+
+   visibility (et non display) : la mise en page et les mesures de police se
+   font pendant ce temps, la révélation ne re-layoute donc rien. main.ts retire
+   .booting quand la carte est en place.
+
+   Pas de fondu à la révélation : la carte s'ouvrirait en transparence sur le
+   canvas Pixi posé dessous, et on reverrait la grille passer. */
+body.booting > * {
+  visibility: hidden;
+}
+

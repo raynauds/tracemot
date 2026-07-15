@@ -5,7 +5,7 @@
 - Relier des lettres voisines (haut, bas, gauche, droite, pas de diagonale), chaque case au plus une fois par tracé.
 - Les mots cachés pavent exactement la grille : chaque lettre sert à exactement un mot. Leur nombre et leur longueur dépendent du [mode de jeu](fonctionnalites.md) — 5 mots de 5 lettres en 5×5, 20 mots de 5 lettres en 20×5, 8 mots de 8 lettres en 8×8. Un mot validé désactive ses cases, son tracé reste affiché en fantôme.
 - Un mot compte s'il figure dans le dictionnaire et n'a pas déjà été trouvé.
-- La partie est gagnée quand tous les mots du mode sont trouvés. Un chrono tourne du début à la victoire.
+- La partie est gagnée quand tous les mots du mode sont trouvés. Le jeu n'est pas chronométré.
 
 ## Garanties de la grille
 

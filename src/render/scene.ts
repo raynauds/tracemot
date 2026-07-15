@@ -19,8 +19,10 @@ import {
   VERMILION,
   ZOOM_STEP,
 } from "../game/config.ts";
+import { SERIF_NAME } from "../theme/tokens.ts";
 import { state } from "../game/state.ts";
 import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.ts";
+import { maximizeIcon, minusIcon, plusIcon } from "./icons.ts";
 
 // Géométrie de la grille, tirée du mode actif. Réadoptée au changement de
 // mode par rebuildGrid (les fonctions du module la lisent à l'appel).
@@ -222,7 +224,7 @@ function buildGrid(): void {
     const text = new Text({
       text: "",
       style: {
-        fontFamily: "Source Serif 4",
+        fontFamily: SERIF_NAME,
         fontWeight: "700",
         fontSize: metrics.font,
         fill: INK,
@@ -482,7 +484,7 @@ function onWheel(e: WheelEvent): void {
 }
 
 // Boutons flottants + / − / tout voir : câblés sur zoomAt(centre, ±ZOOM_STEP)
-// et fit(). Style « chip » (mono, bordure INK) défini dans style.css.
+// et fit(). Style « chip » (bordure INK) défini dans zoom.css.
 function buildZoomControls(): void {
   const bar = document.createElement("div");
   bar.className = "zoom-controls";
@@ -491,7 +493,7 @@ function buildZoomControls(): void {
    * @param extraClass modificateur optionnel (ex. bouton de pas)
    */
   const addButton = (
-    label: string,
+    icon: SVGSVGElement,
     title: string,
     onClick: () => void,
     extraClass?: string,
@@ -499,27 +501,27 @@ function buildZoomControls(): void {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = extraClass ? `zoom-btn ${extraClass}` : "zoom-btn";
-    btn.textContent = label;
+    btn.appendChild(icon);
     btn.title = title;
     btn.setAttribute("aria-label", title);
     btn.addEventListener("click", onClick);
     bar.appendChild(btn);
   };
 
-  // Boutons de pas + / − : masqués sur mobile (le pinch suffit), voir style.css.
+  // Boutons de pas + / − : masqués sur mobile (le pinch suffit), voir zoom.css.
   addButton(
-    "+",
+    plusIcon(),
     "Zoomer",
     () => camera.zoomAt(camera.screenCenter(), ZOOM_STEP),
     "zoom-btn--step",
   );
   addButton(
-    "−",
+    minusIcon(),
     "Dézoomer",
     () => camera.zoomAt(camera.screenCenter(), 1 / ZOOM_STEP),
     "zoom-btn--step",
   );
-  addButton("⤢", "Tout voir", () => camera.fit());
+  addButton(maximizeIcon(), "Tout voir", () => camera.fit(), "zoom-btn--fit");
   document.body.appendChild(bar);
 }
 
@@ -578,7 +580,7 @@ export async function initScene(): Promise<void> {
 
   // Polices prêtes avant de créer les Text (sinon fallback figé en texture).
   try {
-    await document.fonts.load('700 42px "Source Serif 4"');
+    await document.fonts.load(`700 42px "${SERIF_NAME}"`);
     await document.fonts.ready;
   } catch (_) {
     /* API Font indisponible : on construit quand même */
@@ -601,10 +603,11 @@ export async function initScene(): Promise<void> {
   buildZoomControls();
 }
 
-// Reconstruit la grille Pixi pour le mode actif (changement de mode à
-// chaud) : annule les animations en cours, détruit cases et lettres, recadre
-// la caméra sur la nouvelle forme, recrée la grille. Les lettres sont
-// reposées par renderSceneGrid (startGame).
+// Reconstruit la grille Pixi à la forme du niveau lancé (elle change d'un
+// niveau à l'autre — un défi double le côté) : annule les animations en cours,
+// détruit cases et lettres, recadre la caméra sur la nouvelle forme, recrée la
+// grille. Les lettres sont reposées ensuite par renderSceneGrid (main.ts,
+// startLevel).
 export function rebuildGrid(): void {
   if (!app) return;
   cancelTweens(); // aucun onUpdate ne doit toucher une case détruite

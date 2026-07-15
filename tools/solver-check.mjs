@@ -1,18 +1,23 @@
 // @ts-check
-// Harnais de vérification du solveur : génère N grilles par mode et par
+// Harnais de vérification du solveur : génère N grilles par géométrie et par
 // difficulté, et vérifie les invariants du contrat « pavage parfait » avec
 // un énumérateur de tracés INDÉPENDANT du solveur (DFS naïf sans élagage
 // par préfixes) — une régression dans findWordPaths ne peut donc pas se
 // valider elle-même. Rapporte tirages et temps par grille (profilage).
 //
-//   node tools/solver-check.mjs [N] [mode]
-//   N : grilles par cas (défaut 20) ; mode : limite à un mode (ex. double)
+//   node tools/solver-check.mjs [N] [mode] [--defis]
+//   N : grilles par cas (défaut 20) ; mode : limite à un mode (ex. 6x6)
+//   --defis : ajoute la géométrie défi de chaque mode (defiMode : 10×10 …
+//   16×16). C'est là que carveTiling peut partir en exploration exhaustive
+//   (le budget de backtracking de solver.ts existe pour ça), donc la seule
+//   couverture de régression des grandes grilles — mais elle coûte des
+//   minutes, d'où le drapeau plutôt que le défaut.
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { DIFFICULTY_QUOTAS, GAME_MODES } from "../src/game/config.ts";
+import { DIFFICULTY_QUOTAS, GAME_MODES, defiMode } from "../src/game/config.ts";
 import { createGeometry } from "../src/game/geometry.ts";
 import {
   FULL_DICT_FILE,
@@ -29,10 +34,24 @@ const ROOT = path.join(
   "..",
   "public",
 );
-const GRIDS_PER_CASE = Number(process.argv[2]) || 20;
-const MODE_FILTER = process.argv[3];
+const ARGS = process.argv.slice(2);
+const WITH_DEFIS = ARGS.includes("--defis");
+const POSITIONAL = ARGS.filter((a) => !a.startsWith("--"));
+const GRIDS_PER_CASE = Number(POSITIONAL[0]) || 20;
+const MODE_FILTER = POSITIONAL[1] ?? null;
 /** @type {import("../src/game/config.ts").Difficulty[]} */
 const DIFFICULTIES = [1, 2, 3, 4, 5];
+
+// Sans ce garde, un mode mal orthographié saute toutes les itérations : le
+// harnais imprime « Tous les invariants sont vérifiés » et sort en 0 après
+// avoir testé ZÉRO grille — un vert mensonger, le pire résultat possible.
+if (MODE_FILTER && !(MODE_FILTER in GAME_MODES)) {
+  console.error(
+    `Mode inconnu : ${MODE_FILTER} — attendu ` +
+      `${Object.keys(GAME_MODES).join(", ")}.`,
+  );
+  process.exit(1);
+}
 
 /** @param {string} file */
 function readWords(file) {
@@ -95,12 +114,24 @@ function check(ok, label) {
   }
 }
 
+// Cas à éprouver : la géométrie de chaque mode, plus celle de ses défis quand
+// --defis est passé. Les niveaux livrés (cf. scripts/generate-levels.ts) usent
+// des deux : ne tester que les modes laisserait les grandes grilles sans filet.
+/** @type {{ label: string; mode: import("../src/game/config.ts").GameMode }[]} */
+const CASES = [];
 for (const [modeId, mode] of Object.entries(GAME_MODES)) {
   if (MODE_FILTER && modeId !== MODE_FILTER) continue;
+  CASES.push({ label: modeId, mode });
+  if (WITH_DEFIS) {
+    CASES.push({ label: `${modeId} · défi`, mode: defiMode(mode) });
+  }
+}
+
+for (const { label, mode } of CASES) {
   const geometry = createGeometry(mode.rows, mode.cols);
   const sets = buildLengthSets(fullWords, tierWords, mode.wordLength);
   console.log(
-    `\nMode « ${modeId} » : ${mode.rows}×${mode.cols}, ` +
+    `\nMode « ${label} » : ${mode.rows}×${mode.cols}, ` +
       `${mode.wordCount} mots de ${mode.wordLength} lettres — viviers : ` +
       TIER_NAMES.map((t) => `${t} ${sets.candidates[t].length}`).join(", "),
   );

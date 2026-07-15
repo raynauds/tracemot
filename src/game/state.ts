@@ -1,34 +1,35 @@
 // État centralisé de la partie. main.ts écrit le déroulement, render.ts
 // et input.ts le lisent (input.ts ne modifie que path et pointerId).
-// Le mode de jeu (forme de grille + puzzle) et sa géométrie changent à
-// chaud via applyMode (main.ts) : tout le reste en dérive.
+//
+// Depuis la progression, l'état ne connaît plus que le niveau en cours :
+// les dictionnaires ne sont plus chargés au runtime (les grilles sont
+// prégénérées) et la difficulté n'est plus un choix du joueur mais une
+// propriété de la section. La géométrie change à chaque niveau (un défi
+// double le côté de la grille) : applyLevel reste la seule écriture
+// autorisée de mode/geometry, tout le reste en dérive.
 
 import { DEFAULT_MODE, GAME_MODES } from "./config.ts";
-import type { Difficulty, GameMode, Tier } from "./config.ts";
+import type { GameMode, ModeId } from "./config.ts";
+import { levelMode } from "./levels.ts";
+import type { LevelData, LevelId } from "./levels.ts";
 import { createGeometry } from "./geometry.ts";
 import type { Geometry } from "./geometry.ts";
 
 const defaultMode = GAME_MODES[DEFAULT_MODE];
 
 export interface GameState {
-  /** Dictionnaires chargés et partie en place. */
+  /** Niveau chargé et partie en place (faux tant qu'on est sur la carte). */
   ready: boolean;
-  /** Identifiant du mode actif. */
-  modeId: keyof typeof GAME_MODES;
-  /** Mode de jeu actif. */
+  /** Mode dont vient le niveau en cours (l'onglet de la carte). */
+  modeId: ModeId;
+  /** Niveau en cours, null tant qu'aucun n'a été lancé. */
+  levelId: LevelId | null;
+  /** Forme du puzzle en cours : celle du mode, doublée pour un défi. */
   mode: GameMode;
-  /** Géométrie de la grille du mode. */
+  /** Géométrie de la grille du niveau. */
   geometry: Geometry;
-  /** Difficulté courante (étoiles). */
-  difficulty: Difficulty;
-  /** Mots cachés de la grille. */
+  /** Mots cachés de la grille (peut contenir des doublons). */
   solution: string[];
-  /** Tous les mots (validation des tracés). */
-  words: Set<string>;
-  /** Préfixes du dictionnaire complet (mode debug uniquement). */
-  fullPrefixes: Set<string>;
-  /** Mots des quatre paliers de vocabulaire (choix des mots cachés). */
-  tierWords: Record<Tier, Set<string>>;
   /** Les lettres de la grille courante (une par case). */
   letters: string[];
   /** Indices des cases du tracé en cours. */
@@ -45,27 +46,15 @@ export interface GameState {
   /** Timeout d'effacement du dernier mot refusé. */
   rejectTimer: number | null;
   won: boolean;
-  /** Tirages de grilles avant d'en obtenir une valide (debug). */
-  gridTries: number;
-  startTime: number;
-  timerId: number | null;
 }
 
 export const state: GameState = {
-  ready: false, // dictionnaires chargés et partie en place
+  ready: false,
   modeId: DEFAULT_MODE,
+  levelId: null,
   mode: defaultMode,
   geometry: createGeometry(defaultMode.rows, defaultMode.cols),
-  difficulty: 1,
   solution: [],
-  words: new Set(),
-  fullPrefixes: new Set(),
-  tierWords: {
-    enfant: new Set(),
-    ado: new Set(),
-    adulte: new Set(),
-    inconnu: new Set(),
-  },
   letters: [],
   path: [],
   pointerId: null,
@@ -74,16 +63,18 @@ export const state: GameState = {
   foundPaths: [],
   rejectTimer: null,
   won: false,
-  gridTries: 0, // tirages de grilles avant d'en obtenir une valide (debug)
-  startTime: 0,
-  timerId: null,
 };
 
-// Adopte un mode : identifiant, mode et géométrie dérivée. Seule écriture
-// autorisée de state.mode/geometry (main.ts, au boot et au changement à
-// chaud — le rebuild de la scène et du registre incombe à l'appelant).
-export function applyMode(modeId: keyof typeof GAME_MODES): void {
+// Adopte un niveau : mode, identifiant, forme effective (défi compris),
+// géométrie dérivée, solution et lettres prégénérées. Seule écriture
+// autorisée de state.mode/geometry ; la reconstruction de la scène Pixi et
+// du registre incombe à l'appelant (main.ts), qui seul sait quand elle est
+// sûre (aucun geste en vol).
+export function applyLevel(modeId: ModeId, level: LevelData): void {
   state.modeId = modeId;
-  state.mode = GAME_MODES[modeId];
+  state.levelId = level.id;
+  state.mode = levelMode(modeId, level.id);
   state.geometry = createGeometry(state.mode.rows, state.mode.cols);
+  state.solution = level.words;
+  state.letters = [...level.letters];
 }

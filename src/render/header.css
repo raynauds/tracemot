@@ -1,0 +1,107 @@
+/* Header (overlay haut) : titre, retour à la carte, identifiant du niveau.
+   Écrit par src/render/render.ts. */
+
+
+/* Barre en surimpression au-dessus du canvas. Le conteneur laisse passer les
+   events de tracé (pointer-events: none) ; seuls ses boutons les réactivent.
+   Le dégradé fond le bord haut de la grille, qui passe dessous au zoom.
+
+   Deux pôles : à gauche la navigation (d'où l'on sort, où l'on est), à droite
+   la règle — une aide, qui n'a rien à faire dans cette paire. */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Contexte d'empilement du header : il englobe les modales de difficulté et
+     de règle (diff-overlay/panel, imbriqués). Placé au-dessus du registre (16)
+     et du zoom (15) pour que le voile et le panneau couvrent bien tout — mais
+     sous le statut/victoire (30). */
+  z-index: 25;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  /* Gouttière commune au registre et au zoom (--edge, src/theme/base.css) : les
+     trois se posent sur le même bord droit. Le retrait bas, lui, n'appartient
+     qu'au header — mais --header-h le rejoue pour poser le registre dessous. */
+  padding: max(var(--edge), env(safe-area-inset-top))
+    max(var(--edge), env(safe-area-inset-right)) 20px
+    max(var(--edge), env(safe-area-inset-left));
+  background: linear-gradient(
+    var(--paper) 55%,
+    rgba(246, 241, 231, 0)
+  );
+}
+
+/* Flèche + niveau : une même phrase (« retour, depuis ici »), donc serrés.
+   L'écart au « i » est celui du header (24px + tout l'espace restant). */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Sortie de partie : une flèche nue (icône, cf. src/render/icons.ts). Le cadre
+   et le mot « CARTE » pesaient leur poids de chrome pour une action que la
+   flèche seule dit déjà. Elle garde l'encre pleine — c'est l'action la plus
+   structurante du header, elle prime sur le « i » de la règle (estompé).
+
+   Le padding n'est là que pour la cible du doigt (44px de haut avec l'icône) ;
+   la marge négative le reprend pour que la flèche s'aligne quand même sur le
+   bord du header. */
+.back-map {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 24px; /* règle l'icône : .icon tient 1em de côté */
+  cursor: pointer;
+}
+
+/* Survol réservé à la souris : au doigt, le navigateur simule un :hover au tap
+   et le laisse collé jusqu'au tap suivant — la flèche resterait vermillon après
+   le relâchement. L'appui, lui (:active), se relâche partout. */
+@media (hover: hover) {
+  .back-map:hover {
+    color: var(--vermilion);
+  }
+}
+
+.back-map:active {
+  color: var(--vermilion);
+}
+
+/* Étiquette du niveau en cours : information, pas commande — mono estompé. */
+.level-id {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  /* Les trois autres bords suivent --edge, qui se resserre au même seuil. */
+  .header {
+    padding-bottom: 18px;
+  }
+  .header-left {
+    gap: 10px;
+  }
+  .back-map {
+    font-size: 22px;
+  }
+  .level-id {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+}

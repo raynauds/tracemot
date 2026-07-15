@@ -1,0 +1,77 @@
+/* Règle du jeu : bouton « info » du header. Son panneau réutilise le composant
+   partagé de src/render/panel.css. */
+
+
+/* Le panneau et le voile sont ceux de la difficulté (.diff-overlay /
+   .diff-panel), ici juste rétrécis et remplis d'un contenu propre. */
+.rule {
+  position: relative;
+  /* Réactive les events : le header (overlay) les laisse passer par défaut. */
+  pointer-events: auto;
+}
+
+/* Icône « info » nue (cf. src/render/icons.ts) : ni cadre ni fond, comme la
+   flèche du retour. Estompée au repos — on lit la règle une fois. Le padding
+   n'est là que pour la cible du doigt, la marge négative le reprend. */
+.rule-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px; /* règle l'icône : .icon tient 1em de côté */
+  cursor: pointer;
+}
+
+/* Le vermillon dit « le pointeur est dessus », comme sur la flèche du retour et
+   sur « tout voir » : les icônes nues répondent toutes de la même couleur.
+   L'encre, elle, est réservée à l'état — ici le panneau ouvert.
+
+   Le survol n'est réservé qu'à la souris : au doigt, le navigateur simule un
+   :hover au tap et le laisse collé jusqu'au tap suivant — le « i » resterait
+   allumé après la fermeture du panneau. L'appui (:active), lui, se relâche. */
+@media (hover: hover) {
+  .rule-chip:hover {
+    color: var(--vermilion);
+  }
+}
+
+.rule-chip:active {
+  color: var(--vermilion);
+}
+
+/* Panneau ouvert : un état, pas un survol — il vaut donc partout. */
+.rule-chip.open {
+  color: var(--ink);
+}
+
+/* Le panneau règle tient en deux lignes : plus étroit que celui des niveaux.
+   Son corps (.panel-line, .panel-spec) vient du composant partagé.
+
+   Le composant l'ancre à gauche de sa chip ; ici la chip est au bord droit du
+   header, il déborderait de l'écran. On le raccroche donc par la droite. */
+.rule-panel {
+  width: 340px;
+  left: auto;
+  right: 0;
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  /* Règle : icône resserrée, à l'échelle de la flèche du retour. */
+  .rule-chip {
+    font-size: 18px;
+  }
+  /* Le panneau redevient la feuille pleine largeur du composant partagé : la
+     largeur et l'ancrage droit du popover desktop, déclarés plus bas dans la
+     cascade que src/render/panel.css, l'écraseraient sans ce rappel. */
+  .rule-panel {
+    width: auto;
+    left: 0;
+  }
+}

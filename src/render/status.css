@@ -1,0 +1,32 @@
+/* Statut : overlay plein écran, réservé aux erreurs de chargement
+   (renderLoadError, src/render/render.ts). */
+
+
+/* Overlay plein écran au-dessus de TOUT, carte comprise (d'où z-index > 40) :
+   l'échec de chargement d'un niveau renvoie à la carte, et le message serait
+   masqué par elle s'il passait dessous — l'échec deviendrait silencieux.
+   Un clic le referme et rend la carte, déjà re-rendue, au joueur. */
+.status {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px;
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--vermilion);
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+  white-space: pre-line; /* le message est écrit en textContent, sauts compris */
+  cursor: pointer; /* le message se referme d'un clic (voir renderLoadError) */
+}
+

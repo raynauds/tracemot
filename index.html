@@ -7,15 +7,39 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Tracemot</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fontes servies par le jeu (public/fonts) : les @font-face vivent dans
+         src/theme/fonts.css. On précharge les seules faces du PREMIER écran, la
+         carte — son titre (serif 700), ses accroches (serif 400 et son
+         italique) et ses chiffres (mono 600). Sans ce preload, le navigateur ne
+         les découvrirait qu'après avoir lu le CSS, et le boot attend les fontes
+         (body.booting). Les autres faces se chargent au lancement d'une partie. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400;1,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/SourceSerif4-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/SourceSerif4-Bold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/IBMPlexMono-SemiBold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <link rel="stylesheet" href="style.css" />
   </head>
-  <body>
+  <!-- .booting : au chargement, l'écran ne montre que le papier de la carte —
+       rien n'est peint tant que l'app n'est pas prête (style.css). src/main.ts
+       retire la classe une fois la carte en place. -->
+  <body class="booting">
     <!-- La grille et le tracé sont rendus par PixiJS (src/render/scene.ts) sur un
          canvas plein écran en fond (position: fixed, z-index: 0). Tout le
          chrome ci-dessous est en surimpression (overlays position: fixed).
@@ -23,152 +47,70 @@
          (pointer-events: none) ; seuls les contrôles interactifs les
          réactivent (pointer-events: auto). -->
 
+    <!-- Carte de progression : écran d'accueil, plein écran, au-dessus de tout
+         le reste. Son contenu est entièrement généré par src/render/map.ts ;
+         quand elle est affichée, le corps porte .map-open et le chrome de
+         partie ci-dessous est masqué (style.css). -->
+    <div class="map" id="map" hidden></div>
+
     <header class="header">
       <div class="header-left">
-        <h1 class="title">Tracemot</h1>
-        <nav class="difficulty" id="difficulty-nav" aria-label="Difficulté">
-          <button
-            type="button"
-            class="diff-chip"
-            id="diff-chip"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-          >
-            <span class="diff-chip-star" aria-hidden="true">★</span>
-            <!-- Pré-rempli avec le niveau par défaut (src/game/config.ts) pour éviter
-                 un shift ; src/render/render.ts réécrit selon le niveau restauré. -->
-            <span class="diff-chip-label" id="diff-chip-label">1 · Doux</span>
-            <span class="diff-chip-caret" aria-hidden="true"></span>
-          </button>
-          <div class="diff-overlay" id="diff-overlay" hidden></div>
-          <div
-            class="diff-panel"
-            id="diff-panel"
-            role="dialog"
-            aria-label="Choix de la difficulté"
-            hidden
-          >
-            <div class="diff-panel-head">
-              <span class="diff-panel-title">DIFFICULTÉ</span>
-              <button
-                type="button"
-                class="diff-close"
-                id="diff-close"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
-            </div>
-            <div class="diff-list" id="diff-list">
-              <!-- niveaux générés par src/render/render.ts -->
-            </div>
-            <p class="diff-note">CHANGER DE NIVEAU RELANCE UNE GRILLE</p>
-          </div>
-          <div class="diff-toast" id="diff-toast" hidden>
-            <span class="diff-toast-bar" aria-hidden="true"></span>
-            <div class="diff-toast-text">
-              <span class="diff-toast-title" id="diff-toast-title"></span>
-              <span class="diff-toast-sub" id="diff-toast-sub"></span>
-            </div>
-          </div>
-        </nav>
-        <!-- Sélecteur de mode : même composant voile + panneau que la
-             difficulté (popover desktop, feuille mobile), classes .diff-*
-             réutilisées. Les modes vivent dans src/game/config.ts (GAME_MODES). -->
-        <nav class="difficulty" id="mode-nav" aria-label="Mode de jeu">
-          <button
-            type="button"
-            class="diff-chip"
-            id="mode-chip"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-          >
-            <span class="diff-chip-star" aria-hidden="true">▦</span>
-            <!-- Pré-rempli avec le mode par défaut (src/game/config.ts) pour éviter
-                 un shift ; src/render/render.ts réécrit selon le mode restauré. -->
-            <span class="diff-chip-label" id="mode-chip-label">5×5</span>
-            <span class="diff-chip-caret" aria-hidden="true"></span>
-          </button>
-          <div class="diff-overlay" id="mode-overlay" hidden></div>
-          <div
-            class="diff-panel"
-            id="mode-panel"
-            role="dialog"
-            aria-label="Choix du mode"
-            hidden
-          >
-            <div class="diff-panel-head">
-              <span class="diff-panel-title">GRILLE</span>
-              <button
-                type="button"
-                class="diff-close"
-                id="mode-close"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
-            </div>
-            <div class="diff-list" id="mode-list">
-              <!-- modes générés par src/render/render.ts -->
-            </div>
-            <p class="diff-note">CHANGER DE GRILLE RELANCE UNE PARTIE</p>
-          </div>
-          <div class="diff-toast" id="mode-toast" hidden>
-            <span class="diff-toast-bar" aria-hidden="true"></span>
-            <div class="diff-toast-text">
-              <span class="diff-toast-title" id="mode-toast-title"></span>
-              <span class="diff-toast-sub" id="mode-toast-sub"></span>
-            </div>
-          </div>
-        </nav>
-        <!-- Règle du jeu : bouton discret « ? » (subordonné à la difficulté).
-             Il ouvre le même composant voile + panneau que la difficulté
-             (popover desktop, feuille mobile). Ouvert automatiquement à la
-             première visite seulement (localStorage, src/render/render.ts). -->
-        <div class="rule" id="rule">
-          <button
-            type="button"
-            class="rule-chip"
-            id="rule-chip"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-            aria-label="Règle du jeu"
-            title="Règle du jeu"
-          >
-            ?
-          </button>
-          <div class="diff-overlay" id="rule-overlay" hidden></div>
-          <div
-            class="diff-panel rule-panel"
-            id="rule-panel"
-            role="dialog"
-            aria-label="Règle du jeu"
-            hidden
-          >
-            <div class="diff-panel-head">
-              <span class="diff-panel-title">RÈGLE</span>
-              <button
-                type="button"
-                class="diff-close"
-                id="rule-close"
-                aria-label="Fermer"
-              >
-                ✕
-              </button>
-            </div>
-            <p class="rule-line">
-              Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
-              sert qu'une fois.
-            </p>
-            <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
-                 src/render/render.ts réécrit selon le mode actif (src/game/config.ts). -->
-            <p class="rule-spec" id="rule-spec">5 mots · 5 lettres</p>
-          </div>
-        </div>
+        <!-- Retour à la carte : sortie de partie, toujours disponible. Une
+             flèche nue (icône SVG posée par src/render/render.ts) : le mot
+             « CARTE » et son cadre disaient deux fois la même chose. -->
+        <button
+          type="button"
+          class="back-map"
+          id="back-map"
+          aria-label="Retour à la carte"
+          title="Retour à la carte"
+        ></button>
+        <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
+        <span class="level-id" id="level-id"></span>
       </div>
-      <div class="header-right">
-        <span class="chrono-label">CHRONO</span>
-        <span class="chrono" id="chrono">00:00</span>
+      <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
+           Seule au bord droit du header : la flèche dit d'où l'on sort, le
+           niveau dit où l'on est — deux faces d'une même chose, qui restent
+           groupées à gauche. Le « i », lui, n'appartient pas à cette paire.
+           Elle ouvre le composant voile + panneau (popover desktop, feuille
+           mobile) hérité du sélecteur de difficulté disparu — les classes
+           .diff-overlay / .diff-panel lui survivent et restent partagées. -->
+      <div class="rule" id="rule">
+        <button
+          type="button"
+          class="rule-chip"
+          id="rule-chip"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-label="Règle du jeu"
+          title="Règle du jeu"
+        ></button>
+        <div class="diff-overlay" id="rule-overlay" hidden></div>
+        <div
+          class="diff-panel rule-panel"
+          id="rule-panel"
+          role="dialog"
+          aria-label="Règle du jeu"
+          hidden
+        >
+          <div class="diff-panel-head">
+            <span class="diff-panel-title">RÈGLE</span>
+            <!-- La croix est une icône SVG posée par src/render/render.ts. -->
+            <button
+              type="button"
+              class="diff-close"
+              id="rule-close"
+              aria-label="Fermer"
+            ></button>
+          </div>
+          <p class="panel-line">
+            Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
+            sert qu'une fois.
+          </p>
+          <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
+               src/render/render.ts réécrit selon le niveau lancé. -->
+          <p class="panel-spec" id="rule-spec">5 mots · 5 lettres</p>
+        </div>
       </div>
     </header>
 
@@ -185,16 +127,17 @@
       >
         <span class="ledger-label">MOTS TROUVÉS</span>
         <!-- Pré-rempli (0 / wordCount du mode par défaut) pour éviter un
-             shift ; src/render/render.ts réécrit selon le mode restauré puis à
+             shift ; src/render/render.ts réécrit selon le niveau lancé puis à
              chaque mot. -->
         <span class="counter" id="counter"
           ><span class="count">0</span> / 5</span
         >
-        <span class="ledger-caret" aria-hidden="true"></span>
+        <!-- Le chevron est une icône SVG posée par src/render/render.ts. -->
+        <span class="ledger-caret" id="ledger-caret" aria-hidden="true"></span>
       </button>
       <!-- Lignes pré-rendues (mode par défaut, voir src/game/config.ts) pour éviter
            un shift au chargement ; src/render/render.ts les adopte et ajuste leur
-           nombre au mode actif (restauré ou changé à chaud). -->
+           nombre au niveau lancé (un défi quadruple le nombre de mots). -->
       <ol class="word-list" id="word-list">
         <li class="word-row empty">
           <span class="word-num">01</span>
@@ -219,10 +162,14 @@
       </ol>
     </section>
 
-    <!-- Statut (chargement/erreur) : overlay plein écran au-dessus du canvas. -->
-    <div class="status" id="status">CHARGEMENT DU DICTIONNAIRE…</div>
+    <!-- Statut : overlay plein écran, réservé aux erreurs (chargement des
+         niveaux). Rien à annoncer au boot : la carte s'affiche sans réseau. -->
+    <div class="status" id="status" hidden></div>
 
-    <!-- Victoire : overlay plein écran au-dessus du canvas. -->
+    <!-- Victoire : overlay plein écran au-dessus du canvas. Les deux boutons de
+         tête sont peuplés à la volée (src/render/render.ts) avec ce que la
+         victoire vient d'ouvrir : le niveau suivant, et le défi quand une fin
+         de ligne l'a débloqué. Le retour à la carte reste toujours offert. -->
     <div class="win" id="win" hidden>
       <span class="confetti c1"></span>
       <span class="confetti c2 cream"></span>
@@ -232,7 +179,20 @@
       <span class="confetti c6"></span>
       <div class="win-title">Gagné<span class="dot">.</span></div>
       <div class="win-sub" id="win-sub"></div>
-      <button type="button" class="win-replay" id="replay">REJOUER</button>
+      <!-- Étoile : rendu uniquement à la première validation d'un défi
+           (src/render/render.ts). La seconde ligne annonce ce que l'étoile
+           débloque, et disparaît quand elle ne débloque rien. -->
+      <div class="win-star" id="win-star" hidden>
+        <span class="win-star-gain" id="win-star-gain"></span>
+        <span class="win-star-unlock" id="win-star-unlock" hidden></span>
+      </div>
+      <div class="win-actions">
+        <button type="button" class="win-primary" id="win-next" hidden></button>
+        <button type="button" class="win-defi" id="win-defi" hidden></button>
+        <button type="button" class="win-second" id="win-map">
+          RETOUR À LA CARTE
+        </button>
+      </div>
     </div>
 
     <script type="module" src="src/main.ts"></script>

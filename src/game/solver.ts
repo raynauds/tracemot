@@ -90,6 +90,10 @@ export interface SolverSets {
   prefixes: Set<string>;
 }
 
+// Les plafonds du générateur (MAX_GRID_TRIES, GRID_REPAIRS_PER_WORD,
+// REPAIR_CANDIDATES) sont lus dans config.ts, seule référence : ils valent pour
+// le jeu comme pour le script de génération hors-ligne, qui doit produire des
+// grilles avec exactement le budget que le solveur s'accorde.
 export function createGridGenerator(
   geometry: Geometry,
   mode: GameMode,
@@ -291,6 +295,15 @@ export function createGridGenerator(
     const free = new Set(allCells);
     const paths: number[][] = [];
 
+    // Budget de nœuds du backtracking. Le pavage est trouvé en quelques
+    // dizaines de nœuds dans l'immense majorité des tirages, mais une branche
+    // malheureuse peut partir en exploration exhaustive : sur une grille de
+    // défi (14×14, 16×16) une seule mauvaise graine bloquait la génération
+    // pendant des dizaines de minutes. Au-delà du budget, le pavage est
+    // abandonné (paths incomplet) et la tentative repart sur un autre tirage —
+    // c'est un abandon, pas un échec : la relance coûte quelques ms.
+    let budget = 40 * cellCount;
+
     // Élagage : un pavage n'est possible que si chaque composante connexe
     // de cases libres a une taille multiple de wordLength. Sans ce test, un
     // tracé qui enclave une poche impossible à paver n'est découvert que
@@ -319,8 +332,9 @@ export function createGridGenerator(
       return true;
     }
 
-    function carve() {
+    function carve(): boolean {
       if (free.size === 0) return true;
+      if (--budget < 0) return false;
       let lowest = -1;
       for (const c of free) if (lowest < 0 || c < lowest) lowest = c;
       for (const path of shuffled(pathsThrough(lowest, free))) {
@@ -345,14 +359,20 @@ export function createGridGenerator(
    * réparation locale remplace un mot impliqué dans un tracé parasite (les
    * tracés étant disjoints, changer un mot ne touche pas les autres).
    */
-  function attemptTilingGrid(
-    difficulty: Difficulty,
-  ): { letters: string[]; solution: string[]; issues: number } | null {
+  function attemptTilingGrid(difficulty: Difficulty): {
+    letters: string[];
+    solution: string[];
+    paths: number[][];
+    issues: number;
+  } | null {
     const picked = pickSolutionWords(difficulty);
     if (!picked) return null;
     const { words, tiers } = picked;
 
-    const paths = carveTiling().map((p) =>
+    const carved = carveTiling();
+    // Budget de backtracking épuisé : pavage incomplet, tentative abandonnée.
+    if (carved.length !== wordCount) return null;
+    const paths = carved.map((p) =>
       Math.random() < 0.5 ? [...p].reverse() : p,
     );
     const letters: string[] = new Array(cellCount).fill("");
@@ -419,22 +439,36 @@ export function createGridGenerator(
       }
       writeWord(i);
     }
-    return { letters, solution: words.slice(), issues: issues.length };
+    // Les tracés sont copiés : `paths[i]` peut pointer sur le tableau d'un
+    // essai de réparation, qu'une tentative ultérieure réutiliserait.
+    return {
+      letters,
+      solution: words.slice(),
+      paths: paths.map((p) => p.slice()),
+      issues: issues.length,
+    };
   }
 
   /**
    * Génère une grille de pavage parfait : tirages successifs jusqu'à une
    * grille sans tracé fautif. Au-delà de MAX_GRID_TRIES tentatives, la
    * grille la moins fautive rencontrée est rendue (avertissement en console).
+   *
+   * `paths` est le tracé posé de chaque mot, aligné sur `solution` : le script
+   * de génération des niveaux le fige dans le JSON (le runtime n'a plus à le
+   * redécouvrir). Cas dégradé (grille aléatoire de repli) : solution et paths
+   * sont vides ensemble — jamais désalignés.
    */
   function generate(difficulty: Difficulty): {
     letters: string[];
     solution: string[];
+    paths: number[][];
     tries: number;
   } {
     let best: {
       letters: string[];
       solution: string[];
+      paths: number[][];
       issues: number;
     } | null = null;
     for (let t = 0; t < MAX_GRID_TRIES; t++) {
@@ -444,6 +478,7 @@ export function createGridGenerator(
         return {
           letters: result.letters,
           solution: result.solution,
+          paths: result.paths,
           tries: t + 1,
         };
       }
@@ -458,6 +493,7 @@ export function createGridGenerator(
       return {
         letters: drawLetters(cellCount),
         solution: [],
+        paths: [],
         tries: MAX_GRID_TRIES,
       };
     }
@@ -468,6 +504,7 @@ export function createGridGenerator(
     return {
       letters: best.letters,
       solution: best.solution,
+      paths: best.paths,
       tries: MAX_GRID_TRIES,
     };
   }
