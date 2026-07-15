@@ -3,22 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "generate:levels": "node scripts/generate-levels.ts",
-    "generate:tokens": "node scripts/generate-tokens.ts",
-    "check:tokens": "node scripts/generate-tokens.ts --check",
-    "check:solver": "node tools/solver-check.mjs",
-    "check:progress": "node tools/progress-check.mjs",
-    "check": "tsc --noEmit"
+    "dev": "npm run dev -w @tracemot/game",
+    "build": "npm run build -w @tracemot/game",
+    "preview": "npm run preview -w @tracemot/game",
+    "generate:levels": "npm run generate:levels -w @tracemot/studio",
+    "generate:tokens": "npm run generate:tokens -w @tracemot/game",
+    "check:tokens": "npm run check:tokens -w @tracemot/game",
+    "check:solver": "npm run check:solver -w @tracemot/studio",
+    "check:progress": "npm run check:progress -w @tracemot/game",
+    "check": "npm run check --workspaces --if-present"
   },
   "devDependencies": {
-    "typescript": "^7.0.2",
-    "vite": "^8.1.4"
-  },
-  "dependencies": {
-    "pixi.js": "^8.19.0"
+    "typescript": "^7.0.2"
   }
 }

@@ -1,0 +1,14 @@
+{
+  "name": "@tracemot/studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:levels": "node scripts/generate-levels.ts",
+    "check:solver": "node tools/solver-check.mjs",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tracemot/core": "*"
+  }
+}

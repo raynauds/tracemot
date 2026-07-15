@@ -1,0 +1,40 @@
+/* Tracemot - Lexique v2 (design section 2a)
+
+   Feuille d'index : elle n'écrit aucune règle, elle assemble. Chaque composant
+   porte SON css à côté du module qui le construit (src/render/map.ts →
+   src/render/map.css) — supprimer un composant emporte donc son style, et ses
+   surcharges mobiles se lisent sous les règles qu'elles surchargent, au lieu
+   d'un grand bloc « Mobile » à l'autre bout du fichier.
+
+   Pourquoi un <link> vers cet index plutôt qu'un import CSS depuis le TS : en
+   dev, un CSS importé par le JS n'est injecté qu'après l'évaluation du module,
+   ce qui rendrait le boot non stylé pendant un instant (et .booting, qui vide
+   l'écran au chargement, arriverait trop tard). Vite résout et regroupe ces
+   @import au build : un seul fichier est servi.
+
+   L'ordre compte : les tokens d'abord (les autres feuilles les consomment), le
+   socle ensuite, les composants après — du plus général au plus spécifique. */
+
+/* Palette et polices : variables générées depuis src/theme/tokens.ts, la source
+   unique dont Pixi tire aussi ses couleurs (src/game/config.ts). Ne pas
+   redéfinir de couleur en dur : l'ajouter aux tokens et régénérer. */
+@import "./src/theme/tokens.css";
+
+/* Fontes locales (public/fonts) : aucune requête vers Google Fonts. */
+@import "./src/theme/fonts.css";
+
+/* Socle : reset, page, boot. */
+@import "./src/theme/base.css";
+
+/* Chrome de partie (src/render/render.ts, scene.ts). */
+@import "./src/render/header.css";
+@import "./src/render/panel.css";
+@import "./src/render/rule.css";
+@import "./src/render/ledger.css";
+@import "./src/render/status.css";
+@import "./src/render/win.css";
+@import "./src/render/zoom.css";
+
+/* Écran d'accueil (src/render/map.ts). */
+@import "./src/render/map.css";
+

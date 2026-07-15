@@ -1,0 +1,22 @@
+{
+  "name": "@tracemot/game",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "generate:tokens": "node scripts/generate-tokens.ts",
+    "check:tokens": "node scripts/generate-tokens.ts --check",
+    "check:progress": "node tools/progress-check.mjs",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tracemot/core": "*",
+    "pixi.js": "^8.19.0"
+  },
+  "devDependencies": {
+    "vite": "^8.1.4"
+  }
+}
