@@ -27,7 +27,7 @@
 
 @media (max-width: 860px) {
   :root {
-    --edge: 14px;
+    --edge: 16px;
     --header-h: calc(var(--edge) + 22px + 18px);
   }
 }
@@ -55,7 +55,6 @@ body {
   overflow: hidden;
 }
 
-
 /* Icônes (src/render/icons.ts) : les fichiers SVG de src/assets/icons, inlinés
    dans le DOM. Ils portent déjà leur tracé (stroke: currentColor, fill: none) ;
    ces deux règles ne disent que ce que le CSS doit imposer par-dessus — et le
@@ -75,7 +74,6 @@ body {
   fill: currentColor;
 }
 
-
 /* Au chargement, l'écran ne montre QUE le papier du body : le HTML peint sinon
    le chrome de partie (header, registre) que showMap() escamote aussitôt
    après, et les polices arrivent en swap — deux sauts pour rien.
@@ -89,4 +87,3 @@ body {
 body.booting > * {
   visibility: hidden;
 }
-
