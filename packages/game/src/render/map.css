@@ -2,7 +2,6 @@
    src/render/map.ts. Porte son propre seuil mobile (@media 640px, en bas) : la
    carte se resserre plus tard que le chrome de partie. */
 
-
 /* Overlay plein écran au-dessus de TOUT le chrome de partie (statut et
    victoire compris, z-index 30) : la carte est un écran, pas un panneau. Elle
    capte les events, ce qui suffit à neutraliser les gestes Pixi dessous —
@@ -202,19 +201,17 @@ body.map-open .win {
   }
 }
 
-/* --- Corps : sections, brouillard --- */
+/* --- Corps : sections --- */
 
 /* Aucune marge haute : le padding du header tient seul l'écart avec la première
-   section, qui n'a donc pas à s'en occuper.
-
-   `position: relative` : le brouillard est un absolu ancré sur ce bloc. */
+   section, qui n'a donc pas à s'en occuper. Le retrait bas, lui, sépare la
+   dernière ligne de la légende. */
 .map-body {
-  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 max(var(--edge), env(safe-area-inset-right)) 0
+  padding: 0 max(var(--edge), env(safe-area-inset-right)) 40px
     max(var(--edge), env(safe-area-inset-left));
 }
 
@@ -563,34 +560,6 @@ body.map-open .win {
   color: var(--ghost);
 }
 
-/* --- Frange de brouillard --- */
-
-/* Le spacer réserve la hauteur que le dégradé va noyer : la dernière ligne
-   rendue ne doit jamais passer sous le brouillard. */
-.map-spacer {
-  height: 150px;
-  flex: 0 0 auto;
-}
-
-/* Décor pur : le dégradé est un absolu qui, le spacer ne consommant pas le gap
-   de .map-body, mord de quelques pixels sur le bas de la dernière ligne rendue.
-   Sans pointer-events: none, il avalerait les clics de cases pourtant jouables
-   (le closest("[data-level]") du délégué remonterait sur le brouillard). */
-.map-fog {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 190px;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgba(246, 241, 231, 0) 0%,
-    rgba(246, 241, 231, 0.9) 55%,
-    var(--paper) 100%
-  );
-}
-
 /* --- Légende --- */
 
 .map-legend {
@@ -601,7 +570,7 @@ body.map-open .win {
   gap: 10px 26px;
   /* Le pied de la carte : gauche, bas et droite au même retrait que la tête —
      c'est lui qui tient la barre home à distance. Son retrait haut est nul, le
-     brouillard occupe déjà l'espace au-dessus. */
+     retrait bas de .map-body occupe déjà l'espace au-dessus. */
   padding: 0 max(var(--edge), env(safe-area-inset-right))
     max(var(--edge), env(safe-area-inset-bottom))
     max(var(--edge), env(safe-area-inset-left));
@@ -685,6 +654,7 @@ body.map-open .win {
 
   .map-body {
     align-items: stretch;
+    padding-bottom: 28px;
   }
 
   .map-sections {
@@ -710,7 +680,7 @@ body.map-open .win {
      il reste attaché à SA ligne, pas à la section. */
   .map-row {
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
   .map-rows {
     gap: 14px; /* la respiration entre lignes doit primer sur le gap interne */
@@ -769,13 +739,6 @@ body.map-open .win {
     letter-spacing: 0.5px;
     line-height: 1;
     white-space: nowrap;
-  }
-
-  .map-spacer {
-    height: 120px;
-  }
-  .map-fog {
-    height: 150px;
   }
 
   .map-legend {

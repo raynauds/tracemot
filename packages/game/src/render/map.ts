@@ -53,7 +53,6 @@ const SECTIONS: Section[] = [1, 2, 3, 4];
 // Étoiles d'une section : trois défis, donc trois icônes, pleines ou creuses.
 const SECTION_STARS = 3;
 
-
 // Onglet affiché. Initialisé au dernier mode consulté, puis piloté par les
 // clics ; c'est le seul état que la carte porte.
 let currentMode: ModeId = loadLastMode();
@@ -486,8 +485,8 @@ export function renderMap(modeId: ModeId): void {
   const sections = el("div", "map-sections");
   // Les seuils d'étoiles étant croissants, les sections débloquées forment un
   // préfixe : la première verrouillée rencontrée clôt la carte. On ne l'annonce
-  // que si elle est à un défi près ; sinon la carte s'arrête sur le brouillard,
-  // qui suffit à dire « il y a une suite » sans en promettre le prix.
+  // que si elle est à un défi près ; sinon la carte s'arrête net, sans rien
+  // promettre de ce qui vient.
   for (const s of SECTIONS) {
     if (!sectionStats(p, s).unlocked) {
       if (sectionTeased(p, s)) sections.appendChild(buildLockedSection(s));
@@ -497,12 +496,6 @@ export function renderMap(modeId: ModeId): void {
     if (node) sections.appendChild(node);
   }
   body.appendChild(sections);
-  // Le brouillard n'est pas décoratif : c'est lui qui dit « il y a une suite ».
-  // Le spacer garantit qu'il ne recouvre jamais la dernière ligne rendue.
-  body.appendChild(el("div", "map-spacer"));
-  const fog = el("div", "map-fog");
-  fog.setAttribute("aria-hidden", "true");
-  body.appendChild(fog);
   mapEl.appendChild(body);
 
   mapEl.appendChild(buildLegend());
