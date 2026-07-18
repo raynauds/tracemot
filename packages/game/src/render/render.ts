@@ -7,6 +7,7 @@
 // carte, il n'y a donc plus ici ni sélecteur de mode ni sélecteur de
 // difficulté (la difficulté est une propriété de la section).
 
+import { playSound } from "../audio/audio.ts";
 import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
 import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
@@ -74,10 +75,16 @@ export function renderLevelHeader() {
 }
 
 // Retour à la carte : même action depuis le header et depuis l'écran de
-// victoire (où elle est l'action principale).
+// victoire (où elle est l'action principale). Sonorisée en secondaire dans les
+// deux cas : c'est une sortie d'écran, pas un engagement — même sur l'écran de
+// victoire, où ses voisins SUIVANT/DÉFI portent le son principal.
 export function bindMapReturn(onReturn: () => void) {
-  backMapEl.addEventListener("click", onReturn);
-  winMapEl.addEventListener("click", onReturn);
+  const leave = () => {
+    playSound("ui-secondary");
+    onReturn();
+  };
+  backMapEl.addEventListener("click", leave);
+  winMapEl.addEventListener("click", leave);
 }
 
 // --- Registre repliable ----------------------------------------------------
@@ -95,9 +102,10 @@ function setLedgerCollapsed(collapsed: boolean) {
   ledgerToggleEl.setAttribute("aria-expanded", String(!collapsed));
 }
 
-ledgerToggleEl.addEventListener("click", () =>
-  setLedgerCollapsed(!ledgerEl.classList.contains("collapsed")),
-);
+ledgerToggleEl.addEventListener("click", () => {
+  playSound("ui-secondary");
+  setLedgerCollapsed(!ledgerEl.classList.contains("collapsed"));
+});
 // État initial : replié sur mobile (pastille), déplié sur desktop.
 setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 
@@ -123,13 +131,27 @@ function setRulePanelOpen(open: boolean) {
 
 // hidden est typé string | boolean (« until-found ») mais on n'y écrit que
 // des booléens.
-ruleChipEl.addEventListener("click", () =>
-  setRulePanelOpen(rulePanelEl.hidden as boolean),
-);
-ruleCloseEl.addEventListener("click", () => setRulePanelOpen(false));
-ruleOverlayEl.addEventListener("click", () => setRulePanelOpen(false));
+//
+// Le son vit dans les écouteurs, pas dans setRulePanelOpen : l'ouverture
+// d'office du premier niveau (showRuleOnFirstVisit) n'est pas un geste du
+// joueur, elle reste muette.
+ruleChipEl.addEventListener("click", () => {
+  playSound("ui-secondary");
+  setRulePanelOpen(rulePanelEl.hidden as boolean);
+});
+ruleCloseEl.addEventListener("click", () => {
+  playSound("ui-secondary");
+  setRulePanelOpen(false);
+});
+ruleOverlayEl.addEventListener("click", () => {
+  playSound("ui-secondary");
+  setRulePanelOpen(false);
+});
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !rulePanelEl.hidden) setRulePanelOpen(false);
+  if (e.key === "Escape" && !rulePanelEl.hidden) {
+    playSound("ui-secondary");
+    setRulePanelOpen(false);
+  }
 });
 
 // Appelée au premier niveau lancé (main.ts) : avant, la carte couvrirait le
@@ -323,7 +345,10 @@ export function bindWinNext(onPlay: (id: LevelId) => void) {
   [winNextEl, winDefiEl].forEach((el, slot) => {
     el.addEventListener("click", () => {
       const id = winTargets[slot];
-      if (id && onPlayLevel) onPlayLevel(id);
+      if (id && onPlayLevel) {
+        playSound("ui-primary");
+        onPlayLevel(id);
+      }
     });
   });
 }

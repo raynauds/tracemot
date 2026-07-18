@@ -8,6 +8,7 @@
 import type { ModeId } from "@tracemot/core";
 import { isDefi } from "@tracemot/core";
 import type { LevelId } from "@tracemot/core";
+import { initAudio, playSound } from "./audio/audio.ts";
 import { loadModeLevels } from "./game/level-loader.ts";
 import {
   loadProgress,
@@ -172,9 +173,10 @@ function commitPath() {
 
   const reason = wordRejectReason(word);
   if (reason) {
-    // Refus : flash vermillon des cases + secousse écran (Pixi-natif).
+    // Refus : flash vermillon des cases + secousse écran (Pixi-natif) + son.
     flashPath(traced);
     shakeGrid();
+    playSound("word-reject");
     showReject(word, reason);
     return;
   }
@@ -193,6 +195,7 @@ function commitPath() {
 
 async function init() {
   migrateStorage(); // vestiges du jeu libre + progressions d'un schéma périmé
+  initAudio(); // précharge les bruitages ; le 1er geste du joueur les débloque
   buildBoard();
   renderCounter();
   await initScene(); // Application Pixi + graphe de scène (canvas de fond)

@@ -14,6 +14,7 @@
 // Flèches et ZQSD/WASD → pan clavier via une boucle app.ticker.
 // Pendant un tracé, la caméra ne bouge pas : la vue reste figée sous le geste.
 
+import { playSound } from "../audio/audio.ts";
 import { KEY_PAN_SPEED } from "../game/config.ts";
 import { state } from "../game/state.ts";
 import { buzz, renderPendingWord } from "../render/render.ts";
@@ -51,6 +52,15 @@ let pinchCam0 = { x: 0, y: 0 };
 
 // --- Tracé (repris de l'ancien input.ts) -----------------------------------
 
+// Tick sonore de la case en tête du tracé : la hauteur suit sa position dans
+// le mot (un demi-ton par lettre, plafonnée à la 10e sélection). Le backtrack
+// rejoue la hauteur de la case sur laquelle on retombe — la même que lors de
+// son ajout — donc la descente est le miroir exact de la montée.
+function traceTick() {
+  const step = Math.min(state.path.length - 1, 9);
+  playSound("trace-letter", { rate: 2 ** (step / 12) });
+}
+
 export function clearPath() {
   state.path = [];
   updateSelection();
@@ -83,6 +93,7 @@ function beginTrace(e: FederatedPointerEvent, idx: number) {
   state.pointerId = e.pointerId;
   state.path = [idx];
   buzz();
+  traceTick();
   updateSelection();
   renderTrace();
   renderPendingWord();
@@ -108,12 +119,14 @@ function extendTraceTo(idx: number | null) {
     seg.every((c, k) => c === state.path[state.path.length - 2 - k]);
   if (isBacktrack) {
     state.path.length -= seg.length;
+    traceTick();
   } else if (
     seg.every((c) => !state.usedCells.has(c) && !state.path.includes(c))
   ) {
     for (const c of seg) {
       state.path.push(c);
       buzz();
+      traceTick();
     }
   } else {
     return false;

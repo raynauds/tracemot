@@ -6,6 +6,7 @@
 
 import { Application, Container, Graphics, Text } from "pixi.js";
 import type { PointData, TextStyle, Ticker } from "pixi.js";
+import { playSound } from "../audio/audio.ts";
 import { Camera } from "./camera.ts";
 import {
   CARD,
@@ -484,7 +485,10 @@ function buildZoomControls(): void {
     btn.appendChild(icon);
     btn.title = title;
     btn.setAttribute("aria-label", title);
-    btn.addEventListener("click", onClick);
+    btn.addEventListener("click", () => {
+      playSound("ui-secondary");
+      onClick();
+    });
     bar.appendChild(btn);
   };
 

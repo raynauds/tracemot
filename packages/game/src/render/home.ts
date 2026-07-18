@@ -10,6 +10,7 @@
 // nommer (cf. src/theme/DESIGN.md).
 
 import { levelLabel, type LevelId, type ModeId } from "@tracemot/core";
+import { playSound } from "../audio/audio.ts";
 import {
   isFirstLaunch,
   resumePoint,
@@ -113,19 +114,37 @@ export function bindHome(handlers: {
   onStart: (modeId: ModeId, id: LevelId) => void;
   onLevels: () => void;
 }): void {
+  // COMMENCER/REPRENDRE engage une partie : son principal. « Niveaux » ouvre
+  // la carte pour regarder : son secondaire, comme la règle.
   startEl.addEventListener("click", () => {
-    if (resume) handlers.onStart(resume.modeId, resume.id);
+    if (resume) {
+      playSound("ui-primary");
+      handlers.onStart(resume.modeId, resume.id);
+    }
   });
-  levelsEl.addEventListener("click", handlers.onLevels);
+  levelsEl.addEventListener("click", () => {
+    playSound("ui-secondary");
+    handlers.onLevels();
+  });
 
   // hidden est typé string | boolean (« until-found ») mais on n'y écrit que
   // des booléens.
-  infoEl.addEventListener("click", () =>
-    setRulePanelOpen(rulePanelEl.hidden as boolean),
-  );
-  ruleCloseEl.addEventListener("click", () => setRulePanelOpen(false));
-  ruleOverlayEl.addEventListener("click", () => setRulePanelOpen(false));
+  infoEl.addEventListener("click", () => {
+    playSound("ui-secondary");
+    setRulePanelOpen(rulePanelEl.hidden as boolean);
+  });
+  ruleCloseEl.addEventListener("click", () => {
+    playSound("ui-secondary");
+    setRulePanelOpen(false);
+  });
+  ruleOverlayEl.addEventListener("click", () => {
+    playSound("ui-secondary");
+    setRulePanelOpen(false);
+  });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !rulePanelEl.hidden) setRulePanelOpen(false);
+    if (e.key === "Escape" && !rulePanelEl.hidden) {
+      playSound("ui-secondary");
+      setRulePanelOpen(false);
+    }
   });
 }

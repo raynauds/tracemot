@@ -32,6 +32,7 @@ import {
   defiOfRow,
   levelId,
 } from "@tracemot/core";
+import { playSound } from "../audio/audio.ts";
 import { arrowLeftIcon, checkIcon, closeIcon, starIcon } from "./icons.ts";
 import {
   cellState,
@@ -688,18 +689,26 @@ export function bindMap(
     // Les panneaux passent avant le reste : leurs déclencheurs vivent dans le
     // header et dans les jalons, et leur voile intercepte de toute façon tout
     // clic ailleurs.
+    //
+    // Tout ce qui consulte ou navigue sonne en secondaire ; seul le choix d'un
+    // niveau — le geste qui engage une partie — sonne en principal. Les
+    // éléments inertes (cases verrouillées, défis grisés) ne passent par aucune
+    // branche : ils restent muets, comme ils sont muets à l'écran.
     const trigger = target.closest<HTMLElement>("[data-panel]");
     if (trigger) {
+      playSound("ui-secondary");
       const key = trigger.dataset.panel as string;
       setPanelOpen(openPanel === key ? null : key);
       return;
     }
     if (target.closest(".diff-close") || target.closest(".diff-overlay")) {
+      playSound("ui-secondary");
       setPanelOpen(null);
       return;
     }
 
     if (target.closest("#map-home")) {
+      playSound("ui-secondary");
       if (onHome) onHome();
       return;
     }
@@ -707,7 +716,8 @@ export function bindMap(
     const tab = target.closest<HTMLElement>("[data-mode]");
     if (tab) {
       const modeId = tab.dataset.mode as ModeId;
-      if (modeId === currentMode) return;
+      if (modeId === currentMode) return; // onglet déjà actif : rien, pas même un son
+      playSound("ui-secondary");
       saveLastMode(modeId);
       markModeSeen(modeId); // éteint la pastille « nouveau »
       renderMap(modeId);
@@ -716,11 +726,17 @@ export function bindMap(
     }
 
     const cell = target.closest<HTMLElement>("[data-level]");
-    if (cell && onSelect) onSelect(currentMode, cell.dataset.level as LevelId);
+    if (cell && onSelect) {
+      playSound("ui-primary");
+      onSelect(currentMode, cell.dataset.level as LevelId);
+    }
   });
   // Échap ferme le panneau ouvert, comme celui de la règle du jeu.
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && openPanel) setPanelOpen(null);
+    if (e.key === "Escape" && openPanel) {
+      playSound("ui-secondary");
+      setPanelOpen(null);
+    }
   });
   // Le mode ouvert d'emblée compte comme vu (sinon sa pastille survivrait à sa
   // première visite).
