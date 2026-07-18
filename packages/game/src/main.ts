@@ -209,14 +209,13 @@ async function init() {
   bindMap(startLevel);
   bindMapReturn(backToMap);
   // Les aides et leurs écrans : le panneau des volumes (deux déclencheurs, un
-  // panneau), les règles, le colophon. Le panneau sons mène aussi aux crédits —
-  // on crédite les sons là où on les règle.
-  bindSound({ onCredits: showCredits });
+  // panneau), les règles, les crédits.
+  bindSound();
   bindHelp();
   bindCredits();
   // Accueil ↔ carte : deux écrans, deux sens. L'accueil reprend là où on s'est
   // arrêté ou renvoie au choix du niveau ; la carte remonte à l'accueil. Les
-  // règles et le colophon, eux, se posent PAR-DESSUS l'accueil : rien à masquer.
+  // règles et les crédits, eux, se posent PAR-DESSUS l'accueil : rien à masquer.
   bindHome({
     onStart: startLevel,
     onLevels: () => {

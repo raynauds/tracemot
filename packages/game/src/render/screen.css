@@ -1,4 +1,4 @@
-/* Écran secondaire (règles, colophon) : plein écran opaque au-dessus de
+/* Écran secondaire (règles, crédits) : plein écran opaque au-dessus de
    l'accueil, sur le modèle de la carte — il porte son propre scroll, le body ne
    défile jamais. Le squelette (fond, tête, flèche, titre, colonne) est partagé ;
    chaque écran (help.css, credits.css) n'ajoute que son contenu. */

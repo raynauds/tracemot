@@ -1,10 +1,8 @@
-// Colophon : la page des crédits, plein écran. Tout le contenu est statique
+// Crédits : la page des attributions, plein écran. Tout le contenu est statique
 // (index.html) — les attributions ne varient pas au runtime, ce module ne fait
 // qu'ouvrir et fermer.
 //
-// Deux entrées : le lien CRÉDITS de l'accueil (l'ours de la page imprimée) et
-// « crédits sonores » du panneau SONS. L'écran se pose au-dessus de tout ce qui
-// a pu l'ouvrir (accueil ou partie) : le fermer rend ce qu'il couvrait.
+// Une seule entrée : le lien CRÉDITS de l'accueil (l'ours de la page imprimée).
 
 import { playSound } from "../audio/audio.ts";
 import { arrowLeftIcon } from "./icons.ts";

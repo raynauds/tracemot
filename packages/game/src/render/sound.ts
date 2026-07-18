@@ -1,5 +1,5 @@
 // Réglages sonores : le panneau des deux volumes — l'interface et la musique —
-// ouvert depuis l'accueil (coin bas-gauche) et depuis le header de partie.
+// ouvert depuis l'accueil (bouton SONS) et depuis le header de partie.
 //
 // La structure du panneau est statique et UNIQUE (index.html) : les curseurs
 // portent l'état affiché, en avoir deux copies obligerait à les tenir
@@ -18,7 +18,7 @@ import {
   setMusicVolume,
   setUiVolume,
 } from "../audio/audio.ts";
-import { chevronIcon, closeIcon, volumeIcon } from "./icons.ts";
+import { closeIcon, volumeIcon } from "./icons.ts";
 
 const STEPS = 10;
 
@@ -31,7 +31,6 @@ function byId(id: string): HTMLElement {
 const overlayEl = byId("sound-overlay");
 const panelEl = byId("sound-panel");
 const closeEl = byId("sound-close");
-const creditsEl = byId("sound-credits");
 const uiInput = byId("sound-ui") as HTMLInputElement;
 const musicInput = byId("sound-music") as HTMLInputElement;
 const uiValueEl = byId("sound-ui-value");
@@ -44,11 +43,10 @@ const homeAnchorEl = byId("home-sound-anchor");
 const chipTriggerEl = byId("sound-chip");
 const chipAnchorEl = byId("header-sound-anchor");
 
-// Boutons muets dans le HTML : leur dessin vient d'ici (cf. ./icons.ts).
-homeTriggerEl.appendChild(volumeIcon());
+// Boutons muets dans le HTML : leur dessin vient d'ici (cf. ./icons.ts). Le
+// bouton de l'accueil, lui, parle en toutes lettres (« SONS ») — pas d'icône.
 chipTriggerEl.appendChild(volumeIcon());
 closeEl.appendChild(closeIcon());
-creditsEl.appendChild(chevronIcon());
 
 // Les crans sous la piste : onze graduations, comme une règle. Générées ici
 // plutôt qu'écrites onze fois dans le HTML.
@@ -98,7 +96,7 @@ function setOpen(trigger: HTMLElement | null): void {
 
 // --- Événements -------------------------------------------------------------
 
-export function bindSound(handlers: { onCredits: () => void }): void {
+export function bindSound(): void {
   // État initial des curseurs : ce que le moteur a relu du stockage.
   uiInput.value = String(Math.round(getUiVolume() * STEPS));
   musicInput.value = String(Math.round(getMusicVolume() * STEPS));
@@ -141,11 +139,5 @@ export function bindSound(handlers: { onCredits: () => void }): void {
   musicInput.addEventListener("input", () => {
     setMusicVolume(sliderVolume(musicInput));
     renderSlider(musicInput, musicValueEl);
-  });
-
-  creditsEl.addEventListener("click", () => {
-    playSound("ui-secondary");
-    setOpen(null);
-    handlers.onCredits();
   });
 }

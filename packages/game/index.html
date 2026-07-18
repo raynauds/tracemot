@@ -9,7 +9,7 @@
     <title>Tracemot</title>
     <!-- Fontes servies par le jeu (public/fonts) : les @font-face vivent dans
          src/theme/fonts.css. On précharge les seules faces du PREMIER écran, la
-         carte — son titre (serif 700), ses accroches (serif 400 et son
+         carte - son titre (serif 700), ses accroches (serif 400 et son
          italique) et ses chiffres (mono 600). Sans ce preload, le navigateur ne
          les découvrirait qu'après avoir lu le CSS, et le boot attend les fontes
          (body.booting). Les autres faces se chargent au lancement d'une partie. -->
@@ -36,7 +36,7 @@
     />
     <link rel="stylesheet" href="style.css" />
   </head>
-  <!-- .booting : au chargement, l'écran ne montre que le papier de la carte —
+  <!-- .booting : au chargement, l'écran ne montre que le papier de la carte -
        rien n'est peint tant que l'app n'est pas prête (style.css). src/main.ts
        retire la classe une fois la carte en place. -->
   <body class="booting">
@@ -48,7 +48,7 @@
          réactivent (pointer-events: auto). -->
 
     <!-- Accueil : le premier écran, plein écran, au-dessus de la carte. Le seul
-         endroit où le jeu se nomme — la carte et la partie restent sans marque
+         endroit où le jeu se nomme - la carte et la partie restent sans marque
          (src/theme/DESIGN.md). Écrit et lié par src/render/home.ts ; quand il
          est affiché, le corps porte .home-open.
 
@@ -81,104 +81,98 @@
           <button type="button" class="home-levels" id="home-levels">
             CHOISIR UN NIVEAU
           </button>
-        </div>
-      </div>
-      <!-- Le bas de page : trois meubles sur le cadre (--edge), du plus au moins
-           visible — le son à gauche, le « ? » des règles à droite, et entre eux
-           le lien texte des crédits, l'ours de la page imprimée. Ce sont des
-           marges de page, pas des éléments de la colonne. -->
-      <div class="home-sound" id="home-sound-anchor">
-        <button
-          type="button"
-          class="home-corner"
-          id="home-sound"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-label="Réglages sonores"
-          title="Réglages sonores"
-        ></button>
-        <!-- Panneau des volumes : structure statique UNIQUE. Le bouton son du
-             header de partie ouvre LE MÊME panneau — src/render/sound.ts le
-             déplace sous le déclencheur actif (deux copies obligeraient à
-             tenir leurs curseurs synchrones). Les crans (.sound-scale) et les
-             icônes sont posés par le même module. -->
-        <div class="diff-overlay" id="sound-overlay" hidden></div>
-        <div
-          class="diff-panel sound-panel"
-          id="sound-panel"
-          role="dialog"
-          aria-label="Réglages sonores"
-          hidden
-        >
-          <div class="diff-panel-head">
-            <span class="diff-panel-title">SONS</span>
+          <!-- Les aides, sous le choix du niveau : le panneau des volumes et
+               l'écran des règles — mêmes boutons que « choisir un niveau »,
+               ce sont des consultations de même poids. -->
+          <!-- Panneau des volumes : il s'ancre à son bouton. Structure statique
+               UNIQUE — le bouton son du header de partie ouvre LE MÊME panneau,
+               src/render/sound.ts le déplace sous le déclencheur actif (deux
+               copies obligeraient à tenir leurs curseurs synchrones). Les crans
+               (.sound-scale) et les icônes sont posés par le même module. -->
+          <div class="home-sound" id="home-sound-anchor">
             <button
               type="button"
-              class="diff-close"
-              id="sound-close"
-              aria-label="Fermer"
-            ></button>
-          </div>
-          <div class="sound-row">
-            <div class="sound-row-head">
-              <label class="sound-label" for="sound-ui">INTERFACE</label>
-              <span class="sound-value" id="sound-ui-value"></span>
-            </div>
-            <input
-              type="range"
-              class="sound-slider"
-              id="sound-ui"
-              min="0"
-              max="10"
-              step="1"
-              value="10"
-            />
-            <div class="sound-scale" id="sound-ui-scale" aria-hidden="true"></div>
-          </div>
-          <div class="sound-row">
-            <div class="sound-row-head">
-              <label class="sound-label" for="sound-music">MUSIQUE</label>
-              <span class="sound-value" id="sound-music-value"></span>
-            </div>
-            <input
-              type="range"
-              class="sound-slider"
-              id="sound-music"
-              min="0"
-              max="10"
-              step="1"
-              value="10"
-            />
+              class="home-levels"
+              id="home-sound"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+            >
+              SONS
+            </button>
+            <div class="diff-overlay" id="sound-overlay" hidden></div>
             <div
-              class="sound-scale"
-              id="sound-music-scale"
-              aria-hidden="true"
-            ></div>
+              class="diff-panel sound-panel"
+              id="sound-panel"
+              role="dialog"
+              aria-label="Réglages sonores"
+              hidden
+            >
+              <div class="diff-panel-head">
+                <span class="diff-panel-title">SONS</span>
+                <button
+                  type="button"
+                  class="diff-close"
+                  id="sound-close"
+                  aria-label="Fermer"
+                ></button>
+              </div>
+              <div class="sound-row">
+                <div class="sound-row-head">
+                  <label class="sound-label" for="sound-ui">INTERFACE</label>
+                  <span class="sound-value" id="sound-ui-value"></span>
+                </div>
+                <input
+                  type="range"
+                  class="sound-slider"
+                  id="sound-ui"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value="10"
+                />
+                <div
+                  class="sound-scale"
+                  id="sound-ui-scale"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="sound-row">
+                <div class="sound-row-head">
+                  <label class="sound-label" for="sound-music">MUSIQUE</label>
+                  <span class="sound-value" id="sound-music-value"></span>
+                </div>
+                <input
+                  type="range"
+                  class="sound-slider"
+                  id="sound-music"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value="10"
+                />
+                <div
+                  class="sound-scale"
+                  id="sound-music-scale"
+                  aria-hidden="true"
+                ></div>
+              </div>
+            </div>
           </div>
-          <!-- Accès contextuel au colophon : on crédite les sons là où on les
-               règle. L'entrée canonique reste le lien CRÉDITS de l'accueil. -->
-          <button type="button" class="sound-credits" id="sound-credits">
-            <span>CRÉDITS SONORES</span>
+          <button type="button" class="home-levels" id="home-help">
+            COMMENT JOUER
           </button>
         </div>
       </div>
+      <!-- L'ours de la page : le lien des crédits, seul au bas du cadre —
+           une marge de page, pas un élément de la colonne. -->
       <button type="button" class="home-credits" id="home-credits">
         CRÉDITS
       </button>
-      <div class="home-help">
-        <button
-          type="button"
-          class="home-corner"
-          id="home-help"
-          aria-label="Comment jouer"
-          title="Comment jouer"
-        ></button>
-      </div>
     </div>
 
     <!-- Comment jouer : l'écran des règles, plein écran au-dessus de l'accueil
-         (z-index 46). Ouvert par le « ? » de l'accueil, et de lui-même à la
-         toute première partie — par-dessus la grille prête, que sa fermeture
+         (z-index 46). Ouvert par le bouton COMMENT JOUER de l'accueil, et de
+         lui-même à la toute première partie - par-dessus la grille prête, que sa fermeture
          révèle. Structure statique, liée par src/render/help.ts (qui y pose la
          flèche, les coches et l'étoile des figures). Le panneau « i » du header
          de partie garde son rôle à lui : rappeler le format du niveau en cours. -->
@@ -198,7 +192,7 @@
           <li class="help-step">
             <!-- Chaque règle se montre avant de se dire : la figure rejoue la
                  grille (mêmes filets, même vermillon du tracé). Les mots des
-                 figures — MOT, RAS, CLE — partitionnent la grille 3×3 en
+                 figures - MOT, RAS, CLE - partitionnent la grille 3×3 en
                  chemins orthogonaux : rien d'impossible n'y est dessiné. -->
             <figure class="help-fig" aria-hidden="true">
               <svg class="help-grid" viewBox="0 0 128 128">
@@ -236,10 +230,22 @@
             <figure class="help-fig" aria-hidden="true">
               <svg class="help-grid" viewBox="0 0 128 128">
                 <rect class="cell is-used" x="0" y="0" width="40" height="40" />
-                <rect class="cell is-used" x="44" y="0" width="40" height="40" />
+                <rect
+                  class="cell is-used"
+                  x="44"
+                  y="0"
+                  width="40"
+                  height="40"
+                />
                 <rect class="cell" x="88" y="0" width="40" height="40" />
                 <rect class="cell" x="0" y="44" width="40" height="40" />
-                <rect class="cell is-used" x="44" y="44" width="40" height="40" />
+                <rect
+                  class="cell is-used"
+                  x="44"
+                  y="44"
+                  width="40"
+                  height="40"
+                />
                 <rect class="cell" x="88" y="44" width="40" height="40" />
                 <rect class="cell" x="0" y="88" width="40" height="40" />
                 <rect class="cell" x="44" y="88" width="40" height="40" />
@@ -315,7 +321,7 @@
               <h3 class="help-heading">Gagner des étoiles</h3>
               <p class="help-line">
                 Chaque défi validé rapporte une étoile. Elles ouvrent les
-                difficultés suivantes, et le mode au-dessus — des grilles plus
+                difficultés suivantes, et le mode au-dessus - des grilles plus
                 grandes, des mots plus longs.
               </p>
             </div>
@@ -329,9 +335,8 @@
       </div>
     </div>
 
-    <!-- Colophon : la page des crédits, sur le modèle des livres — ce qui vient
-         d'ailleurs, et de qui. Deux entrées y mènent : le lien CRÉDITS de
-         l'accueil et « crédits sonores » du panneau SONS. Les attributions
+    <!-- Crédits : la page des attributions - ce qui vient d'ailleurs, et de
+         qui. Une seule entrée : le lien CRÉDITS de l'accueil. Les attributions
          JDSherbert et Nathan Gibson sont REQUISES par leurs licences (cf. les
          readme/licences dans public/sounds/) : cette page est contractuelle,
          pas décorative. Liée par src/render/credits.ts. -->
@@ -346,11 +351,7 @@
         ></button>
       </header>
       <div class="screen-body">
-        <h2 class="screen-title">Colophon</h2>
-        <p class="credits-intro">
-          Tracemot est fait main ; ses sons et ses caractères viennent
-          d'ailleurs. Merci à leurs auteurs.
-        </p>
+        <h2 class="screen-title">Crédits</h2>
         <dl class="credits-list">
           <div class="credits-entry">
             <dt class="credits-role">BRUITAGES D'INTERFACE</dt>
@@ -433,11 +434,11 @@
       </div>
       <!-- Bord droit du header : les aides, qui n'appartiennent pas à la paire
            de navigation groupée à gauche (la flèche dit d'où l'on sort, le
-           niveau dit où l'on est). Le son d'abord, la règle au bord — même
+           niveau dit où l'on est). Le son d'abord, la règle au bord - même
            ordre que sur l'accueil, où le son est aussi le plus loin du coin. -->
       <div class="header-right">
         <!-- Réglages sonores : ouvre LE panneau des volumes, celui de
-             l'accueil — structure statique unique que src/render/sound.ts
+             l'accueil - structure statique unique que src/render/sound.ts
              déplace sous le déclencheur actif. La musique joue pendant la
              partie : c'est ici qu'on veut la régler. -->
         <div class="sound" id="header-sound-anchor">
@@ -453,7 +454,7 @@
         </div>
         <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
            Elle ouvre le composant voile + panneau (popover desktop, feuille
-           mobile) hérité du sélecteur de difficulté disparu — les classes
+           mobile) hérité du sélecteur de difficulté disparu - les classes
            .diff-overlay / .diff-panel lui survivent et restent partagées. -->
         <div class="rule" id="rule">
           <button

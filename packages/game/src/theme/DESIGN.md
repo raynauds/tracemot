@@ -228,15 +228,15 @@ Structure d'écran : le corps est en `overflow: hidden`, sans flux et sans scrol
 de page. Le canvas occupe tout ; le chrome est en `position: fixed`. Les
 z-index sont attribués à la main, par étages — registre 16, en-tête 25 (il
 englobe ses modales), victoire 30, carte 40 et accueil 45 (ce sont des écrans,
-pas des panneaux), règles et colophon 46 (ils se posent sur l'accueil comme sur
+pas des panneaux), règles et crédits 46 (ils se posent sur l'accueil comme sur
 une partie), chargement au-dessus de tout.
 
 Trois écrans, dans cet ordre : **accueil → carte → partie**. Chacun se retire
 par une flèche nue en haut à gauche, toujours la même — un seul dessin pour un
 seul sens, « remonter d'un écran ». Deux écrans de consultation s'y ajoutent,
-hors de ce fil : « Comment jouer » (le « ? » de l'accueil, et d'office à la
-toute première partie) et le colophon (le lien CRÉDITS de l'accueil, et le
-panneau SONS) — même squelette, même flèche de sortie (`screen.css`).
+hors de ce fil : « Comment jouer » (le bouton COMMENT JOUER de l'accueil, et
+d'office à la toute première partie) et les crédits (le lien CRÉDITS de
+l'accueil) — même squelette, même flèche de sortie (`screen.css`).
 
 ## Elevation & Depth
 

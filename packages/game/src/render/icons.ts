@@ -16,7 +16,6 @@
 import arrowLeftSvg from "../assets/icons/arrow-left.svg?raw";
 import checkSvg from "../assets/icons/check.svg?raw";
 import chevronRightSvg from "../assets/icons/chevron-right.svg?raw";
-import helpCircleSvg from "../assets/icons/help-circle.svg?raw";
 import infoSvg from "../assets/icons/info.svg?raw";
 import maximizeSvg from "../assets/icons/maximize.svg?raw";
 import minusSvg from "../assets/icons/minus.svg?raw";
@@ -43,7 +42,6 @@ const ARROW_LEFT = template(arrowLeftSvg, "icon-arrow-left");
 const CLOSE = template(xSvg, "icon-close");
 const CHEVRON = template(chevronRightSvg, "icon-chevron");
 const INFO = template(infoSvg, "icon-info");
-const HELP = template(helpCircleSvg, "icon-help");
 const VOLUME = template(volumeSvg, "icon-volume");
 const PLUS = template(plusSvg, "icon-plus");
 const MINUS = template(minusSvg, "icon-minus");
@@ -82,13 +80,8 @@ export function infoIcon(): SVGSVGElement {
   return INFO.cloneNode(true) as SVGSVGElement;
 }
 
-// « Comment jouer » : le « ? » de l'accueil. Distinct du « i » du header — le
-// « i » rappelle la mécanique du niveau, le « ? » ouvre l'écran des règles.
-export function helpIcon(): SVGSVGElement {
-  return HELP.cloneNode(true) as SVGSVGElement;
-}
-
-// Réglages sonores : les deux déclencheurs du panneau (accueil et header).
+// Réglages sonores : le déclencheur du panneau dans le header de partie (sur
+// l'accueil, le bouton SONS parle en toutes lettres).
 export function volumeIcon(): SVGSVGElement {
   return VOLUME.cloneNode(true) as SVGSVGElement;
 }

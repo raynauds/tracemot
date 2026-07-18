@@ -11,8 +11,8 @@
 //
 // Le panneau des volumes n'est PAS lié ici : il appartient à src/render/sound.ts
 // (deux déclencheurs, accueil et header de partie, un seul panneau). L'écran
-// des règles et le colophon non plus : l'accueil ne fait que les demander, via
-// ses handlers — comme il demande la carte.
+// des règles et celui des crédits non plus : l'accueil ne fait que les
+// demander, via ses handlers — comme il demande la carte.
 
 import { levelLabel, type LevelId, type ModeId } from "@tracemot/core";
 import { playSound } from "../audio/audio.ts";
@@ -21,7 +21,6 @@ import {
   resumePoint,
   type ResumePoint,
 } from "../game/progress.ts";
-import { helpIcon } from "./icons.ts";
 
 function byId(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -36,10 +35,6 @@ const startEl = byId("home-start") as HTMLButtonElement;
 const levelsEl = byId("home-levels");
 const helpEl = byId("home-help");
 const creditsEl = byId("home-credits");
-
-// Bouton muet dans le HTML : son sens tient dans son aria-label, son dessin
-// vient d'ici (cf. ./icons.ts).
-helpEl.appendChild(helpIcon());
 
 // Ce que le bouton primaire lancera. Gardé ici plutôt que sur le DOM : le clic
 // n'a rien à re-parser, et un rendu qui n'a rien trouvé le remet à null — le
@@ -64,11 +59,11 @@ function renderHome(): void {
     stateEl.textContent = "Toutes les grilles sont validées";
     return;
   }
-  // « Reprendre » suppose qu'il y ait quelque chose derrière soi : tant que rien
+  // « Continuer » suppose qu'il y ait quelque chose derrière soi : tant que rien
   // n'est validé nulle part, le point de reprise est le tout premier niveau et
   // le verbe est « commencer ».
   const first = isFirstLaunch();
-  startEl.textContent = first ? "COMMENCER" : "REPRENDRE";
+  startEl.textContent = first ? "COMMENCER" : "CONTINUER";
   // Le format du point de reprise est celui du header de partie (« 5×5 · 1-4 ») :
   // le joueur retrouvera le même libellé une fois la grille lancée.
   stateEl.textContent = first

@@ -173,42 +173,6 @@
   background: var(--line);
 }
 
-/* --- Crédits sonores --- */
-
-/* L'accès contextuel au colophon : un lien de bas de panneau, subordonné par un
-   filet inerte — le même étage que .panel-spec. */
-.sound-credits {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-top: 20px;
-  padding: 11px 0 0;
-  background: none;
-  border: none;
-  border-top: 1px solid var(--line);
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 2px;
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.sound-credits .icon {
-  font-size: 12px;
-}
-
-@media (hover: hover) {
-  .sound-credits:hover {
-    color: var(--vermilion);
-  }
-}
-
-.sound-credits:active {
-  color: var(--vermilion);
-}
-
-
 /* --- Mobile (maquette 390x844) --- */
 
 @media (max-width: 860px) {

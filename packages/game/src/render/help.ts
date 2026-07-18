@@ -2,7 +2,8 @@
 // Structure statique dans index.html (figures comprises) ; ce module ne fait
 // que poser les icônes, ouvrir, fermer.
 //
-// Deux entrées : le « ? » de l'accueil, et la toute première partie — l'écran
+// Deux entrées : le bouton COMMENT JOUER de l'accueil, et la toute première
+// partie — l'écran
 // s'ouvre alors de lui-même PAR-DESSUS la grille prête (startLevel a fini son
 // travail), sa fermeture la révèle. C'est l'héritier du panneau règle qui
 // s'ouvrait d'office au premier niveau (l'ancien drapeau tracemot.rule-seen
@@ -56,7 +57,7 @@ function seen(): boolean {
 
 // --- Affichage --------------------------------------------------------------
 
-// Toute ouverture marque l'écran comme lu — y compris depuis le « ? » : un
+// Toute ouverture marque l'écran comme lu — y compris depuis l'accueil : un
 // joueur qui l'a consulté avant de jouer n'a pas à le revoir d'office.
 export function showHelp(opts: { firstPlay?: boolean } = {}): void {
   // Le bouton du bas n'existe qu'à la première partie : la grille attend juste

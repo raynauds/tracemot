@@ -168,63 +168,36 @@ body.home-open .win {
 }
 
 
+/* --- Aides de la colonne --- */
+
+/* L'ancre du panneau des volumes : un maillon de la pile d'actions, qui étire
+   son bouton comme les autres et porte le popover (position: relative). Le
+   panneau s'ouvre sous le bouton, fer à gauche — l'ancrage par défaut du
+   composant partagé (src/render/panel.css) ; sous 860px, la feuille du bas
+   reprend la main d'elle-même. */
+.home-sound {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Panneau ouvert : le bouton reste inversé — un état, pas un survol. */
+.home-sound .home-levels.open {
+  background: var(--ink);
+  color: var(--paper);
+}
+
 /* --- Bas de page --- */
 
-/* Trois meubles sur le cadre de l'application (--edge) : le son au coin gauche,
-   le « ? » des règles au coin droit, le lien des crédits entre eux. Des marges
-   de page, pas des éléments de la colonne. */
-.home-sound {
-  position: absolute;
-  left: max(var(--edge), env(safe-area-inset-left));
-  bottom: max(var(--edge), env(safe-area-inset-bottom));
-}
-
-.home-help {
-  position: absolute;
-  right: max(var(--edge), env(safe-area-inset-right));
-  bottom: max(var(--edge), env(safe-area-inset-bottom));
-}
-
-/* Icône nue et estompée, comme le « i » du header de partie : une aide qu'on lit
-   une fois, un réglage qu'on touche rarement. Le padding n'est là que pour la
-   cible du doigt ; la marge négative le reprend pour que l'icône s'aligne quand
-   même sur le cadre. */
-.home-corner {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px;
-  margin: -10px;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 20px; /* règle l'icône : .icon tient 1em de côté */
-  cursor: pointer;
-}
-
-/* Vermillon au pointeur, comme toutes les icônes nues. L'encre reste réservée à
-   l'état « panneau ouvert ». */
-@media (hover: hover) {
-  .home-corner:hover {
-    color: var(--vermilion);
-  }
-}
-
-.home-corner:active {
-  color: var(--vermilion);
-}
-
-.home-corner.open {
-  color: var(--ink);
-}
-
-/* L'ours de la page : un lien texte effacé, le poids le plus faible du bas de
-   page — il mène au colophon. Décalé de 4px pour se centrer optiquement sur
-   les icônes de 20px qui l'encadrent. */
+/* L'ours de la page : le lien des crédits, seul sur le cadre (--edge) — une
+   marge de page, pas un élément de la colonne. Le poids le plus faible de
+   l'écran. */
 .home-credits {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(max(var(--edge), env(safe-area-inset-bottom)) + 4px);
+  bottom: max(var(--edge), env(safe-area-inset-bottom));
   padding: 12px;
   margin: -12px;
   background: none;
@@ -246,18 +219,6 @@ body.home-open .win {
   color: var(--vermilion);
 }
 
-/* Le panneau des volumes, ancré au coin bas-gauche : le popover remonte
-   au-dessus du déclencheur et s'aligne à gauche, sans quoi il sortirait de
-   l'écran par deux bords. Sous 860px, le composant partagé reprend la main et
-   devient la feuille du bas (src/render/panel.css) : on lui rend alors ce que
-   cet ancrage lui prend. */
-.home-sound .sound-panel {
-  top: auto;
-  left: 0;
-  right: auto;
-  bottom: calc(100% + 14px);
-}
-
 
 /* --- Mouvement réduit --- */
 
@@ -275,13 +236,6 @@ body.home-open .win {
 /* --- Mobile (maquette 390x844) --- */
 
 @media (max-width: 860px) {
-  /* La feuille du bas reprend ses droits sur l'ancrage du coin (cette feuille
-     est chargée après sound.css, son popover gagnerait sinon la cascade). */
-  .home-sound .sound-panel {
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
   .home-state {
     letter-spacing: 2px;
   }
@@ -295,8 +249,5 @@ body.home-open .win {
   }
   .home-levels {
     height: 50px;
-  }
-  .home-corner {
-    font-size: 22px;
   }
 }
