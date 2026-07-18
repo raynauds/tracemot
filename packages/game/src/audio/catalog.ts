@@ -13,6 +13,7 @@ const PACK =
 
 export const SOUNDS = {
   "trace-letter": `${PACK} - Cursor - 4.mp3`,
+  "word-stamp": "UI Soundpack/African4.mp3",
   "word-reject": `${PACK} - Cancel - 1.mp3`,
   "ui-primary": `${PACK} - Select - 1.mp3`,
   "ui-secondary": `${PACK} - Cursor - 2.mp3`,

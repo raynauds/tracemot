@@ -189,6 +189,7 @@ function commitPath() {
   state.foundPaths.push(traced);
   renderUsedCells(); // repeint les cases en disabled
   stampWord(traced); // tampon : tassement des cases + fondu du tracé fantôme
+  playSound("word-stamp");
   renderCounter();
   if (state.found.length >= state.mode.wordCount) triggerWin();
 }
