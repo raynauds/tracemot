@@ -9,13 +9,22 @@
 // fichier manquant, décodage raté → il ne se passe rien, le jeu ne casse pas
 // pour une histoire de son).
 
-import { SOUNDS, soundPath, soundVolume, type SoundId } from "./catalog.ts";
+import {
+  MUSIC,
+  SOUNDS,
+  soundPath,
+  soundVolume,
+  type SoundId,
+} from "./catalog.ts";
 
 const MUTED_KEY = "tracemot.muted";
 
 let ctx: AudioContext | null = null;
 const buffers = new Map<SoundId, AudioBuffer>();
 let muted = false;
+let musicBuffer: AudioBuffer | null = null;
+let musicGain: GainNode | null = null;
+let musicStarted = false;
 
 // Réveille le contexte au premier geste ; les écouteurs se retirent une fois
 // le contexte effectivement actif (resume est asynchrone, un premier geste
@@ -26,8 +35,29 @@ function unlock() {
     if (ctx?.state === "running") {
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
+      tryStartMusic();
     }
   });
+}
+
+// Lance la boucle de fond dès que contexte actif ET fichier décodé — les deux
+// arrivent dans un ordre quelconque, chacun rappelle donc cette fonction. La
+// source boucle sans fin ; couper le son joue sur son gain (la piste continue
+// en sourdine, pas de reprise à zéro au retour du son).
+function tryStartMusic() {
+  if (musicStarted || !ctx || ctx.state !== "running" || !musicBuffer) return;
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = musicBuffer;
+    source.loop = true;
+    musicGain = ctx.createGain();
+    musicGain.gain.value = muted ? 0 : MUSIC.volume;
+    source.connect(musicGain).connect(ctx.destination);
+    source.start();
+    musicStarted = true;
+  } catch {
+    // Sans musique, le jeu continue.
+  }
 }
 
 // Précharge et décode tous les sons du catalogue. À appeler une fois au boot ;
@@ -58,6 +88,20 @@ export function initAudio() {
         console.warn(`Tracemot : son « ${id} » indisponible`, err);
       });
   }
+
+  void fetch(`sounds/${MUSIC.path}`)
+    .then((res) => {
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.arrayBuffer();
+    })
+    .then((data) => ctx!.decodeAudioData(data))
+    .then((buffer) => {
+      musicBuffer = buffer;
+      tryStartMusic();
+    })
+    .catch((err) => {
+      console.warn("Tracemot : musique de fond indisponible", err);
+    });
 }
 
 // Joue un son du catalogue. rate : vitesse de lecture (1 = nominale ; 2^(n/12)
@@ -88,6 +132,7 @@ export function isMuted() {
 
 export function setMuted(on: boolean) {
   muted = on;
+  if (musicGain) musicGain.gain.value = on ? 0 : MUSIC.volume;
   try {
     localStorage.setItem(MUTED_KEY, on ? "1" : "0");
   } catch {

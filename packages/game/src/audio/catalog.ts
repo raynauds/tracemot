@@ -24,6 +24,13 @@ export const SOUNDS = {
 
 export type SoundId = keyof typeof SOUNDS;
 
+// Musique de fond : une seule piste, hors catalogue des bruitages — le moteur
+// la joue en boucle continue au lieu d'une source jetable par lecture.
+export const MUSIC = {
+  path: "Pixabay/sonican-jazzy-lofi-calm-background-loop-541849.mp3",
+  volume: 0.3,
+} as const;
+
 export function soundPath(id: SoundId): string {
   const entry = SOUNDS[id];
   return typeof entry === "string" ? entry : entry.path;
