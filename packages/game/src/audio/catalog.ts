@@ -18,11 +18,11 @@ const PACK =
 // niveau de mixage du son, celui passé à playSound s'y multiplie.
 export const SOUNDS = {
   "trace-letter": { path: `${PACK} - Cursor - 4.mp3`, volume: 0.6 },
-  "word-stamp": "UI Soundpack/African4.mp3",
-  "word-reject": `${PACK} - Cancel - 1.mp3`,
-  "ui-primary": `${PACK} - Select - 1.mp3`,
-  "ui-secondary": `${PACK} - Cursor - 2.mp3`,
-  "ui-close": `${PACK} - Cursor - 1.mp3`,
+  "word-stamp": { path: "UI Soundpack/African4.mp3", volume: 3 },
+  "word-reject": { path: `${PACK} - Cancel - 1.mp3`, volume: 0.8 },
+  "ui-primary": { path: `${PACK} - Select - 1.mp3`, volume: 0.8 },
+  "ui-secondary": { path: `${PACK} - Cursor - 2.mp3`, volume: 0.8 },
+  "ui-close": { path: `${PACK} - Cursor - 1.mp3`, volume: 0.6 },
 } as const;
 
 export type SoundId = keyof typeof SOUNDS;
@@ -31,7 +31,7 @@ export type SoundId = keyof typeof SOUNDS;
 // la joue en boucle continue au lieu d'une source jetable par lecture.
 export const MUSIC = {
   path: "Pixabay/sonican-jazzy-lofi-calm-background-loop-541849.mp3",
-  volume: 0.3,
+  volume: 0.4,
 } as const;
 
 export function soundPath(id: SoundId): string {
