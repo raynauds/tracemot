@@ -176,6 +176,13 @@ export interface NextChoice {
   kind: NextKind;
 }
 
+// Le point de reprise d'un mode : la première case jouable dans l'ordre
+// canonique. C'est ce que l'accueil propose de « reprendre », et le repli de
+// l'écran de victoire quand une victoire n'ouvre rien. null = mode complété.
+export function firstPlayableLevel(p: ModeProgress): LevelId | null {
+  return allLevelIds().find((x) => cellState(p, x) === "active") ?? null;
+}
+
 // Cases dont `id` est le prédécesseur — l'exact miroir de predecessorOf(). Un
 // dernier de ligne (5, 10, 15) en a DEUX : le normal suivant et le défi de sa
 // ligne. Le 15 n'a que le défi (la section s'arrête là). Un défi n'ouvre aucune
@@ -203,7 +210,7 @@ export function nextChoices(p: ModeProgress, id: LevelId): NextChoice[] {
   if (opened.length > 0) {
     return opened.map((x) => ({ id: x, kind: isDefi(x) ? "defi" : "next" }));
   }
-  const resume = allLevelIds().find((x) => cellState(p, x) === "active");
+  const resume = firstPlayableLevel(p);
   // Aucun niveau jouable nulle part (mode complété) : seul le retour carte reste.
   return resume ? [{ id: resume, kind: "continue" }] : [];
 }
@@ -389,6 +396,28 @@ export function saveLastMode(modeId: ModeId): void {
   } catch (_) {
     /* stockage indisponible : l'onglet rouvert sera celui par défaut */
   }
+}
+
+// Où reprendre, tous modes confondus : le premier niveau jouable du dernier mode
+// consulté, et à défaut celui du premier mode débloqué qui en a un. On commence
+// par le dernier mode consulté parce que c'est là que le joueur s'est arrêté —
+// un mode complété ne doit pas pour autant renvoyer à la carte.
+//
+// null : plus rien à jouer nulle part (tout est validé). L'accueil retombe alors
+// sur le choix du niveau, seul geste qui ait encore un sens.
+export interface ResumePoint {
+  modeId: ModeId;
+  id: LevelId;
+}
+
+export function resumePoint(): ResumePoint | null {
+  const last = loadLastMode(); // déjà garanti débloqué
+  const order = [last, ...MODE_ORDER.filter((m) => m !== last && isModeUnlocked(m))];
+  for (const modeId of order) {
+    const id = firstPlayableLevel(loadProgress(modeId));
+    if (id) return { modeId, id };
+  }
+  return null;
 }
 
 // « Vu » n'est pas dérivable de la progression : un mode peut être débloqué et

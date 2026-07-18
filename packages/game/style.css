@@ -35,6 +35,9 @@
 @import "./src/render/win.css";
 @import "./src/render/zoom.css";
 
-/* Écran d'accueil (src/render/map.ts). */
+/* Écrans, du plus haut au plus bas dans l'empilement : l'accueil (45) couvre la
+   carte (40), qui couvre le chrome de partie. L'accueil est chargé après
+   panel.css : son ancrage de popover doit gagner la cascade. */
+@import "./src/render/home.css";
 @import "./src/render/map.css";
 

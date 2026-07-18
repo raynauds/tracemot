@@ -33,10 +33,11 @@ typography:
     fontSize: 30px
     fontWeight: 700
     letterSpacing: 0.5px
-  brand:
+  brand: # le nom du jeu, sur l'accueil et lui seul — fluide, cf. § Marque
     fontFamily: Source Serif 4
-    fontSize: 26px
+    fontSize: clamp(40px, 12vw, 72px)
     fontWeight: 700
+    letterSpacing: 0.12em
   numeral:
     fontFamily: IBM Plex Mono
     fontSize: 26px
@@ -226,8 +227,12 @@ valeurs déjà dominantes dans le code — 8px (gouttière entre éléments frè
 Structure d'écran : le corps est en `overflow: hidden`, sans flux et sans scroll
 de page. Le canvas occupe tout ; le chrome est en `position: fixed`. Les
 z-index sont attribués à la main, par étages — registre 16, en-tête 25 (il
-englobe ses modales), victoire 30, carte 40 (c'est un écran, pas un panneau),
-chargement au-dessus de tout.
+englobe ses modales), victoire 30, carte 40 et accueil 45 (ce sont des écrans,
+pas des panneaux), chargement au-dessus de tout.
+
+Trois écrans, dans cet ordre : **accueil → carte → partie**. Chacun se retire
+par une flèche nue en haut à gauche, toujours la même — un seul dessin pour un
+seul sens, « remonter d'un écran ».
 
 ## Elevation & Depth
 
@@ -267,6 +272,24 @@ forment un langage :
 - **`1.5px dashed map-rule`** — inerte. Le pointillé est le signal universel de
   « visible mais pas encore atteignable » : mode verrouillé, niveau pas encore
   ouvert. Un pointillé n'est jamais cliquable.
+
+## Marque
+
+Le jeu se nomme **une fois, sur l'accueil, et nulle part ailleurs**. La carte et
+la partie n'ont pas à porter son nom : le joueur qui y est sait où il est, et
+une marque redite est du chrome qui n'informe plus.
+
+L'accueil est donc le seul consommateur du token `brand`, et il est composé
+comme une page de titre : une colonne unique fer à gauche, le nom au-dessus d'un
+filet de la largeur de la colonne, la ligne d'état et les deux actions alignées
+dessous — même largeur pour tout, c'est cet alignement qui porte l'écran.
+
+Le nom est écrit lettre par lettre à l'ouverture, chacune décalée de 30 ms, le
+point vermillon en dernier. **C'est le seul mouvement de l'écran**, et il ne
+rejoue pas : revenir à l'accueil retrouve un titre déjà écrit. Le point reprend
+l'idiome de « Gagné. » — le vermillon y signe au lieu de récompenser, seule
+entorse tolérée à la règle « vermillon = mérité », et elle tient parce que la
+marque n'est pas une information de jeu.
 
 ## Components
 

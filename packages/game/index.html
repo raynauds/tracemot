@@ -47,8 +47,89 @@
          (pointer-events: none) ; seuls les contrôles interactifs les
          réactivent (pointer-events: auto). -->
 
-    <!-- Carte de progression : écran d'accueil, plein écran, au-dessus de tout
-         le reste. Son contenu est entièrement généré par src/render/map.ts ;
+    <!-- Accueil : le premier écran, plein écran, au-dessus de la carte. Le seul
+         endroit où le jeu se nomme — la carte et la partie restent sans marque
+         (src/theme/DESIGN.md). Écrit et lié par src/render/home.ts ; quand il
+         est affiché, le corps porte .home-open.
+
+         Le titre est composé lettre par lettre : chacune porte son rang (--i),
+         d'où le CSS tire le décalage de sa révélation (src/render/home.css). Les
+         spans sont aria-hidden et le titre porte son aria-label : à la lecture
+         d'écran, c'est un mot, pas huit lettres. -->
+    <div class="home" id="home" hidden>
+      <div class="home-col">
+        <h1 class="home-title" id="home-title" aria-label="Tracemot">
+          <span aria-hidden="true" style="--i: 0">T</span
+          ><span aria-hidden="true" style="--i: 1">r</span
+          ><span aria-hidden="true" style="--i: 2">a</span
+          ><span aria-hidden="true" style="--i: 3">c</span
+          ><span aria-hidden="true" style="--i: 4">e</span
+          ><span aria-hidden="true" style="--i: 5">m</span
+          ><span aria-hidden="true" style="--i: 6">o</span
+          ><span aria-hidden="true" style="--i: 7">t</span
+          ><span class="dot" aria-hidden="true" style="--i: 8">.</span>
+        </h1>
+        <!-- Pré-remplie avec l'état du premier lancement (anti-shift, comme
+             #rule-spec) ; src/render/home.ts y écrit le point de reprise. -->
+        <p class="home-state" id="home-state">
+          Reliez des lettres voisines pour tracer les mots
+        </p>
+        <div class="home-actions">
+          <button type="button" class="home-primary" id="home-start">
+            COMMENCER
+          </button>
+          <button type="button" class="home-levels" id="home-levels">
+            CHOISIR UN NIVEAU
+          </button>
+        </div>
+      </div>
+      <!-- Règle du jeu : même composant voile + panneau que le « i » du header
+           de partie (.diff-overlay / .diff-panel, src/render/panel.css). Celui
+           du header rappelle la mécanique du niveau en cours (« 5 mots · 5
+           lettres ») ; celui-ci explique le jeu entier, défis et étoiles
+           compris — deux rôles distincts, deux textes. -->
+      <div class="home-rule" id="home-rule">
+        <button
+          type="button"
+          class="home-info"
+          id="home-info"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-label="Règle du jeu"
+          title="Règle du jeu"
+        ></button>
+        <div class="diff-overlay" id="home-rule-overlay" hidden></div>
+        <div
+          class="diff-panel home-rule-panel"
+          id="home-rule-panel"
+          role="dialog"
+          aria-label="Règle du jeu"
+          hidden
+        >
+          <div class="diff-panel-head">
+            <span class="diff-panel-title">RÈGLE</span>
+            <button
+              type="button"
+              class="diff-close"
+              id="home-rule-close"
+              aria-label="Fermer"
+            ></button>
+          </div>
+          <p class="panel-line">Reliez des lettres voisines pour tracer un mot.</p>
+          <p class="panel-line">Chaque lettre ne sert qu'une fois.</p>
+          <p class="panel-line">
+            La grille est finie quand tous ses mots sont trouvés.
+          </p>
+          <p class="home-rule-note">
+            Chaque défi validé rapporte une étoile. Elles ouvrent les difficultés
+            suivantes, et le mode au-dessus.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carte de progression : choix du niveau, plein écran, au-dessus du chrome
+         de partie. Son contenu est entièrement généré par src/render/map.ts ;
          quand elle est affichée, le corps porte .map-open et le chrome de
          partie ci-dessous est masqué (style.css). -->
     <div class="map" id="map" hidden></div>

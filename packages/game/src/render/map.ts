@@ -32,7 +32,7 @@ import {
   defiOfRow,
   levelId,
 } from "@tracemot/core";
-import { checkIcon, closeIcon, starIcon } from "./icons.ts";
+import { arrowLeftIcon, checkIcon, closeIcon, starIcon } from "./icons.ts";
 import {
   cellState,
   isModeSeen,
@@ -59,6 +59,7 @@ const SECTION_STARS = 3;
 let currentMode: ModeId = loadLastMode();
 
 let onSelect: ((modeId: ModeId, id: LevelId) => void) | null = null;
+let onHome: (() => void) | null = null;
 
 const mapEl = document.getElementById("map") as HTMLElement;
 
@@ -207,11 +208,28 @@ function buildStars(p: ModeProgress): HTMLElement | null {
   return box;
 }
 
-// Sans marque : le jeu n'a pas à se nommer sur son propre écran. Les onglets
-// ouvrent donc le header, le compteur d'étoiles le ferme.
+// Retour à l'accueil : une flèche nue, exactement celle qui sort d'une partie
+// (src/render/header.css). Un seul dessin pour un seul sens — « remonter d'un
+// écran » —, qu'on remonte de la grille à la carte ou de la carte à l'accueil.
+function buildHomeButton(): HTMLElement {
+  const button = el("button", "map-home");
+  button.type = "button";
+  button.id = "map-home";
+  button.setAttribute("aria-label", "Retour à l'accueil");
+  button.title = "Retour à l'accueil";
+  button.appendChild(arrowLeftIcon());
+  return button;
+}
+
+// Sans marque : le jeu ne se nomme que sur l'accueil (src/render/home.ts), pas
+// sur la carte. La flèche et les onglets ouvrent donc le header — d'où l'on
+// sort, ce qu'on regarde —, le compteur d'étoiles le ferme.
 function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
-  head.appendChild(buildTabs());
+  const left = el("div", "map-header-left");
+  left.appendChild(buildHomeButton());
+  left.appendChild(buildTabs());
+  head.appendChild(left);
   head.appendChild(el("div", "map-spring"));
   const stars = buildStars(p);
   if (stars) head.appendChild(stars);
@@ -570,6 +588,11 @@ export function bindMap(
       return;
     }
 
+    if (target.closest("#map-home")) {
+      if (onHome) onHome();
+      return;
+    }
+
     const tab = target.closest<HTMLElement>("[data-mode]");
     if (tab) {
       const modeId = tab.dataset.mode as ModeId;
@@ -595,4 +618,12 @@ export function bindMap(
   // Le mode ouvert d'emblée compte comme vu (sinon sa pastille survivrait à sa
   // première visite).
   markModeSeen(currentMode);
+}
+
+// Retour à l'accueil. Séparé de bindMap comme bindMapReturn l'est du reste du
+// header de partie : c'est une sortie d'écran, pas un choix de niveau. Le clic
+// lui-même passe par la délégation ci-dessus — le header est reconstruit à
+// chaque rendu, la flèche n'a donc pas d'écouteur propre.
+export function bindMapHome(onReturn: () => void): void {
+  onHome = onReturn;
 }

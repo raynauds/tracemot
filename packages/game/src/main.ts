@@ -24,7 +24,13 @@ import {
   cancelAllGestures,
   clearPath,
 } from "./input/input.ts";
-import { bindMap, hideMap, showMap } from "./render/map.ts";
+import {
+  bindHome,
+  hideHome,
+  revealHome,
+  showHome,
+} from "./render/home.ts";
+import { bindMap, bindMapHome, hideMap, showMap } from "./render/map.ts";
 import {
   flashPath,
   initScene,
@@ -75,8 +81,11 @@ async function startLevel(modeId: ModeId, id: LevelId) {
         "(ex. « npm run dev ») - l’ouverture directe en file:// ne fonctionne pas." +
         "\n\nCliquez pour revenir à la carte.",
     );
-    // L'échec laisse le joueur sur la carte : aucune partie n'est en place.
+    // L'échec laisse le joueur sur la carte : aucune partie n'est en place. Il
+    // a pu partir de l'accueil (bouton « reprendre ») sans passer par elle : on
+    // le range donc explicitement.
     state.ready = false;
+    hideHome();
     showMap(); // la carte est re-rendue dessous : le clic sur le message la révèle
     return;
   }
@@ -96,6 +105,9 @@ async function startLevel(modeId: ModeId, id: LevelId) {
 
   renderNewGame();
   renderSceneGrid(); // rendu Pixi de la grille (lettres + fonds)
+  // Une partie se lance depuis l'un OU l'autre des deux écrans : on les ferme
+  // tous les deux plutôt que de deviner d'où l'on vient.
+  hideHome();
   hideMap();
   renderLevelHeader();
   state.ready = true;
@@ -190,17 +202,36 @@ async function init() {
   attachInputHandlers({ onCommit: commitPath });
   bindMap(startLevel);
   bindMapReturn(backToMap);
+  // Accueil ↔ carte : deux écrans, deux sens. L'accueil reprend là où on s'est
+  // arrêté ou renvoie au choix du niveau ; la carte remonte à l'accueil.
+  bindHome({
+    onStart: startLevel,
+    onLevels: () => {
+      hideHome();
+      showMap();
+    },
+  });
+  bindMapHome(() => {
+    hideMap();
+    showHome();
+  });
   // Enchaînement depuis l'écran de victoire : toujours dans le mode courant —
   // une étoile peut ouvrir le mode suivant, mais on ne l'y téléporte pas.
   bindWinNext((id) => startLevel(state.modeId, id));
 
   hideStatus();
-  showMap(); // la carte est l'écran d'accueil : aucune partie tant qu'on n'a
-  // pas choisi de niveau.
+  showHome(); // l'accueil est le premier écran : aucune partie, et pas même de
+  // carte, tant qu'on n'a rien demandé.
 }
 
 // Rien n'est affiché tant que .booting est là (style.css) : on la retire une
-// fois la carte en place, donc après initScene — qui attend déjà les polices.
+// fois l'accueil en place, donc après initScene — qui attend déjà les polices.
 // finally : un échec d'init ne doit pas laisser le joueur devant un écran vide
 // à jamais ; mieux vaut révéler un chrome incomplet qu'un mur de papier.
-init().finally(() => document.body.classList.remove("booting"));
+//
+// La séquence d'écriture du titre vient APRÈS le retrait de .booting, et pas
+// avant : jouée sous un corps invisible, elle serait déjà finie à la révélation.
+init().finally(() => {
+  document.body.classList.remove("booting");
+  revealHome();
+});

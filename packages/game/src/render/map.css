@@ -52,6 +52,42 @@ body.map-open .win {
   flex: 1;
 }
 
+/* Flèche + onglets : une même phrase (« retour, depuis ici »), donc serrés au
+   même écart que dans le header de partie — l'écart de 28px du header est celui
+   qui les sépare du compteur, pas celui qui les lie. */
+.map-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Sortie d'écran, comme .back-map en partie (src/render/header.css) : même
+   flèche nue, même encre pleine, même cible de doigt reprise par une marge
+   négative pour que l'icône s'aligne quand même sur le cadre. */
+.map-home {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 24px; /* règle l'icône : .icon tient 1em de côté */
+  cursor: pointer;
+}
+
+/* Survol réservé à la souris : au doigt, le navigateur simule un :hover au tap
+   et le laisse collé jusqu'au tap suivant. */
+@media (hover: hover) {
+  .map-home:hover {
+    color: var(--vermilion);
+  }
+}
+
+.map-home:active {
+  color: var(--vermilion);
+}
+
 .map-tabs {
   display: flex;
   align-items: center;
@@ -627,6 +663,12 @@ body.map-open .win {
   }
   .map-stars-icon {
     font-size: 12px;
+  }
+  .map-header-left {
+    gap: 10px;
+  }
+  .map-home {
+    font-size: 22px;
   }
   .map-tabs {
     gap: 8px;

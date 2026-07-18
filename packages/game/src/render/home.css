@@ -1,0 +1,277 @@
+/* Accueil : le premier écran. Structure statique dans index.html, écrit et lié
+   par src/render/home.ts.
+
+   Direction : une colonne unique, fer à gauche. Le titre, le filet, la ligne
+   d'état et les deux boutons ont TOUS la même largeur — cet alignement est le
+   seul effet de la page, il doit donc être exact. Rien n'est centré au texte :
+   une page imprimée aligne, elle ne centre pas. */
+
+
+/* Au-dessus de la carte (40), sous le statut d'erreur (50) : l'accueil est un
+   écran, et un échec de chargement doit pouvoir le couvrir. Le fond est le
+   papier plein — le canvas Pixi vit dessous et ne doit jamais transparaître. */
+.home {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  padding: max(var(--edge), env(safe-area-inset-top))
+    max(var(--edge), env(safe-area-inset-right))
+    max(var(--edge), env(safe-area-inset-bottom))
+    max(var(--edge), env(safe-area-inset-left));
+}
+
+/* Accueil ouvert : le chrome de partie disparaît d'un bloc, exactement comme
+   sous la carte (src/render/map.css) — l'accueil n'a pas plus qu'elle à
+   connaître ces éléments un par un. */
+body.home-open .header,
+body.home-open .ledger,
+body.home-open .zoom-controls,
+body.home-open .win {
+  display: none;
+}
+
+/* LA colonne. Sa largeur est celle du titre à sa taille maximale : au-delà, le
+   filet se détacherait du mot qu'il souligne. */
+.home-col {
+  width: min(460px, 100%);
+}
+
+
+/* --- Titre --- */
+
+/* Le seul endroit où le jeu se nomme. Un cran au-dessus du token `display`
+   (52px / 2px) dont il garde la graisse et l'esprit : c'est un titre d'écran,
+   pas un titre de bloc. Le clamp le tient dans la colonne à toute largeur.
+
+   Le letter-spacing ajoute un blanc APRÈS la dernière lettre ; sans
+   compensation, le mot paraîtrait fuir la gauche par rapport au filet posé
+   dessous. Le filet, lui, fait la largeur de la colonne — il n'est pas indexé
+   sur le titre, et c'est ce qui garde l'alignement vrai à toutes les tailles. */
+.home-title {
+  margin: 0;
+  font-size: clamp(40px, 12vw, 72px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+/* Le point vermillon : même idiome que « Gagné. » de l'écran de victoire
+   (src/render/win.css). Il ne récompense rien ici — il signe. */
+.home-title .dot {
+  color: var(--vermilion);
+}
+
+/* La signature de l'écran, et le SEUL mouvement de la page : les lettres se
+   posent l'une après l'autre, comme une main qui écrit, le point vermillon en
+   dernier. Le décalage vient du rang (--i) posé sur chaque span dans le HTML —
+   une seule règle plutôt que neuf nth-child.
+
+   La révélation est déclenchée par la classe, posée par home.ts APRÈS le retrait
+   de .booting (src/theme/base.css) : sans quoi la séquence jouerait pendant que
+   le corps est encore invisible, et l'écran apparaîtrait déjà écrit. */
+.home-title span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(2px);
+  transition:
+    opacity 0.34s ease,
+    transform 0.34s ease;
+  transition-delay: calc(var(--i) * 30ms);
+}
+
+.home-title.is-revealed span {
+  opacity: 1;
+  transform: none;
+}
+
+/* Filet standard (1.5px encre) : il dit « bloc autonome », et c'est lui qui
+   tient le titre et les boutons sur la même verticale. */
+.home-state {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1.5px solid var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+
+/* --- Actions --- */
+
+/* Empilées et étirées à la colonne : la hiérarchie se lit au remplissage, pas à
+   la largeur. */
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+/* Le seul bouton plein vermillon de l'écran, pour la seule action que le joueur
+   est venu faire. Mêmes cotes que « Niveau suivant » de la victoire : le geste
+   est le même, il doit avoir le même poids. */
+.home-primary {
+  height: 62px;
+  background: var(--vermilion);
+  color: var(--paper);
+  border: none;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  cursor: pointer;
+}
+
+.home-primary:hover {
+  filter: brightness(1.08);
+}
+.home-primary:active {
+  filter: brightness(0.94);
+}
+
+/* Action standard : surface carte, filet encre, mono. Elle s'inverse au survol
+   (fond encre, texte papier) — l'idiome d'interaction de l'application, celui
+   des onglets de mode de la carte. */
+.home-levels {
+  height: 54px;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .home-levels:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+}
+
+.home-levels:active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+
+/* --- Règle du jeu --- */
+
+/* Le « i » se pose dans le coin bas-droit de l'écran, sur le cadre de
+   l'application (--edge) : c'est une marge de page, pas un élément de la
+   colonne. Le panneau s'y ancre, d'où position: relative. */
+.home-rule {
+  position: absolute;
+  right: max(var(--edge), env(safe-area-inset-right));
+  bottom: max(var(--edge), env(safe-area-inset-bottom));
+}
+
+/* Icône nue et estompée, comme le « i » du header de partie : une aide qu'on lit
+   une fois. Le padding n'est là que pour la cible du doigt ; la marge négative
+   le reprend pour que l'icône s'aligne quand même sur le cadre. */
+.home-info {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px; /* règle l'icône : .icon tient 1em de côté */
+  cursor: pointer;
+}
+
+/* Vermillon au pointeur, comme toutes les icônes nues. L'encre reste réservée à
+   l'état « panneau ouvert ». */
+@media (hover: hover) {
+  .home-info:hover {
+    color: var(--vermilion);
+  }
+}
+
+.home-info:active {
+  color: var(--vermilion);
+}
+
+.home-info.open {
+  color: var(--ink);
+}
+
+/* Le déclencheur est en bas à droite : le popover remonte au-dessus de lui et
+   s'aligne à droite, sans quoi il sortirait de l'écran par deux bords. Sous
+   860px, le composant partagé reprend la main et devient la feuille du bas
+   (src/render/panel.css) : on lui rend alors ce que cet ancrage lui prend. */
+.home-rule-panel {
+  top: auto;
+  left: auto;
+  right: 0;
+  bottom: calc(100% + 14px);
+  width: 380px;
+}
+
+/* Ce que rapportent les défis : une note, pas une règle. Elle se détache des
+   trois lignes au-dessus par un filet subordonné, et reste en serif — ça se lit,
+   ça ne se compte pas (le mono de .panel-spec crierait sur deux lignes). */
+.home-rule-note {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+
+/* --- Mouvement réduit --- */
+
+/* La séquence des lettres est le seul mouvement de l'écran : il n'y a donc rien
+   d'autre à couper. Le titre est simplement là, écrit. */
+@media (prefers-reduced-motion: reduce) {
+  .home-title span {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  .home-rule-panel {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+  }
+  .home-state {
+    letter-spacing: 2px;
+  }
+  .home-actions {
+    margin-top: 24px;
+  }
+  .home-primary {
+    height: 56px;
+    font-size: 19px;
+    letter-spacing: 3px;
+  }
+  .home-levels {
+    height: 50px;
+  }
+  .home-info {
+    font-size: 22px;
+  }
+}
