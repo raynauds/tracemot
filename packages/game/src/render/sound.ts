@@ -105,21 +105,21 @@ export function bindSound(): void {
 
   for (const trigger of [homeTriggerEl, chipTriggerEl]) {
     trigger.addEventListener("click", () => {
-      playSound("ui-secondary");
+      playSound(openTrigger === trigger ? "ui-close" : "ui-secondary");
       setOpen(openTrigger === trigger ? null : trigger);
     });
   }
   closeEl.addEventListener("click", () => {
-    playSound("ui-secondary");
+    playSound("ui-close");
     setOpen(null);
   });
   overlayEl.addEventListener("click", () => {
-    playSound("ui-secondary");
+    playSound("ui-close");
     setOpen(null);
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && openTrigger) {
-      playSound("ui-secondary");
+      playSound("ui-close");
       setOpen(null);
     }
   });

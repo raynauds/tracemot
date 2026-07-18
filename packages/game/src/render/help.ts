@@ -83,7 +83,7 @@ export function showHelpOnFirstPlay(): void {
 
 export function bindHelp(): void {
   backEl.addEventListener("click", () => {
-    playSound("ui-secondary");
+    playSound("ui-close");
     hideHelp();
   });
   // « C'est parti » engage la partie qui attend dessous : son principal.
@@ -93,7 +93,7 @@ export function bindHelp(): void {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !helpEl.hidden) {
-      playSound("ui-secondary");
+      playSound("ui-close");
       hideHelp();
     }
   });

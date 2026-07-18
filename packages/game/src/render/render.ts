@@ -75,12 +75,12 @@ export function renderLevelHeader() {
 }
 
 // Retour à la carte : même action depuis le header et depuis l'écran de
-// victoire (où elle est l'action principale). Sonorisée en secondaire dans les
+// victoire (où elle est l'action principale). Sonorisée en fermeture dans les
 // deux cas : c'est une sortie d'écran, pas un engagement — même sur l'écran de
 // victoire, où ses voisins SUIVANT/DÉFI portent le son principal.
 export function bindMapReturn(onReturn: () => void) {
   const leave = () => {
-    playSound("ui-secondary");
+    playSound("ui-close");
     onReturn();
   };
   backMapEl.addEventListener("click", leave);
@@ -132,20 +132,20 @@ function setRulePanelOpen(open: boolean) {
 // hidden est typé string | boolean (« until-found ») mais on n'y écrit que
 // des booléens.
 ruleChipEl.addEventListener("click", () => {
-  playSound("ui-secondary");
+  playSound(rulePanelEl.hidden ? "ui-secondary" : "ui-close");
   setRulePanelOpen(rulePanelEl.hidden as boolean);
 });
 ruleCloseEl.addEventListener("click", () => {
-  playSound("ui-secondary");
+  playSound("ui-close");
   setRulePanelOpen(false);
 });
 ruleOverlayEl.addEventListener("click", () => {
-  playSound("ui-secondary");
+  playSound("ui-close");
   setRulePanelOpen(false);
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !rulePanelEl.hidden) {
-    playSound("ui-secondary");
+    playSound("ui-close");
     setRulePanelOpen(false);
   }
 });

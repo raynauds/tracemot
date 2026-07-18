@@ -29,12 +29,12 @@ export function hideCredits(): void {
 
 export function bindCredits(): void {
   backEl.addEventListener("click", () => {
-    playSound("ui-secondary");
+    playSound("ui-close");
     hideCredits();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !creditsEl.hidden) {
-      playSound("ui-secondary");
+      playSound("ui-close");
       hideCredits();
     }
   });

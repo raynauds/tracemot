@@ -690,25 +690,26 @@ export function bindMap(
     // header et dans les jalons, et leur voile intercepte de toute façon tout
     // clic ailleurs.
     //
-    // Tout ce qui consulte ou navigue sonne en secondaire ; seul le choix d'un
-    // niveau — le geste qui engage une partie — sonne en principal. Les
-    // éléments inertes (cases verrouillées, défis grisés) ne passent par aucune
-    // branche : ils restent muets, comme ils sont muets à l'écran.
+    // Tout ce qui consulte ou navigue sonne en secondaire ; ce qui ferme ou
+    // sort de l'écran sonne en fermeture ; seul le choix d'un niveau — le
+    // geste qui engage une partie — sonne en principal. Les éléments inertes
+    // (cases verrouillées, défis grisés) ne passent par aucune branche : ils
+    // restent muets, comme ils sont muets à l'écran.
     const trigger = target.closest<HTMLElement>("[data-panel]");
     if (trigger) {
-      playSound("ui-secondary");
       const key = trigger.dataset.panel as string;
+      playSound(openPanel === key ? "ui-close" : "ui-secondary");
       setPanelOpen(openPanel === key ? null : key);
       return;
     }
     if (target.closest(".diff-close") || target.closest(".diff-overlay")) {
-      playSound("ui-secondary");
+      playSound("ui-close");
       setPanelOpen(null);
       return;
     }
 
     if (target.closest("#map-home")) {
-      playSound("ui-secondary");
+      playSound("ui-close");
       if (onHome) onHome();
       return;
     }
@@ -734,7 +735,7 @@ export function bindMap(
   // Échap ferme le panneau ouvert, comme celui de la règle du jeu.
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && openPanel) {
-      playSound("ui-secondary");
+      playSound("ui-close");
       setPanelOpen(null);
     }
   });

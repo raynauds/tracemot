@@ -5,8 +5,10 @@
 // erreur de compilation.
 //
 // « ui-primary » sonne les boutons qui ENGAGENT (lancer ou poursuivre une
-// partie) ; « ui-secondary » ceux qui consultent, ajustent ou naviguent. Les
-// éléments inertes (cases verrouillées, défis grisés) ne sonnent pas.
+// partie) ; « ui-secondary » ceux qui consultent, ajustent ou naviguent ;
+// « ui-close » ceux qui FERMENT ou reviennent en arrière (voile, ×, Échap,
+// retour d'écran). Les éléments inertes (cases verrouillées, défis grisés) ne
+// sonnent pas.
 
 const PACK =
   "JDSherbert - Ultimate UI SFX Pack (FREE)/JDSherbert - Ultimate UI SFX Pack";
@@ -20,6 +22,7 @@ export const SOUNDS = {
   "word-reject": `${PACK} - Cancel - 1.mp3`,
   "ui-primary": `${PACK} - Select - 1.mp3`,
   "ui-secondary": `${PACK} - Cursor - 2.mp3`,
+  "ui-close": `${PACK} - Cursor - 1.mp3`,
 } as const;
 
 export type SoundId = keyof typeof SOUNDS;
