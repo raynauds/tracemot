@@ -25,6 +25,8 @@ import {
   cancelAllGestures,
   clearPath,
 } from "./input/input.ts";
+import { bindCredits, showCredits } from "./render/credits.ts";
+import { bindHelp, showHelp, showHelpOnFirstPlay } from "./render/help.ts";
 import {
   bindHome,
   hideHome,
@@ -32,6 +34,7 @@ import {
   showHome,
 } from "./render/home.ts";
 import { bindMap, bindMapHome, hideMap, showMap } from "./render/map.ts";
+import { bindSound } from "./render/sound.ts";
 import {
   flashPath,
   initScene,
@@ -53,7 +56,6 @@ import {
   renderNewGame,
   renderWin,
   showReject,
-  showRuleOnFirstVisit,
 } from "./render/render.ts";
 
 // Demande de niveau en vol. Le chargement du mode est asynchrone et la carte
@@ -112,9 +114,9 @@ async function startLevel(modeId: ModeId, id: LevelId) {
   hideMap();
   renderLevelHeader();
   state.ready = true;
-  // Première visite : on présente la règle d'emblée (la carte est masquée,
-  // le panneau est donc visible).
-  showRuleOnFirstVisit();
+  // Toute première partie : l'écran « Comment jouer » se présente d'emblée,
+  // par-dessus la grille prête — sa fermeture la révèle.
+  showHelpOnFirstPlay();
 }
 
 // Le niveau est acquis : la carte en tiendra compte au prochain affichage
@@ -206,14 +208,23 @@ async function init() {
   attachInputHandlers({ onCommit: commitPath });
   bindMap(startLevel);
   bindMapReturn(backToMap);
+  // Les aides et leurs écrans : le panneau des volumes (deux déclencheurs, un
+  // panneau), les règles, le colophon. Le panneau sons mène aussi aux crédits —
+  // on crédite les sons là où on les règle.
+  bindSound({ onCredits: showCredits });
+  bindHelp();
+  bindCredits();
   // Accueil ↔ carte : deux écrans, deux sens. L'accueil reprend là où on s'est
-  // arrêté ou renvoie au choix du niveau ; la carte remonte à l'accueil.
+  // arrêté ou renvoie au choix du niveau ; la carte remonte à l'accueil. Les
+  // règles et le colophon, eux, se posent PAR-DESSUS l'accueil : rien à masquer.
   bindHome({
     onStart: startLevel,
     onLevels: () => {
       hideHome();
       showMap();
     },
+    onHelp: () => showHelp(),
+    onCredits: showCredits,
   });
   bindMapHome(() => {
     hideMap();

@@ -168,21 +168,28 @@ body.home-open .win {
 }
 
 
-/* --- Règle du jeu --- */
+/* --- Bas de page --- */
 
-/* Le « i » se pose dans le coin bas-droit de l'écran, sur le cadre de
-   l'application (--edge) : c'est une marge de page, pas un élément de la
-   colonne. Le panneau s'y ancre, d'où position: relative. */
-.home-rule {
+/* Trois meubles sur le cadre de l'application (--edge) : le son au coin gauche,
+   le « ? » des règles au coin droit, le lien des crédits entre eux. Des marges
+   de page, pas des éléments de la colonne. */
+.home-sound {
+  position: absolute;
+  left: max(var(--edge), env(safe-area-inset-left));
+  bottom: max(var(--edge), env(safe-area-inset-bottom));
+}
+
+.home-help {
   position: absolute;
   right: max(var(--edge), env(safe-area-inset-right));
   bottom: max(var(--edge), env(safe-area-inset-bottom));
 }
 
 /* Icône nue et estompée, comme le « i » du header de partie : une aide qu'on lit
-   une fois. Le padding n'est là que pour la cible du doigt ; la marge négative
-   le reprend pour que l'icône s'aligne quand même sur le cadre. */
-.home-info {
+   une fois, un réglage qu'on touche rarement. Le padding n'est là que pour la
+   cible du doigt ; la marge négative le reprend pour que l'icône s'aligne quand
+   même sur le cadre. */
+.home-corner {
   display: inline-flex;
   align-items: center;
   padding: 10px;
@@ -197,41 +204,58 @@ body.home-open .win {
 /* Vermillon au pointeur, comme toutes les icônes nues. L'encre reste réservée à
    l'état « panneau ouvert ». */
 @media (hover: hover) {
-  .home-info:hover {
+  .home-corner:hover {
     color: var(--vermilion);
   }
 }
 
-.home-info:active {
+.home-corner:active {
   color: var(--vermilion);
 }
 
-.home-info.open {
+.home-corner.open {
   color: var(--ink);
 }
 
-/* Le déclencheur est en bas à droite : le popover remonte au-dessus de lui et
-   s'aligne à droite, sans quoi il sortirait de l'écran par deux bords. Sous
-   860px, le composant partagé reprend la main et devient la feuille du bas
-   (src/render/panel.css) : on lui rend alors ce que cet ancrage lui prend. */
-.home-rule-panel {
-  top: auto;
-  left: auto;
-  right: 0;
-  bottom: calc(100% + 14px);
-  width: 380px;
+/* L'ours de la page : un lien texte effacé, le poids le plus faible du bas de
+   page — il mène au colophon. Décalé de 4px pour se centrer optiquement sur
+   les icônes de 20px qui l'encadrent. */
+.home-credits {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(max(var(--edge), env(safe-area-inset-bottom)) + 4px);
+  padding: 12px;
+  margin: -12px;
+  background: none;
+  border: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 2px;
+  color: var(--ghost);
+  cursor: pointer;
 }
 
-/* Ce que rapportent les défis : une note, pas une règle. Elle se détache des
-   trois lignes au-dessus par un filet subordonné, et reste en serif — ça se lit,
-   ça ne se compte pas (le mono de .panel-spec crierait sur deux lignes). */
-.home-rule-note {
-  margin: 14px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted);
+@media (hover: hover) {
+  .home-credits:hover {
+    color: var(--vermilion);
+  }
+}
+
+.home-credits:active {
+  color: var(--vermilion);
+}
+
+/* Le panneau des volumes, ancré au coin bas-gauche : le popover remonte
+   au-dessus du déclencheur et s'aligne à gauche, sans quoi il sortirait de
+   l'écran par deux bords. Sous 860px, le composant partagé reprend la main et
+   devient la feuille du bas (src/render/panel.css) : on lui rend alors ce que
+   cet ancrage lui prend. */
+.home-sound .sound-panel {
+  top: auto;
+  left: 0;
+  right: auto;
+  bottom: calc(100% + 14px);
 }
 
 
@@ -251,11 +275,12 @@ body.home-open .win {
 /* --- Mobile (maquette 390x844) --- */
 
 @media (max-width: 860px) {
-  .home-rule-panel {
+  /* La feuille du bas reprend ses droits sur l'ancrage du coin (cette feuille
+     est chargée après sound.css, son popover gagnerait sinon la cascade). */
+  .home-sound .sound-panel {
     left: 0;
     right: 0;
     bottom: 0;
-    width: auto;
   }
   .home-state {
     letter-spacing: 2px;
@@ -271,7 +296,7 @@ body.home-open .win {
   .home-levels {
     height: 50px;
   }
-  .home-info {
+  .home-corner {
     font-size: 22px;
   }
 }

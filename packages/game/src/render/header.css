@@ -36,11 +36,20 @@
 }
 
 /* Flèche + niveau : une même phrase (« retour, depuis ici »), donc serrés.
-   L'écart au « i » est celui du header (24px + tout l'espace restant). */
+   L'écart aux aides est celui du header (24px + tout l'espace restant). */
 .header-left {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+/* Les aides du bord droit : le son, puis la règle. Plus serrées que les deux
+   pôles du header, plus lâches que la paire de navigation — deux voisines, pas
+   une phrase. */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 
 /* Sortie de partie : une flèche nue (icône, cf. src/render/icons.ts). Le cadre

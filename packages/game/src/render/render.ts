@@ -111,10 +111,10 @@ setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 
 // --- Règle du jeu (bouton « info » du header) ------------------------------
 
-// La règle vit dans un panneau ouvert par le bouton « info ». Comme la mécanique
-// n'est pas devinable, on l'ouvre d'office au tout premier niveau lancé (et
-// seulement celui-là) : le drapeau « vu » est mémorisé en localStorage.
-const RULE_SEEN_KEY = "tracemot.rule-seen";
+// La règle vit dans un panneau ouvert par le bouton « info » — sur demande
+// seulement : l'accueil du tout premier niveau appartient désormais à l'écran
+// « Comment jouer » (src/render/help.ts), qui a hérité de l'ouverture d'office
+// et de son drapeau localStorage.
 const ruleChipEl = byId("rule-chip");
 ruleChipEl.appendChild(infoIcon());
 const rulePanelEl = byId("rule-panel");
@@ -131,10 +131,6 @@ function setRulePanelOpen(open: boolean) {
 
 // hidden est typé string | boolean (« until-found ») mais on n'y écrit que
 // des booléens.
-//
-// Le son vit dans les écouteurs, pas dans setRulePanelOpen : l'ouverture
-// d'office du premier niveau (showRuleOnFirstVisit) n'est pas un geste du
-// joueur, elle reste muette.
 ruleChipEl.addEventListener("click", () => {
   playSound("ui-secondary");
   setRulePanelOpen(rulePanelEl.hidden as boolean);
@@ -153,24 +149,6 @@ document.addEventListener("keydown", (e) => {
     setRulePanelOpen(false);
   }
 });
-
-// Appelée au premier niveau lancé (main.ts) : avant, la carte couvrirait le
-// panneau.
-export function showRuleOnFirstVisit() {
-  let seen = null;
-  try {
-    seen = localStorage.getItem(RULE_SEEN_KEY);
-  } catch (_) {
-    /* stockage indisponible */
-  }
-  if (seen) return;
-  setRulePanelOpen(true);
-  try {
-    localStorage.setItem(RULE_SEEN_KEY, "1");
-  } catch (_) {
-    /* stockage indisponible : la règle se rouvrira au prochain chargement */
-  }
-}
 
 // --- Registre : adoption des lignes pré-rendues ----------------------------
 

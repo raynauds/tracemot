@@ -1,5 +1,5 @@
-// Accueil : le premier écran. Le nom du jeu, la reprise, l'accès à la carte, la
-// règle.
+// Accueil : le premier écran. Le nom du jeu, la reprise, l'accès à la carte,
+// et le bas de page — le son, les crédits, les règles.
 //
 // Sur le modèle de render.ts, pas sur celui de map.ts : la structure est
 // statique dans index.html et ce module ne fait qu'y écrire ce qui varie (le
@@ -8,6 +8,11 @@
 //
 // C'est le SEUL écran qui porte la marque. La carte et la partie n'ont pas à se
 // nommer (cf. src/theme/DESIGN.md).
+//
+// Le panneau des volumes n'est PAS lié ici : il appartient à src/render/sound.ts
+// (deux déclencheurs, accueil et header de partie, un seul panneau). L'écran
+// des règles et le colophon non plus : l'accueil ne fait que les demander, via
+// ses handlers — comme il demande la carte.
 
 import { levelLabel, type LevelId, type ModeId } from "@tracemot/core";
 import { playSound } from "../audio/audio.ts";
@@ -16,7 +21,7 @@ import {
   resumePoint,
   type ResumePoint,
 } from "../game/progress.ts";
-import { closeIcon, infoIcon } from "./icons.ts";
+import { helpIcon } from "./icons.ts";
 
 function byId(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -29,15 +34,12 @@ const titleEl = byId("home-title");
 const stateEl = byId("home-state");
 const startEl = byId("home-start") as HTMLButtonElement;
 const levelsEl = byId("home-levels");
-const infoEl = byId("home-info");
-const rulePanelEl = byId("home-rule-panel");
-const ruleOverlayEl = byId("home-rule-overlay");
-const ruleCloseEl = byId("home-rule-close");
+const helpEl = byId("home-help");
+const creditsEl = byId("home-credits");
 
-// Deux boutons muets dans le HTML : leur sens tient dans leur aria-label, leur
-// dessin vient d'ici (cf. ./icons.ts).
-infoEl.appendChild(infoIcon());
-ruleCloseEl.appendChild(closeIcon());
+// Bouton muet dans le HTML : son sens tient dans son aria-label, son dessin
+// vient d'ici (cf. ./icons.ts).
+helpEl.appendChild(helpIcon());
 
 // Ce que le bouton primaire lancera. Gardé ici plutôt que sur le DOM : le clic
 // n'a rien à re-parser, et un rendu qui n'a rien trouvé le remet à null — le
@@ -99,23 +101,16 @@ export function revealHome(): void {
   titleEl.classList.add("is-revealed");
 }
 
-// --- Règle du jeu -----------------------------------------------------------
-
-function setRulePanelOpen(open: boolean): void {
-  rulePanelEl.hidden = !open;
-  ruleOverlayEl.hidden = !open;
-  infoEl.classList.toggle("open", open);
-  infoEl.setAttribute("aria-expanded", String(open));
-}
-
 // --- Événements -------------------------------------------------------------
 
 export function bindHome(handlers: {
   onStart: (modeId: ModeId, id: LevelId) => void;
   onLevels: () => void;
+  onHelp: () => void;
+  onCredits: () => void;
 }): void {
-  // COMMENCER/REPRENDRE engage une partie : son principal. « Niveaux » ouvre
-  // la carte pour regarder : son secondaire, comme la règle.
+  // COMMENCER/REPRENDRE engage une partie : son principal. Tout le reste —
+  // carte, règles, crédits — consulte : son secondaire.
   startEl.addEventListener("click", () => {
     if (resume) {
       playSound("ui-primary");
@@ -126,25 +121,12 @@ export function bindHome(handlers: {
     playSound("ui-secondary");
     handlers.onLevels();
   });
-
-  // hidden est typé string | boolean (« until-found ») mais on n'y écrit que
-  // des booléens.
-  infoEl.addEventListener("click", () => {
+  helpEl.addEventListener("click", () => {
     playSound("ui-secondary");
-    setRulePanelOpen(rulePanelEl.hidden as boolean);
+    handlers.onHelp();
   });
-  ruleCloseEl.addEventListener("click", () => {
+  creditsEl.addEventListener("click", () => {
     playSound("ui-secondary");
-    setRulePanelOpen(false);
-  });
-  ruleOverlayEl.addEventListener("click", () => {
-    playSound("ui-secondary");
-    setRulePanelOpen(false);
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !rulePanelEl.hidden) {
-      playSound("ui-secondary");
-      setRulePanelOpen(false);
-    }
+    handlers.onCredits();
   });
 }
