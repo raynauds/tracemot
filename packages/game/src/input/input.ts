@@ -3,8 +3,8 @@
 //
 // Modes exclusifs :
 //   - "trace" : 1er pointeur, bouton principal, parti d'une case libre
-//               (comportement d'origine : adjacence orthogonale, backtrack,
-//               cases inertes, filets de sécurité).
+//               (extension en ligne droite avec rattrapage des cases sautées,
+//               backtrack, cases inertes, filets de sécurité).
 //   - "pan"   : pointeur parti hors case, ou bouton du milieu → translation
 //               caméra par delta écran.
 //   - "pinch" : 2e pointeur posé → abandonne un tracé en cours, puis
@@ -58,9 +58,23 @@ export function clearPath() {
   renderPendingWord();
 }
 
-// Adjacence orthogonale : voisins précalculés de la géométrie du mode.
-function isOrthAdjacent(a: number, b: number) {
-  return state.geometry.neighbors[a].includes(b);
+// Cases traversées en ligne droite de `from` (exclu) vers `to` (inclus), ou
+// null si les deux cases ne partagent ni ligne ni colonne. Deux cases
+// adjacentes donnent un segment d'une seule case : le cas courant est juste le
+// plus court des sauts.
+function straightSegment(from: number, to: number): number[] | null {
+  const { cols } = state.geometry;
+  let step: number;
+  if (Math.floor(from / cols) === Math.floor(to / cols))
+    step = to > from ? 1 : -1;
+  else if (from % cols === to % cols) step = to > from ? cols : -cols;
+  else return null; // diagonale ou quelconque : pas de chemin évident
+  const out: number[] = [];
+  for (let i = from + step; ; i += step) {
+    out.push(i);
+    if (i === to) break;
+  }
+  return out;
 }
 
 // Démarre un tracé sur la case idx avec le pointeur courant.
@@ -74,20 +88,33 @@ function beginTrace(e: FederatedPointerEvent, idx: number) {
   renderPendingWord();
 }
 
-// Étend le tracé vers la case idx selon les règles (adjacence orthogonale,
-// backtrack, cases consommées inertes). Retourne true si le tracé a changé.
+// Étend le tracé vers la case idx. Si idx est aligné avec la dernière case du
+// tracé (même ligne ou même colonne), tout le segment qui les sépare est
+// parcouru dans l'ordre — un doigt qui rate une case au passage la récupère au
+// lieu de bloquer le tracé. Tout ou rien : une seule case du segment inerte ou
+// déjà tracée annule le saut entier. Le segment qui retrace la fin du tracé à
+// l'envers déroule un backtrack, d'une case ou de dix.
+// Retourne true si le tracé a changé.
 function extendTraceTo(idx: number | null) {
   if (idx === null) return false;
-  if (state.usedCells.has(idx)) return false; // case consommée par un mot trouvé
   const last = state.path[state.path.length - 1];
   if (idx === last) return false;
 
-  // Retour sur l'avant-dernière case : backtrack.
-  if (state.path.length >= 2 && idx === state.path[state.path.length - 2]) {
-    state.path.pop();
-  } else if (!state.path.includes(idx) && isOrthAdjacent(last, idx)) {
-    state.path.push(idx);
-    buzz();
+  const seg = straightSegment(last, idx);
+  if (!seg) return false;
+
+  const isBacktrack =
+    state.path.length > seg.length &&
+    seg.every((c, k) => c === state.path[state.path.length - 2 - k]);
+  if (isBacktrack) {
+    state.path.length -= seg.length;
+  } else if (
+    seg.every((c) => !state.usedCells.has(c) && !state.path.includes(c))
+  ) {
+    for (const c of seg) {
+      state.path.push(c);
+      buzz();
+    }
   } else {
     return false;
   }
