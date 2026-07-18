@@ -9,7 +9,7 @@
 // fichier manquant, décodage raté → il ne se passe rien, le jeu ne casse pas
 // pour une histoire de son).
 
-import { SOUNDS, type SoundId } from "./catalog.ts";
+import { SOUNDS, soundPath, soundVolume, type SoundId } from "./catalog.ts";
 
 const MUTED_KEY = "tracemot.muted";
 
@@ -47,7 +47,7 @@ export function initAudio() {
   window.addEventListener("keydown", unlock);
 
   for (const id of Object.keys(SOUNDS) as SoundId[]) {
-    void fetch(`sounds/${SOUNDS[id]}`)
+    void fetch(`sounds/${soundPath(id)}`)
       .then((res) => {
         if (!res.ok) throw new Error(`${res.status}`);
         return res.arrayBuffer();
@@ -74,7 +74,7 @@ export function playSound(
     source.buffer = buffer;
     if (opts.rate !== undefined) source.playbackRate.value = opts.rate;
     const gain = ctx.createGain();
-    gain.gain.value = opts.volume ?? 1;
+    gain.gain.value = soundVolume(id) * (opts.volume ?? 1);
     source.connect(gain).connect(ctx.destination);
     source.start();
   } catch {
