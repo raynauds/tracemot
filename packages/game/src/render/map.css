@@ -93,7 +93,11 @@ body.map-open .win {
   color: var(--vermilion);
 }
 
+/* Ancre du panneau du mode verrouillé : il ne peut pas vivre dans son onglet
+   (un <button> ne contient pas de dialogue), il se pose en fin de barre. Celle-ci
+   commence au bord gauche de l'écran, le popover n'a donc rien à déborder. */
 .map-tabs {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -122,12 +126,14 @@ body.map-open .win {
   color: var(--paper);
 }
 
-/* Prochain mode verrouillé : montré (on sait ce qui vient) mais inerte. */
+/* Prochain mode verrouillé : montré (on sait ce qui vient), et interrogeable —
+   il n'emmène nulle part, il dit ce qu'il faut pour l'ouvrir. D'où le pointeur :
+   le dessin dit le verrou, il ne doit pas dire « rien à faire ici ». */
 .map-tab.is-locked {
   background: transparent;
   border: 1.5px dashed var(--map-dash);
   color: var(--ghost);
-  cursor: default;
+  cursor: pointer;
 }
 
 .map-tab.is-locked:hover {
@@ -190,20 +196,40 @@ body.map-open .win {
 /* Le compteur est au bord droit du header : le popover s'aligne à droite, sans
    quoi il déborderait de l'écran. Sur mobile, il redevient la feuille du bas
    (src/render/panel.css). */
-.map-stars-panel {
+.map-panel-stars {
   left: auto;
   right: 0;
   width: 340px;
 }
 
-/* Sous 860px, le composant partagé passe en feuille pleine largeur : on lui
-   rend le `left` et la largeur que l'ancrage desktop ci-dessus lui prend (cette
-   feuille est chargée après src/render/panel.css, donc elle gagne la cascade).
-   Le seuil est celui du panneau, pas celui de la carte (640px). */
+/* Le jalon, lui, est centré dans sa ligne : son popover se centre sur lui, et se
+   borne à la largeur utile pour ne déborder d'aucun des deux côtés. */
+.map-milestone-anchor .diff-panel {
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(380px, calc(100vw - 2 * var(--edge)));
+}
+
+/* L'étoile écrite AU MILIEU d'une phrase (ce qu'un verrou coûte encore) : le
+   vermillon de la monnaie, comme partout ailleurs, et redescendue sur la ligne
+   de base — un SVG inline de 1em la survole sinon. */
+.map .panel-line .icon-star {
+  vertical-align: -0.14em;
+  color: var(--vermilion);
+}
+
+/* Sous 860px, le composant partagé passe en feuille pleine largeur : on lui rend
+   le `left`, la largeur ET le `transform` que les ancrages desktop ci-dessus lui
+   prennent (cette feuille est chargée après src/render/panel.css, donc elle
+   gagne la cascade). Sans le `transform: none`, la feuille — désormais `fixed` —
+   partirait d'une demi-largeur d'écran vers la gauche. Le seuil est celui du
+   panneau, pas celui de la carte (640px). */
 @media (max-width: 860px) {
-  .map-stars-panel {
+  .map-panel-stars,
+  .map-milestone-anchor .diff-panel {
     left: 0;
     width: auto;
+    transform: none;
   }
 }
 
@@ -249,10 +275,27 @@ body.map-open .win {
   background: var(--map-rule);
 }
 
+/* Ancre du popover du jalon. Elle ne s'étire pas : les deux filets se partagent
+   le reste, le libellé garde sa largeur de texte. */
+.map-milestone-anchor {
+  position: relative;
+}
+
+/* Le libellé est un bouton — le nom d'une difficulté ne dit pas ce qu'elle
+   change, on peut le lui demander. Bouton nu : seuls les filets qui l'encadrent
+   dessinent le jalon, le cadre par défaut du navigateur n'a rien à y ajouter.
+   La cible est le texte seul, pas la largeur de la ligne. */
 .map-milestone-label {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .map-milestone-name {
@@ -300,6 +343,19 @@ body.map-open .win {
 
 .map-milestone.is-locked .map-milestone-name {
   color: var(--ghost);
+}
+
+/* Retour au pointeur, comme toutes les cibles nues de la carte. Posé APRÈS la
+   règle du jalon verrouillé pour la battre : verrouillé ou non, le libellé
+   répond quand on le touche — c'est justement là qu'on a une question. */
+@media (hover: hover) {
+  .map-milestone-label:hover .map-milestone-name {
+    color: var(--vermilion);
+  }
+}
+
+.map-milestone-label:active .map-milestone-name {
+  color: var(--vermilion);
 }
 
 /* Le coût restant (« ★ Encore 1 étoile ») porte l'étoile : c'est la cible de la

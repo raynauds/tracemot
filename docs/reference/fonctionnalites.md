@@ -35,3 +35,9 @@ Quand tous les mots du niveau sont trouvés (`src/main.ts:triggerWin`). Un **dé
 ## Règle du jeu
 
 Une chip « i » ouvre le panneau de règle, sur l'accueil comme dans le header de partie (même composant `.diff-panel`). En partie, il s'ouvre automatiquement au tout premier niveau lancé seulement : la mécanique n'étant pas devinable, elle est présentée d'emblée, puis ne revient plus (`localStorage`, `tracemot.rule-seen`).
+
+## Explications sur la carte
+
+Le même composant sert d'explication *in situ* : sur la carte, tout ce qui **nomme un palier** répond au clic — le compteur d'étoiles (ce qu'une étoile vaut), chaque jalon de difficulté (ce que la difficulté change, et ce qui l'ouvre si elle est verrouillée), l'onglet du mode verrouillé (ce qu'il faut pour l'atteindre, et ce qu'on y trouvera). Un seul panneau ouvert à la fois ; le voile, la croix et Échap ferment. Le jalon est le seul endroit où les descriptions de `DIFFICULTY_LABELS` sont affichées.
+
+Les **cases restent inertes** : une case allumée lance son niveau, une case pointillée ne fait rien. Sa raison d'être verrouillée est unique et déjà lisible (la case précédente n'est pas validée) ; un défi verrouillé la porte même en toutes lettres (« TERMINEZ LA LIGNE »).

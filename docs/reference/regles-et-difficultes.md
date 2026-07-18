@@ -29,4 +29,4 @@ Seule la liste des niveaux validés est persistée (`tracemot.progress.<mode>`) 
 - ⭐⭐⭐ **Relevé** — enfant + ado, 60 à 100 % de mots ado (3 à 5).
 - ⭐⭐⭐⭐ **Corsé** — 20 à 40 % de mots ado et autant d'adulte (1 ou 2 de chaque), le reste enfant.
 
-Les quotas exacts sont dans `DIFFICULTY_QUOTAS` (`@tracemot/core`, `packages/core/src/config.ts`), consommés hors-ligne par le générateur.
+Les quotas exacts sont dans `DIFFICULTY_QUOTAS` (`@tracemot/core`, `packages/core/src/config.ts`), consommés hors-ligne par le générateur. Le joueur, lui, n'en voit que la formulation de `DIFFICULTY_LABELS` (« Que des mots très courants »…), affichée par le panneau du jalon de section sur la carte.
