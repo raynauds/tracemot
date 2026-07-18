@@ -7,7 +7,7 @@
 // carte, il n'y a donc plus ici ni sélecteur de mode ni sélecteur de
 // difficulté (la difficulté est une propriété de la section).
 
-import { REJECT_DISPLAY_MS } from "../game/config.ts";
+import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
 import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { state } from "../game/state.ts";
@@ -245,12 +245,24 @@ export function showReject(word: string, reason: string) {
   }, REJECT_DISPLAY_MS);
 }
 
+// `stamp` marque l'instant où le mot est trouvé, pas l'état de la ligne : on la
+// retire une fois l'animation passée. Laissée en place, elle rejouerait le
+// tampon à chaque fois que la ligne réapparaît — le registre replié met sa
+// liste en display:none, et la rouvrir recrée la boîte, ce qui relance toute
+// animation encore attachée.
+//
+// Timer plutôt qu'`animationend` : si le registre est replié au moment de la
+// validation, l'animation ne se joue jamais et l'événement ne part pas — la
+// classe survivrait justement dans le cas qu'on veut couvrir.
 export function fillListRow(index: number, word: string, animate: boolean) {
   const row = listRows[index];
   row.className = "word-row";
   const content = row.children[1];
   content.className = animate ? "word-text stamp" : "word-text";
   content.textContent = word;
+  if (animate) {
+    setTimeout(() => content.classList.remove("stamp"), WORD_STAMP_MS);
+  }
   keepRowVisible(row);
 }
 
@@ -333,10 +345,12 @@ function renderWinActions(choices: NextChoice[]) {
 // pour la première fois. Le rejeu d'un défi et les niveaux normaux laissent
 // l'écran de victoire inchangé, sans quoi l'étoile ne voudrait plus rien dire.
 // choices : ce que la victoire vient d'ouvrir (0 à 2 niveaux).
-export function renderWin(opts: {
-  star?: { count: number; unlocked: string | null };
-  choices?: NextChoice[];
-} = {}) {
+export function renderWin(
+  opts: {
+    star?: { count: number; unlocked: string | null };
+    choices?: NextChoice[];
+  } = {},
+) {
   const { star, choices = [] } = opts;
   counterEl.classList.add("full");
   const { wordCount } = state.mode;

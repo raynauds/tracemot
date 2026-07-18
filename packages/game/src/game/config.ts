@@ -8,6 +8,12 @@ import { hex } from "../theme/tokens.ts";
 // du registre ne redevienne libre.
 export const REJECT_DISPLAY_MS = 2000;
 
+// Durée du tampon d'un mot validé dans le registre, au-delà de laquelle la
+// classe déclencheuse est retirée. Doit couvrir l'animation `word-stamp`
+// (src/render/ledger.css) : la classe laissée en place se rejouerait à chaque
+// réapparition de la ligne (repli du registre, retour en partie).
+export const WORD_STAMP_MS = 300;
+
 // --- Géométrie du monde Pixi (unités « monde », échelle 1) -----------------
 // Taille d'une case et espace inter-cases. La grille est rendue à cette
 // échelle puis cadrée par la caméra ; aucune valeur écran n'est figée ici.
