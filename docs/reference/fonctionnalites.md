@@ -1,8 +1,10 @@
 # Fonctionnalités
 
-## Deux écrans : carte et partie
+## Trois écrans : accueil, carte et partie
 
-L'écran d'accueil est la **carte de progression** (`src/render/map.ts`) : on y choisit un mode et un niveau, sa grille prégénérée est chargée, et la partie démarre plein écran. Un bouton « retour carte » du header ramène à la carte à tout moment. `src/main.ts` orchestre ce cycle carte ↔ partie (`startLevel`, `backToMap`).
+L'**accueil** (`src/render/home.ts`) est le premier écran, et le seul à porter la marque : le titre du jeu, une ligne d'état, un bouton primaire qui reprend au point de reprise (`resumePoint()`, cherché d'abord dans le dernier mode consulté) et un accès à la carte. Le libellé suit l'avancement — `COMMENCER` au premier lancement, `REPRENDRE` ensuite, et le primaire disparaît quand tout est validé. Une chip « i » y ouvre la règle complète. Sa structure est statique dans `index.html` ; le module n'écrit que ce qui varie, et re-dérive tout du stockage à chaque affichage.
+
+La **carte de progression** (`src/render/map.ts`) vient ensuite : on y choisit un mode et un niveau, sa grille prégénérée est chargée, et la **partie** démarre plein écran. Une flèche de retour ramène d'un écran (partie → carte, carte → accueil). `src/main.ts` orchestre ce cycle (`showHome`, `startLevel`, `backToMap`).
 
 ## Modes de jeu
 
@@ -14,7 +16,7 @@ Le runtime **ne génère plus rien** et ne charge aucun dictionnaire. Toutes les
 
 ## Tracé
 
-Au doigt ou à la souris (events fédérés Pixi, `src/input/input.ts`), avec backtrack, vibration sur mobile et ligne d'encre suivant le tracé, rendue en WebGL par PixiJS. Feedbacks Pixi-natifs (`src/render/scene.ts`) : distribution en cascade, rebond d'une case rejoignant le tracé, flash et secousse au refus, tampon à la validation.
+Au doigt ou à la souris (events fédérés Pixi, `src/input/input.ts`), avec backtrack, vibration sur mobile et ligne d'encre suivant le tracé, rendue en WebGL par PixiJS. Un doigt qui rate une case au passage la récupère : quand la case visée est alignée avec la dernière case tracée (même ligne ou même colonne), tout le segment qui les sépare est parcouru dans l'ordre — tout ou rien, une case inerte ou déjà tracée dans le segment annule le saut. Le backtrack suit la même règle et se déroule d'autant de cases. Feedbacks Pixi-natifs (`src/render/scene.ts`) : distribution en cascade, rebond d'une case rejoignant le tracé, flash et secousse au refus, tampon à la validation.
 
 ## Caméra : zoom & pan
 
@@ -32,4 +34,4 @@ Quand tous les mots du niveau sont trouvés (`src/main.ts:triggerWin`). Un **dé
 
 ## Règle du jeu
 
-Une chip « i » du header ouvre le panneau de règle. Il s'ouvre automatiquement au tout premier niveau lancé seulement : la mécanique n'étant pas devinable, elle est présentée d'emblée, puis ne revient plus (`localStorage`, `tracemot.rule-seen`).
+Une chip « i » ouvre le panneau de règle, sur l'accueil comme dans le header de partie (même composant `.diff-panel`). En partie, il s'ouvre automatiquement au tout premier niveau lancé seulement : la mécanique n'étant pas devinable, elle est présentée d'emblée, puis ne revient plus (`localStorage`, `tracemot.rule-seen`).
