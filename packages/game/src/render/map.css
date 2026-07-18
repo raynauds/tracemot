@@ -8,6 +8,12 @@
    aucun détachement d'écouteur nécessaire. Elle porte son propre scroll : le
    body reste `overflow: hidden` (le canvas ne doit jamais défiler). */
 .map {
+  /* Le module de la carte : côté d'une case et écart entre cases. La ligne de 5
+     cases en dérive (largeur plafond du contenu sur mobile), et la carte de défi
+     s'aligne dessus en desktop — d'où des variables plutôt que trois `64px`
+     recopiés qu'il faudrait garder d'accord à la main. */
+  --map-cell: 64px;
+  --map-cell-gap: 8px;
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -325,9 +331,9 @@ body.map-open .win {
 
 .map-grid {
   display: grid;
-  grid-template-columns: repeat(5, 64px);
-  grid-auto-rows: 64px;
-  gap: 8px;
+  grid-template-columns: repeat(5, var(--map-cell));
+  grid-auto-rows: var(--map-cell);
+  gap: var(--map-cell-gap);
 }
 
 /* --- Cases --- */
@@ -427,10 +433,10 @@ body.map-open .win {
    seule mise en page qui garde le sous-titre du format lisible en 64px. */
 .map-defi--card {
   /* Largeur calée sur la plus longue mention de format (« 16×16 · 32 MOTS DE
-     8 LETTRES ») : elle doit tenir sur une ligne, sinon la carte déborde des
-     64px de hauteur de la ligne. */
+     8 LETTRES ») : elle doit tenir sur une ligne, sinon la carte déborde de la
+     hauteur de la ligne. */
   width: 240px;
-  height: 64px;
+  height: var(--map-cell);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
@@ -653,12 +659,19 @@ body.map-open .win {
   }
 
   .map-body {
-    align-items: stretch;
     padding-bottom: 28px;
   }
 
+  /* Les cases s'étirent avec l'écran (`1fr`, plus bas) mais ne s'aplatissent
+     jamais : la largeur d'une case est bornée à sa hauteur. Plutôt que de
+     plafonner chaque colonne — ce qui laisserait le bandeau de défi déborder des
+     5 cases —, on plafonne le bloc entier à la largeur d'une ligne. Jalons,
+     lignes et bandeaux se calent d'office les uns sur les autres, et `.map-body`
+     centre le tout dès que l'écran est plus large. */
   .map-sections {
     gap: 18px;
+    width: 100%;
+    max-width: calc(5 * var(--map-cell) + 4 * var(--map-cell-gap));
   }
   .map-milestone {
     gap: 11px;
