@@ -1,0 +1,89 @@
+/* Snackbar (doc 04) : composant neuf, réutilisable — refus, absence de
+   réponse, course de propositions, arrivées/départs de joueurs (et « déjà
+   trouvé », doc 05, à venir). Empilé en pied d'écran, au-dessus de tout le
+   reste (même le lobby, 42) : une notification doit rester lisible quel que
+   soit ce qui se passe par ailleurs. Écrit par src/render/snackbar.ts. */
+.snackbar-stack {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: max(var(--edge), env(safe-area-inset-bottom));
+  z-index: 48;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 10px;
+  padding: 0 max(var(--edge), env(safe-area-inset-right)) 0
+    max(var(--edge), env(safe-area-inset-left));
+  /* Le pied lui-même ne capte rien (il peut être vide, ou laisser passer les
+     gestes de tracé entre deux toasts) : seul chaque toast réactive le
+     pointeur, pour son balayage. */
+  pointer-events: none;
+}
+
+.snackbar {
+  pointer-events: auto;
+  width: min(420px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--card);
+  border: var(--rule-heavy);
+  box-shadow: var(--shadow-hard-md);
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  color: var(--ink);
+  touch-action: pan-y;
+  animation: snackbar-in 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* Pendant le balayage, le doigt pilote transform/opacity directement (JS) :
+   toute transition CSS retarderait le suivi et ferait « traîner » le geste. */
+.snackbar.is-dragging {
+  transition: none;
+}
+.snackbar:not(.is-dragging) {
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.snackbar.is-leaving {
+  opacity: 0;
+}
+
+.snackbar-text {
+  flex: 1;
+}
+
+@keyframes snackbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+
+/* --- Mouvement réduit --- */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Apparition sans glissement (doc 04) : un fondu seul, pas de translation. */
+  .snackbar {
+    animation: none;
+  }
+  .snackbar:not(.is-dragging) {
+    transition: opacity 0.2s ease;
+  }
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  .snackbar {
+    font-size: 12.5px;
+    padding: 11px 14px;
+  }
+}

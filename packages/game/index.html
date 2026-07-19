@@ -390,6 +390,22 @@
       </div>
     </div>
 
+    <!-- Lobby de proposition/vote (doc 02/04) : un SEUL de ces deux états est
+         visible à la fois (src/render/lobby.ts en décide) — l'auteur d'une
+         proposition (et tout joueur qui a déjà répondu) voit l'attente des
+         autres, ceux qui n'ont pas encore répondu voient le prompt PRÊT ?/PAS
+         MAINTENANT. Posé au-dessus de la carte ET de la victoire
+         (src/render/lobby.css) : une proposition peut survenir sur n'importe
+         quel écran local. Contenu entièrement généré par src/render/lobby.ts. -->
+    <div class="lobby-veil" id="lobby-veil" hidden>
+      <div class="lobby-card" id="lobby-card" role="dialog" aria-modal="true"></div>
+    </div>
+
+    <!-- Notifications éphémères (doc 04) : refus, absence de réponse, course
+         de propositions, arrivées/départs de joueurs. Empilées, générées par
+         src/render/snackbar.ts — aucun contenu statique ici. -->
+    <div class="snackbar-stack" id="snackbar-stack" aria-live="polite"></div>
+
     <!-- Logique Rune : fichier séparé, empaqueté par vite-plugin-rune en
          logic.js (déterministe, tourne aussi côté serveur) — état de la room,
          progression partagée, lobby de proposition/vote, validation

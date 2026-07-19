@@ -1,0 +1,144 @@
+/* Lobby de proposition (doc 02/04) : voile + carte centrée, écrite par
+   src/render/lobby.ts. Même idiome que le panneau règle/carte (panel.css —
+   fond paper, filet lourd, ombre floue), mais centrée plutôt qu'ancrée : rien
+   ne la déclenche localement, la proposition vient de la room. */
+.lobby-veil {
+  position: fixed;
+  inset: 0;
+  /* Au-dessus de la carte (40) ET de la victoire (30) : une proposition peut
+     survenir sur n'importe quel écran local (doc 04 § UI). Sous le pied de
+     notifications (48, snackbar.css), qui doit rester lisible même par-dessus
+     un vote en cours. */
+  z-index: 42;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--ink) 30%, transparent);
+}
+
+.lobby-card {
+  width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--paper);
+  border: var(--rule-heavy);
+  box-shadow: 0 20px 44px color-mix(in srgb, var(--ink) 35%, transparent);
+  padding: 20px 20px 22px;
+}
+
+.lobby-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: var(--label-caps-weight);
+  letter-spacing: 2.5px;
+  color: var(--muted);
+}
+
+.lobby-line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Pastille ronde : exception `border-radius` du DESIGN.md (pastille de
+   notification, 6px), étendue à l'avatar joueur (doc 06). */
+.lobby-avatar {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 9999px;
+  border: 1.5px solid var(--ink);
+  object-fit: cover;
+}
+
+.lobby-roster {
+  list-style: none;
+  margin: 0;
+  padding-top: 10px;
+  border-top: var(--rule-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lobby-roster-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lobby-roster-row .lobby-avatar {
+  width: 26px;
+  height: 26px;
+}
+
+.lobby-roster-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.lobby-roster-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: var(--label-caps-weight);
+  letter-spacing: 1.5px;
+  color: var(--ghost-strong);
+}
+
+/* Prêt : même sémantique que « validé » ailleurs dans l'app — le vermillon
+   dit un mérite, ici « je suis là, j'y vais ». */
+.lobby-roster-status.is-ready {
+  color: var(--vermilion);
+}
+
+.lobby-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Bouton standard de l'app (button-action, DESIGN.md) : surface carte, filet
+   encre, mono — inversion encre/papier au survol/appui. Les deux réponses du
+   prompt (PRÊT ?/PAS MAINTENANT) sont symétriques : ni l'une ni l'autre n'est
+   LE bouton primaire de l'écran (le vermillon reste réservé à la victoire). */
+.lobby-btn {
+  flex: 1;
+  padding: 12px;
+  background: var(--card);
+  border: var(--rule-standard);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: var(--label-caps-weight);
+  letter-spacing: 1.5px;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .lobby-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+}
+
+.lobby-btn:active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  .lobby-card {
+    padding: 18px 16px 20px;
+  }
+  .lobby-line {
+    font-size: 14.5px;
+  }
+}

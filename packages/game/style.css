@@ -34,6 +34,11 @@
 @import "./src/render/win.css";
 @import "./src/render/zoom.css";
 
+/* Lobby de proposition/vote et notifications éphémères (doc 04, chantier 3) :
+   posés au-dessus de tous les écrans (carte comprise, chargée plus bas). */
+@import "./src/render/lobby.css";
+@import "./src/render/snackbar.css";
+
 /* Écrans, du plus haut au plus bas dans l'empilement : l'aide (46) couvre la
    carte (40), qui couvre le chrome de partie. La carte est le PREMIER écran
    du jeu (doc 08 § Q21a — l'accueil, le panneau audio et les crédits ont

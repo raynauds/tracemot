@@ -18,9 +18,14 @@
 // le rejeu silencieux du registre et l'affichage immédiat (sans délai ni son)
 // de l'écran de victoire si la manche était déjà gagnée.
 //
-// Hors périmètre (parité solo, doc 09 chantiers 3/4/5 — cf. client/diff.ts) :
-// UI de vote (`proposal`/`lastRefusal`), tracés distants (`traces[p]`),
-// rollback d'un `submitWord` optimiste perdu, couleurs par joueur.
+// Lobby de proposition/vote (doc 04, chantier 3) : render/lobby.ts peint
+// l'overlay à chaque onChange (renderLobby, en tête du callback ci-dessous),
+// notifyLobbyEvents décide des notifications transitoires (snackbar) à
+// partir des diffs purs de client/diff.ts — jamais à la reconstruction.
+//
+// Hors périmètre (doc 09 chantiers 4/5 — cf. client/diff.ts) : tracés
+// distants (`traces[p]`), rollback d'un `submitWord` optimiste perdu,
+// couleurs par joueur.
 
 import {
   DEFAULT_MODE,
@@ -43,6 +48,7 @@ import {
   clearPath,
 } from "../input/input.ts";
 import { bindHelp, showHelpOnFirstPlay } from "../render/help.ts";
+import { bindLobby, renderLobby } from "../render/lobby.ts";
 import { bindMap, hideMap, showMap } from "../render/map.ts";
 import {
   flashPath,
@@ -67,8 +73,16 @@ import {
   renderWin,
   showReject,
 } from "../render/render.ts";
+import { showSnackbar } from "../render/snackbar.ts";
 import { local, syncFromGame, wordCheckContext } from "./local-state.ts";
-import { isBackgroundTick, isRoundEnd, isRoundStart, justWon } from "./diff.ts";
+import {
+  isBackgroundTick,
+  isRoundEnd,
+  isRoundStart,
+  justWon,
+  proposalRaceLost,
+  refusalJustHappened,
+} from "./diff.ts";
 import type { GameStateWithPersisted } from "../logic/types.ts";
 
 type Game = GameStateWithPersisted;
@@ -239,6 +253,45 @@ function proposeAbandon(): void {
   Rune.actions.proposeAbandon({});
 }
 
+// --- Lobby : notifications éphémères (doc 04 § chantier 3) ------------------
+// Diffs purs (client/diff.ts) → texte + son ici, jamais l'inverse : ce module
+// est le seul à connaître Rune.getPlayerInfo et le français. Appelé APRÈS le
+// retour anticipé du stateSync/isNewGame (onChange, plus bas) : jamais de
+// snackbar rejouée à la reconstruction (doc 02 § onChange).
+function notifyLobbyEvents(
+  game: Game,
+  previousGame: Game,
+  // Forme large plutôt qu'importer OnChangeEvent (non exporté par rune-sdk,
+  // cf. multiplayer.d.ts) : seuls playerJoined/playerLeft nous intéressent
+  // ici, narrowés ci-dessous par `name` — les autres membres de l'union
+  // (aiPromptResponse…) portent un `params` de forme différente, d'où `any`.
+  event: { name: string; params?: any } | undefined,
+): void {
+  if (event?.name === "playerJoined" && event.params) {
+    const playerId = event.params.playerId as string;
+    if (playerId !== yourPlayerId) {
+      showSnackbar(`${Rune.getPlayerInfo(playerId).displayName} a rejoint la partie`);
+    }
+  } else if (event?.name === "playerLeft" && event.params) {
+    const playerId = event.params.playerId as string;
+    showSnackbar(`${Rune.getPlayerInfo(playerId).displayName} a quitté la partie`);
+  }
+
+  if (refusalJustHappened(game, previousGame)) {
+    const { by, reason } = game.lastRefusal!;
+    // Refuseur exclu (doc 04 § Q11b) ; « sans réponse » est une variante du
+    // refus (même filet), doc 04 § Timeout.
+    if (by !== yourPlayerId) {
+      const name = Rune.getPlayerInfo(by).displayName;
+      showSnackbar(reason === "timeout" ? `Sans réponse de ${name}` : `${name} a refusé`);
+    }
+  }
+  if (proposalRaceLost(game, previousGame, yourPlayerId)) {
+    const name = Rune.getPlayerInfo(game.proposal!.proposedBy).displayName;
+    showSnackbar(`${name} a proposé en premier`);
+  }
+}
+
 // --- Boot --------------------------------------------------------------------
 
 async function boot(): Promise<void> {
@@ -265,6 +318,24 @@ async function boot(): Promise<void> {
       if (lastGame) enterMapScreen(lastGame);
     },
   });
+  // Lobby de proposition/vote (doc 04 § chantier 3) : les trois réponses
+  // possibles à une proposition en cours — accepter, refuser, ou l'annuler
+  // (réservé au proposeur, cf. render/lobby.ts qui n'affiche ANNULER qu'à
+  // lui).
+  bindLobby({
+    onAccept: () => {
+      if (!yourPlayerId) return;
+      Rune.actions.answerProposal({ accept: true });
+    },
+    onRefuse: () => {
+      if (!yourPlayerId) return;
+      Rune.actions.answerProposal({ accept: false });
+    },
+    onCancel: () => {
+      if (!yourPlayerId) return;
+      Rune.actions.cancelProposal({});
+    },
+  });
   bindHelp({
     onSeen: () => {
       if (yourPlayerId) Rune.actions.setHelpSeen({});
@@ -278,6 +349,11 @@ async function boot(): Promise<void> {
     onChange: ({ game, previousGame, yourPlayerId: player, event }) => {
       yourPlayerId = player;
       lastGame = game;
+      // Peinture de l'overlay de vote (doc 04) : dérivée de `game.proposal`
+      // seul, à CHAQUE onChange (y compris la reconstruction ci-dessous) —
+      // contrairement aux notifications transitoires plus bas, elle n'a rien
+      // d'un événement ponctuel à manquer.
+      renderLobby(game, yourPlayerId);
 
       if (event?.name === "stateSync" && event.isNewGame) {
         if (game.phase === "playing") enterGameScreen(game);
@@ -289,6 +365,11 @@ async function boot(): Promise<void> {
         document.body.classList.remove("booting");
         return;
       }
+
+      // Notifications éphémères (doc 04) : jamais avant ce point (le early
+      // return ci-dessus couvre la reconstruction) — une snackbar déjà connue
+      // au moment d'un stateSync ne peut donc jamais rejouer.
+      notifyLobbyEvents(game, previousGame, event);
 
       if (isRoundStart(game, previousGame)) {
         enterGameScreen(game);

@@ -83,7 +83,12 @@ export function acceptProposal(game: RuneGameState, playerId: PlayerId): void {
 export function refuseProposal(game: RuneGameState, playerId: PlayerId): void {
   const proposal = game.proposal;
   if (!proposal) return;
-  game.lastRefusal = { by: playerId, kind: proposal.kind, seq: nextRefusalSeq(game) };
+  game.lastRefusal = {
+    by: playerId,
+    kind: proposal.kind,
+    seq: nextRefusalSeq(game),
+    reason: "refused",
+  };
   game.proposal = null;
 }
 
@@ -96,8 +101,8 @@ export function cancelProposal(game: RuneGameState): void {
 // update() : fait expirer une proposition sans unanimité après 30 s — seul
 // mécanisme capable de le faire (doc 02 § update()). `by` : un joueur qui n'a
 // pas encore répondu (premier du roster dans son ordre) ; à défaut (cas
-// dégénéré) le proposeur. La distinction d'affichage « sans réponse » vs
-// « a refusé » reste un détail de présentation renvoyé au chantier 3 (doc 02).
+// dégénéré) le proposeur. `reason: "timeout"` distingue l'affichage (« sans
+// réponse de X ») du refus explicite (« X a refusé »), doc 04 § chantier 3.
 export function expireProposalIfTimedOut(game: RuneGameState): void {
   const proposal = game.proposal;
   if (!proposal) return;
@@ -108,6 +113,7 @@ export function expireProposalIfTimedOut(game: RuneGameState): void {
     by: nonRespondent,
     kind: proposal.kind,
     seq: nextRefusalSeq(game),
+    reason: "timeout",
   };
   game.proposal = null;
 }

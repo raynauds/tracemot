@@ -256,9 +256,11 @@ valeurs déjà dominantes dans le code — 8px (gouttière entre éléments frè
 Structure d'écran : le corps est en `overflow: hidden`, sans flux et sans scroll
 de page. Le canvas occupe tout ; le chrome est en `position: fixed`. Les
 z-index sont attribués à la main, par étages — registre 16, en-tête 25 (il
-englobe ses modales), victoire 30, carte 40 et accueil 45 (ce sont des écrans,
-pas des panneaux), règles et crédits 46 (ils se posent sur l'accueil comme sur
-une partie), chargement au-dessus de tout.
+englobe ses modales), victoire 30, carte 40, lobby de proposition/vote 42 (doc
+04 — au-dessus de la carte ET de la victoire, une proposition peut survenir
+sur n'importe quel écran local), règles 46 (elles se posent sur la carte comme
+sur une partie), notifications éphémères 48 (doc 04 — toujours lisibles,
+même par-dessus un vote en cours), chargement au-dessus de tout.
 
 Trois écrans, dans cet ordre : **accueil → carte → partie**. Chacun se retire
 par une flèche nue en haut à gauche, toujours la même — un seul dessin pour un

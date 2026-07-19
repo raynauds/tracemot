@@ -44,6 +44,11 @@ export interface LastRefusal {
   by: PlayerId;
   kind: ProposalKind;
   seq: number;
+  // Distingue l'affichage (doc 04 § chantier 3) : un refus explicite
+  // (snackbar « X a refusé ») d'une proposition qui s'éteint faute de
+  // réponse (« sans réponse de X », timeout 30 s posé par update()) — même
+  // forme de state, deux présentations différentes côté client.
+  reason: "refused" | "timeout";
 }
 
 export interface WinSummary {
