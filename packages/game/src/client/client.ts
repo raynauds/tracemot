@@ -168,7 +168,7 @@ function winRenderOpts(game: Game): Parameters<typeof renderWin>[0] {
     isDefi(levelId) && winSummary.firstValidation
       ? { count: winSummary.starCount, unlocked: winSummary.rewardCode }
       : undefined;
-  return { star, choices };
+  return { star, choices, winSummary };
 }
 
 // Reconstruit l'écran de partie depuis `game` seul : sert À LA FOIS au

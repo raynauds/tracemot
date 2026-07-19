@@ -374,6 +374,10 @@
       <span class="confetti c6"></span>
       <div class="win-title">Gagné<span class="dot">.</span></div>
       <div class="win-sub" id="win-sub"></div>
+      <!-- Classement (doc 07) : un joueur par ligne, tri par mots décroissant,
+           masqué en solo dans la room (rien à classer) — entièrement rendu
+           par src/render/render.ts depuis winSummary. -->
+      <ol class="win-standings" id="win-standings" hidden></ol>
       <!-- Étoile : rendu uniquement à la première validation d'un défi
            (src/render/render.ts). La seconde ligne annonce ce que l'étoile
            débloque, et disparaît quand elle ne débloque rien. -->

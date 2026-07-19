@@ -12,7 +12,7 @@ import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
 import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { local, wordCheckContext } from "../client/local-state.ts";
-import type { FoundWord } from "../logic/types.ts";
+import type { FoundWord, PlayerId, WinSummary } from "../logic/types.ts";
 import { wordRejectReason, type WordRejectCode } from "../game/rules.ts";
 import { showHelp } from "./help.ts";
 import {
@@ -36,6 +36,7 @@ function byId(id: string): HTMLElement {
 
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
+const winStandingsEl = byId("win-standings");
 const winStarEl = byId("win-star");
 const winStarGainEl = byId("win-star-gain");
 const winStarUnlockEl = byId("win-star-unlock");
@@ -409,6 +410,90 @@ function renderWinActions(choices: NextChoice[]) {
   });
 }
 
+// --- Classement (doc 07) ----------------------------------------------------
+
+// Circulaire jusqu'à 4 (maxPlayers de la room, logic/logic.ts) : jamais besoin
+// d'un repli au-delà.
+const RANK_GLYPHS = ["①", "②", "③", "④"];
+
+function rankGlyph(rank: number): string {
+  return RANK_GLYPHS[rank - 1] ?? `${rank}.`;
+}
+
+// « 1 mot » (singulier), « 0 mot »/« 3 mots » sinon — la légende de la spec
+// (doc 07) ne met le pluriel qu'à partir de 2.
+function wordCountLabel(count: number): string {
+  return count === 1 ? "1 mot" : `${count} mots`;
+}
+
+// Moi : jamais mon propre nom Rune ni ma propre couleur — le vermillon me
+// désigne partout ailleurs dans l'app (doc 06), le classement ne déroge pas.
+function playerLabel(id: PlayerId): string {
+  return id === local.yourPlayerId ? "Moi" : Rune.getPlayerInfo(id).displayName;
+}
+
+function standingAccentClass(id: PlayerId): string {
+  if (id === local.yourPlayerId) return "you";
+  const slot = local.colorSlots[id];
+  // Slot inconnu (joueur parti après la victoire, avant que je revoie cet
+  // écran) : pas de teinte, plutôt qu'une couleur inventée.
+  return slot !== undefined ? `owner-${slot}` : "";
+}
+
+// Tri par mots décroissant, égalité = même rang (rang suivant sauté) — pas de
+// départage par ordre de validation, coopératif (doc 07 § Q15b). L'ordre des
+// clés de `counts` (winSummary, logic/progression.ts) suit `playerIds`, sans
+// incidence ici puisqu'on retrie entièrement.
+function rankStandings(
+  counts: WinSummary["counts"],
+): { playerId: PlayerId; rank: number; count: number }[] {
+  const entries = Object.entries(counts).sort(([, a], [, b]) => b - a);
+  const standings: { playerId: PlayerId; rank: number; count: number }[] = [];
+  let rank = 0;
+  let previousCount: number | null = null;
+  entries.forEach(([playerId, count], i) => {
+    if (previousCount === null || count !== previousCount) rank = i + 1;
+    standings.push({ playerId, rank, count });
+    previousCount = count;
+  });
+  return standings;
+}
+
+// Un joueur par ligne ; masqué en solo dans la room (rien à classer, doc 07 §
+// « solo en room »). Les joueurs partis AVANT la victoire n'apparaissent pas
+// dans `counts` (Q7b, logic/progression.ts § wordCountsByPlayer) ; les
+// spectateurs n'y ont jamais figuré.
+function renderStandings(winSummary: WinSummary | null): void {
+  const standings = rankStandings(winSummary?.counts ?? {});
+  winStandingsEl.textContent = "";
+  winStandingsEl.hidden = standings.length < 2;
+  if (standings.length < 2) return;
+  for (const { playerId, rank, count } of standings) {
+    const li = document.createElement("li");
+    const accent = standingAccentClass(playerId);
+    li.className = accent ? `standing-row ${accent}` : "standing-row";
+    const rankSpan = document.createElement("span");
+    rankSpan.className = "standing-rank";
+    rankSpan.textContent = rankGlyph(rank);
+    const avatar = document.createElement("img");
+    avatar.className = "standing-avatar";
+    avatar.src = Rune.getPlayerInfo(playerId).avatarUrl;
+    avatar.alt = "";
+    const name = document.createElement("span");
+    name.className = "standing-name";
+    name.textContent = playerLabel(playerId);
+    const countSpan = document.createElement("span");
+    countSpan.className = "standing-count";
+    countSpan.textContent = wordCountLabel(count);
+    li.append(rankSpan, avatar, name, countSpan);
+    li.setAttribute(
+      "aria-label",
+      `Rang ${rank} : ${playerLabel(playerId)}, ${wordCountLabel(count)}`,
+    );
+    winStandingsEl.appendChild(li);
+  }
+}
+
 // star : passé par main.ts au seul cas qui vaut une récompense — un défi gagné
 // pour la première fois. Le rejeu d'un défi et les niveaux normaux laissent
 // l'écran de victoire inchangé, sans quoi l'étoile ne voudrait plus rien dire.
@@ -417,12 +502,14 @@ export function renderWin(
   opts: {
     star?: { count: number; unlocked: string | null };
     choices?: NextChoice[];
+    winSummary?: WinSummary | null;
   } = {},
 ) {
-  const { star, choices = [] } = opts;
+  const { star, choices = [], winSummary = null } = opts;
   counterEl.classList.add("full");
   const { wordCount } = local.mode;
   winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} TROUVÉ${wordCount > 1 ? "S" : ""}`;
+  renderStandings(winSummary);
   winStarEl.hidden = !star;
   if (star) {
     winStarGainEl.textContent = "";

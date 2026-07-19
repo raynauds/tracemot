@@ -111,6 +111,17 @@ function wordCountsByPlayer(game: RuneGameState): Record<PlayerId, number> {
 // actifs, fige le winSummary (comptes, première validation AU SENS DE
 // L'UNION — avant crédit —, étoile après crédit, palier débloqué), vide les
 // tracés. Seul appelant : submitWord, quand la grille vient de se compléter.
+//
+// Pas de `Rune.gameOver()` ici (→ Q20, doc 07 § « Rune.gameOver : ne pas
+// l'utiliser par niveau ») : la room reste une session continue sur la carte
+// (victoire → SUIVANT/DÉFI dans la même room), incompatible avec un
+// `gameOver` qui clôt la partie. Si une review Rune l'exigeait malgré tout,
+// deux replis documentés dans doc 07 : (1) `gameOver({ players: <comptes>,
+// minimizePopUp: true })` — popup réduit en barre basse, tous les joueurs
+// présents, scores numériques uniquement ; (2) `gameOver` seulement sur un
+// jalon rare (mode complété). Aucun des deux n'est câblé : zone grise à
+// valider en playtest/review, pas une décision produit tranchée.
+
 export function applyVictory(
   game: GameStateWithPersisted,
   modeId: ModeId,

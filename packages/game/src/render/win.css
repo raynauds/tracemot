@@ -46,6 +46,108 @@
   color: var(--ghost);
 }
 
+/* Classement (doc 07) : inséré entre le sous-titre et le bloc étoile,
+   masqué en solo dans la room (rien à classer, src/render/render.ts). Même
+   largeur que .win-actions : les deux colonnes du bas de l'écran s'alignent. */
+.win-standings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  animation: win-star-in 0.5s 0.1s backwards cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* --rule-hairline (--line) est calibré pour un filet subordonné sur fond
+   clair (paper/card) : sur ce fond sombre (--ink), --ghost joue déjà ce rôle
+   de « texte/filet inerte » ailleurs dans cet écran (.win-second, .win-defi) —
+   même token, ici en filet plutôt qu'en bordure de bouton. */
+.standing-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding-left: 12px;
+  border-bottom: 1px solid var(--ghost);
+  border-left: 3px solid transparent;
+  color: var(--paper);
+}
+
+.win-standings li:first-child {
+  border-top: 1px solid var(--ghost);
+}
+
+/* Teinte du joueur sur le rang (doc 06) : moi, toujours vermillon — les
+   autres, leur encre de slot (`--player-1`..`--player-4`, ledger.css §
+   owner-N). Un joueur sans slot connu (parti après la victoire) reste neutre. */
+.standing-row.you {
+  border-left-color: var(--vermilion);
+}
+.standing-row.you .standing-rank {
+  color: var(--vermilion);
+}
+.standing-row.owner-0 {
+  border-left-color: var(--player-1);
+}
+.standing-row.owner-0 .standing-rank {
+  color: var(--player-1);
+}
+.standing-row.owner-1 {
+  border-left-color: var(--player-2);
+}
+.standing-row.owner-1 .standing-rank {
+  color: var(--player-2);
+}
+.standing-row.owner-2 {
+  border-left-color: var(--player-3);
+}
+.standing-row.owner-2 .standing-rank {
+  color: var(--player-3);
+}
+.standing-row.owner-3 {
+  border-left-color: var(--player-4);
+}
+.standing-row.owner-3 .standing-rank {
+  color: var(--player-4);
+}
+
+.standing-rank {
+  flex: 0 0 auto;
+  width: 20px;
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--ghost);
+}
+
+/* Pastille ronde : exception `border-radius` du DESIGN.md, étendue aux
+   avatars joueur (doc 06) — même traitement que .lobby-avatar/.word-avatar. */
+.standing-avatar {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 9999px;
+  border: 1.5px solid var(--paper);
+  object-fit: cover;
+}
+
+.standing-name {
+  flex: 1;
+  font-size: 15px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.standing-count {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--ghost);
+}
+
 /* Étoile gagnée (défis, première validation seulement). Discret et sous le
    sous-titre : c'est une récompense, pas l'annonce principale — le titre reste
    « Gagné. ». Le vermillon la distingue du gris du sous-titre, et la ligne
@@ -263,6 +365,14 @@
   .win-sub {
     font-size: 13px;
     letter-spacing: 2px;
+  }
+  .standing-row {
+    height: 40px;
+    gap: 10px;
+  }
+  .standing-name,
+  .standing-count {
+    font-size: 13px;
   }
   .win-primary {
     height: 56px;
