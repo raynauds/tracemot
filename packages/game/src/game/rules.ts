@@ -1,11 +1,10 @@
-// Validation d'un mot. Partagé entre la validation au lâcher du tracé
-// (main.ts) et le hint d'encre du registre (render.ts).
+// Validation d'un mot. Partagée entre la validation au lâcher du tracé
+// (main.ts) et le hint d'encre du registre (render.ts) — et destinée à logic
+// ET client (doc 01) : fonction PURE, aucun import du singleton `state`.
 //
 // Le dictionnaire n'est plus chargé au runtime : la référence est la
 // solution du niveau, prégénérée. Un mot traçable mais hors solution est
-// donc « incorrecte » — le joueur cherche LES mots cachés, pas des mots.
-
-import { state } from "./state.ts";
+// donc « incorrect » — le joueur cherche LES mots cachés, pas des mots.
 
 // Occurrences d'un mot dans une liste. Les mots d'une solution sont deux à
 // deux distincts (le solveur impose une distance de Hamming ≥ 2), donc
@@ -20,19 +19,27 @@ function count(list: string[], word: string): number {
   return n;
 }
 
+// Code de refus : les libellés (français, `Rune.t()` demain) migrent côté
+// client (render.ts) — logic ne connaît que le motif, pas sa présentation.
+export type WordRejectCode = "length" | "notInSolution" | "alreadyFound";
+
+export interface WordCheckContext {
+  wordLength: number;
+  solution: string[];
+  found: string[];
+}
+
 /**
- * Motif de refus du mot, ou null s'il est valable.
- *
- * Casse normale, pas de majuscules : ce sont des messages (le motif d'un
- * refus), pas des labels — la règle du projet réserve les majuscules aux
- * labels, boutons et états (DESIGN.md).
+ * Code de refus du mot, ou null s'il est valable. Pure : ni lecture ni
+ * écriture d'un état partagé, tout arrive en argument.
  */
-export function wordRejectReason(word: string): string | null {
-  if (word.length !== state.mode.wordLength) {
-    return `${state.mode.wordLength} lettres requises`;
-  }
-  const expected = count(state.solution, word);
-  if (expected === 0) return "Incorrecte";
-  if (count(state.found, word) >= expected) return "Déjà trouvé";
+export function wordRejectReason(
+  word: string,
+  ctx: WordCheckContext,
+): WordRejectCode | null {
+  if (word.length !== ctx.wordLength) return "length";
+  const expected = count(ctx.solution, word);
+  if (expected === 0) return "notInSolution";
+  if (count(ctx.found, word) >= expected) return "alreadyFound";
   return null;
 }

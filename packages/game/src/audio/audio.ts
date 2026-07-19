@@ -9,11 +9,10 @@
 // fichier manquant, décodage raté → il ne se passe rien, le jeu ne casse pas
 // pour une histoire de son).
 //
-// Deux volumes réglables par le joueur (panneau SONS, src/render/sound.ts) :
-// l'interface et la musique, chacun sur son gain maître. Le catalogue garde le
-// MIXAGE (l'équilibre relatif des sons entre eux) ; ces volumes-ci sont un
-// multiplicateur global 0-1 par-dessus, persisté. À zéro, la voie est coupée —
-// il n'y a pas de mute séparé, ce serait une seconde source de vérité.
+// Pas de réglage de volume ici (doc 08 § Q21b) : Rune fournit ses propres
+// contrôles audio in-app, le panneau maison (render/sound.ts) et sa
+// persistance localStorage (tracemot.vol-ui/tracemot.vol-music) ont disparu
+// avec lui. Ce module ne fait plus que précharger, jouer, débloquer.
 
 import {
   MUSIC,
@@ -23,45 +22,12 @@ import {
   type SoundId,
 } from "./catalog.ts";
 
-const UI_VOLUME_KEY = "tracemot.vol-ui";
-const MUSIC_VOLUME_KEY = "tracemot.vol-music";
-
 let ctx: AudioContext | null = null;
 const buffers = new Map<SoundId, AudioBuffer>();
-let uiVolume = 1;
-let musicVolume = 1;
 let uiGain: GainNode | null = null;
 let musicBuffer: AudioBuffer | null = null;
 let musicGain: GainNode | null = null;
 let musicStarted = false;
-
-// Le curseur est linéaire, l'oreille non : un gain de 0,5 s'entend à peine
-// plus bas que 1. Le carré redonne au milieu du curseur un « moitié moins
-// fort » perçu. La courbe ne vit QUE dans les gains maîtres — le mixage du
-// catalogue et les volumes ponctuels de playSound restent linéaires.
-function perceived(volume: number): number {
-  return volume * volume;
-}
-
-function readVolume(key: string): number {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw === null) return 1;
-    const v = Number(raw);
-    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
-  } catch {
-    // Stockage indisponible : plein volume, sans persistance.
-    return 1;
-  }
-}
-
-function writeVolume(key: string, volume: number) {
-  try {
-    localStorage.setItem(key, String(volume));
-  } catch {
-    // Sans stockage, le réglage vaut pour la session.
-  }
-}
 
 // Réveille le contexte au premier geste ; les écouteurs se retirent une fois
 // le contexte effectivement actif (resume est asynchrone, un premier geste
@@ -88,7 +54,7 @@ function tryStartMusic() {
     source.buffer = musicBuffer;
     source.loop = true;
     musicGain = ctx.createGain();
-    musicGain.gain.value = MUSIC.volume * perceived(musicVolume);
+    musicGain.gain.value = MUSIC.volume;
     source.connect(musicGain).connect(ctx.destination);
     source.start();
     musicStarted = true;
@@ -100,18 +66,15 @@ function tryStartMusic() {
 // Précharge et décode tous les sons du catalogue. À appeler une fois au boot ;
 // sans Web Audio (ou si tout échoue), le jeu reste simplement silencieux.
 export function initAudio() {
-  uiVolume = readVolume(UI_VOLUME_KEY);
-  musicVolume = readVolume(MUSIC_VOLUME_KEY);
   try {
     ctx = new AudioContext();
   } catch {
     return;
   }
-  // Gain maître des bruitages : chaque lecture y branche son gain de mixage.
-  // Régler le volume de l'interface ne touche donc qu'un nœud, jamais les
-  // sources en vol.
+  // Gain maître des bruitages : chaque lecture y branche son gain de mixage
+  // (le catalogue). Sans réglage joueur par-dessus (doc 08 § Q21b) : c'est un
+  // nœud de passage, pas un potentiomètre.
   uiGain = ctx.createGain();
-  uiGain.gain.value = perceived(uiVolume);
   uiGain.connect(ctx.destination);
   window.addEventListener("pointerdown", unlock, { passive: true });
   window.addEventListener("keydown", unlock);
@@ -150,7 +113,7 @@ export function playSound(
   id: SoundId,
   opts: { rate?: number; volume?: number } = {},
 ) {
-  if (uiVolume === 0 || !ctx || ctx.state !== "running" || !uiGain) return;
+  if (!ctx || ctx.state !== "running" || !uiGain) return;
   const buffer = buffers.get(id);
   if (!buffer) return;
   try {
@@ -164,26 +127,4 @@ export function playSound(
   } catch {
     // Une lecture ratée est sans conséquence.
   }
-}
-
-// --- Volumes du joueur ------------------------------------------------------
-
-export function getUiVolume() {
-  return uiVolume;
-}
-
-export function getMusicVolume() {
-  return musicVolume;
-}
-
-export function setUiVolume(volume: number) {
-  uiVolume = Math.min(1, Math.max(0, volume));
-  if (uiGain) uiGain.gain.value = perceived(uiVolume);
-  writeVolume(UI_VOLUME_KEY, uiVolume);
-}
-
-export function setMusicVolume(volume: number) {
-  musicVolume = Math.min(1, Math.max(0, volume));
-  if (musicGain) musicGain.gain.value = MUSIC.volume * perceived(musicVolume);
-  writeVolume(MUSIC_VOLUME_KEY, musicVolume);
 }

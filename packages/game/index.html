@@ -35,10 +35,30 @@
       crossorigin
     />
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Attributions requises par les licences des sons (doc 08 § Q21c) : la
+         page « Crédits » a disparu du build Rune (best practice « pas de
+         branding » — cf. les autres écrans retirés du build ci-dessous), mais
+         les mentions ci-dessous restent CONTRACTUELLES et doivent exister
+         quelque part — reportées dans docs/ATTRIBUTIONS.md, à recopier dans
+         la description du jeu sur le Dev Dashboard avant la publication.
+
+         - Bruitages d'interface : « Ultimate UI SFX Pack » de JDSherbert
+           (https://jdsherbert.itch.io/), © 2023 JDSherbert.
+         - Tampon des mots trouvés : « Universal UI Soundpack » de Nathan
+           Gibson (https://nathangibson.myportfolio.com), licence CC BY 4.0
+           (https://creativecommons.org/licenses/by/4.0/).
+         - Son de victoire : « Game Assets All-in-1 » de Kenney
+           (https://kenney.nl), licence CC0.
+         - Musique : boucle « Jazzy Lofi Calm » de Dvir Silverstone, via
+           Pixabay, licence de contenu Pixabay.
+         - Caractères : Source Serif 4 (Adobe) · IBM Plex Mono (IBM), SIL Open
+           Font License. -->
   </head>
   <!-- .booting : au chargement, l'écran ne montre que le papier de la carte -
-       rien n'est peint tant que l'app n'est pas prête (style.css). src/main.ts
-       retire la classe une fois la carte en place. -->
+       rien n'est peint tant que l'app n'est pas prête (style.css). client.ts
+       retire la classe une fois la carte (premier écran, doc 08 § Q21a) en
+       place. -->
   <body class="booting">
     <!-- La grille et le tracé sont rendus par PixiJS (src/render/scene.ts) sur un
          canvas plein écran en fond (position: fixed, z-index: 0). Tout le
@@ -47,135 +67,12 @@
          (pointer-events: none) ; seuls les contrôles interactifs les
          réactivent (pointer-events: auto). -->
 
-    <!-- Accueil : le premier écran, plein écran, au-dessus de la carte. Le seul
-         endroit où le jeu se nomme - la carte et la partie restent sans marque
-         (src/theme/DESIGN.md). Écrit et lié par src/render/home.ts ; quand il
-         est affiché, le corps porte .home-open.
-
-         Le titre est composé lettre par lettre : chacune porte son rang (--i),
-         d'où le CSS tire le décalage de sa révélation (src/render/home.css). Les
-         spans sont aria-hidden et le titre porte son aria-label : à la lecture
-         d'écran, c'est un mot, pas huit lettres. -->
-    <div class="home" id="home" hidden>
-      <div class="home-col">
-        <h1 class="home-title" id="home-title" aria-label="Tracemot">
-          <span aria-hidden="true" style="--i: 0">T</span
-          ><span aria-hidden="true" style="--i: 1">r</span
-          ><span aria-hidden="true" style="--i: 2">a</span
-          ><span aria-hidden="true" style="--i: 3">c</span
-          ><span aria-hidden="true" style="--i: 4">e</span
-          ><span aria-hidden="true" style="--i: 5">m</span
-          ><span aria-hidden="true" style="--i: 6">o</span
-          ><span aria-hidden="true" style="--i: 7">t</span
-          ><span class="dot" aria-hidden="true" style="--i: 8">.</span>
-        </h1>
-        <!-- Pré-remplie avec l'état du premier lancement (anti-shift, comme
-             #rule-spec) ; src/render/home.ts y écrit le point de reprise. -->
-        <p class="home-state" id="home-state">
-          Reliez des lettres voisines pour tracer les mots
-        </p>
-        <div class="home-actions">
-          <button type="button" class="home-primary" id="home-start">
-            COMMENCER
-          </button>
-          <button type="button" class="home-levels" id="home-levels">
-            CHOISIR UN NIVEAU
-          </button>
-          <!-- Les aides, sous le choix du niveau : le panneau des volumes et
-               l'écran des règles — mêmes boutons que « choisir un niveau »,
-               ce sont des consultations de même poids. -->
-          <!-- Panneau des volumes : il s'ancre à son bouton. Structure statique
-               UNIQUE — le bouton son du header de partie ouvre LE MÊME panneau,
-               src/render/sound.ts le déplace sous le déclencheur actif (deux
-               copies obligeraient à tenir leurs curseurs synchrones). Les crans
-               (.sound-scale) et les icônes sont posés par le même module. -->
-          <div class="home-sound" id="home-sound-anchor">
-            <button
-              type="button"
-              class="home-levels"
-              id="home-sound"
-              aria-haspopup="dialog"
-              aria-expanded="false"
-            >
-              AUDIO
-            </button>
-            <div class="diff-overlay" id="sound-overlay" hidden></div>
-            <div
-              class="diff-panel sound-panel"
-              id="sound-panel"
-              role="dialog"
-              aria-label="Réglages sonores"
-              hidden
-            >
-              <div class="diff-panel-head">
-                <span class="diff-panel-title">AUDIO</span>
-                <button
-                  type="button"
-                  class="diff-close"
-                  id="sound-close"
-                  aria-label="Fermer"
-                ></button>
-              </div>
-              <div class="sound-row">
-                <div class="sound-row-head">
-                  <label class="sound-label" for="sound-ui">INTERFACE</label>
-                  <span class="sound-value" id="sound-ui-value"></span>
-                </div>
-                <input
-                  type="range"
-                  class="sound-slider"
-                  id="sound-ui"
-                  min="0"
-                  max="10"
-                  step="1"
-                  value="10"
-                />
-                <div
-                  class="sound-scale"
-                  id="sound-ui-scale"
-                  aria-hidden="true"
-                ></div>
-              </div>
-              <div class="sound-row">
-                <div class="sound-row-head">
-                  <label class="sound-label" for="sound-music">MUSIQUE</label>
-                  <span class="sound-value" id="sound-music-value"></span>
-                </div>
-                <input
-                  type="range"
-                  class="sound-slider"
-                  id="sound-music"
-                  min="0"
-                  max="10"
-                  step="1"
-                  value="10"
-                />
-                <div
-                  class="sound-scale"
-                  id="sound-music-scale"
-                  aria-hidden="true"
-                ></div>
-              </div>
-            </div>
-          </div>
-          <button type="button" class="home-levels" id="home-help">
-            COMMENT JOUER
-          </button>
-        </div>
-      </div>
-      <!-- L'ours de la page : le lien des crédits, seul au bas du cadre —
-           une marge de page, pas un élément de la colonne. -->
-      <button type="button" class="home-credits" id="home-credits">
-        CRÉDITS
-      </button>
-    </div>
-
-    <!-- Comment jouer : l'écran des règles, plein écran au-dessus de l'accueil
-         (z-index 46). Ouvert par le bouton COMMENT JOUER de l'accueil, et de
-         lui-même à la toute première partie - par-dessus la grille prête, que sa fermeture
+    <!-- Comment jouer : l'écran des règles, plein écran. Ouvert par le lien
+         COMMENT JOUER du panneau règle (header de partie), et de lui-même à la
+         toute première partie - par-dessus la grille prête, que sa fermeture
          révèle. Structure statique, liée par src/render/help.ts (qui y pose la
-         flèche, les coches et l'étoile des figures). Le panneau « i » du header
-         de partie garde son rôle à lui : rappeler le format du niveau en cours. -->
+         flèche, les coches et l'étoile des figures). Conservé par la review
+         Rune (doc 08) : un onboarding n'est pas un menu. -->
     <div class="screen help" id="help" hidden>
       <header class="screen-head">
         <button
@@ -335,102 +232,9 @@
       </div>
     </div>
 
-    <!-- Crédits : la page des attributions - ce qui vient d'ailleurs, et de
-         qui. Une seule entrée : le lien CRÉDITS de l'accueil. Les attributions
-         JDSherbert et Nathan Gibson sont REQUISES par leurs licences (cf. les
-         readme/licences dans public/sounds/) : cette page est contractuelle,
-         pas décorative. Liée par src/render/credits.ts. -->
-    <div class="screen credits" id="credits" hidden>
-      <header class="screen-head">
-        <button
-          type="button"
-          class="screen-back"
-          id="credits-back"
-          aria-label="Fermer les crédits"
-          title="Fermer"
-        ></button>
-      </header>
-      <div class="screen-body">
-        <h2 class="screen-title">Crédits</h2>
-        <dl class="credits-list">
-          <div class="credits-entry">
-            <dt class="credits-role">BRUITAGES D'INTERFACE</dt>
-            <dd class="credits-what">
-              « Ultimate UI SFX Pack » de
-              <a
-                href="https://jdsherbert.itch.io/"
-                target="_blank"
-                rel="noopener"
-                >JDSherbert</a
-              >
-            </dd>
-            <dd class="credits-license">© 2023 JDSherbert</dd>
-          </div>
-          <div class="credits-entry">
-            <dt class="credits-role">TAMPON DES MOTS TROUVÉS</dt>
-            <dd class="credits-what">
-              « Universal UI Soundpack » de
-              <a
-                href="https://nathangibson.myportfolio.com"
-                target="_blank"
-                rel="noopener"
-                >Nathan Gibson</a
-              >
-            </dd>
-            <dd class="credits-license">
-              Licence
-              <a
-                href="https://creativecommons.org/licenses/by/4.0/"
-                target="_blank"
-                rel="noopener"
-                >CC BY 4.0</a
-              >
-            </dd>
-          </div>
-          <div class="credits-entry">
-            <dt class="credits-role">SON DE VICTOIRE</dt>
-            <dd class="credits-what">
-              « Game Assets All-in-1 » de
-              <a href="https://kenney.nl" target="_blank" rel="noopener"
-                >Kenney</a
-              >
-            </dd>
-            <dd class="credits-license">
-              Licence
-              <a
-                href="https://creativecommons.org/publicdomain/zero/1.0/"
-                target="_blank"
-                rel="noopener"
-                >CC0</a
-              >
-            </dd>
-          </div>
-          <div class="credits-entry">
-            <dt class="credits-role">MUSIQUE</dt>
-            <dd class="credits-what">
-              Boucle « Jazzy Lofi Calm » de
-              <a
-                href="https://pixabay.com/users/sonican-38947841/"
-                target="_blank"
-                rel="noopener"
-                >Dvir Silverstone</a
-              >, via Pixabay
-            </dd>
-            <dd class="credits-license">Licence de contenu Pixabay</dd>
-          </div>
-          <div class="credits-entry">
-            <dt class="credits-role">CARACTÈRES</dt>
-            <dd class="credits-what">
-              Source Serif 4 (Adobe) · IBM Plex Mono (IBM)
-            </dd>
-            <dd class="credits-license">SIL Open Font License</dd>
-          </div>
-        </dl>
-      </div>
-    </div>
-
-    <!-- Carte de progression : choix du niveau, plein écran, au-dessus du chrome
-         de partie. Son contenu est entièrement généré par src/render/map.ts ;
+    <!-- Carte de progression : le PREMIER écran du jeu (doc 08 § Q21a — plus
+         d'accueil, « pas de menu »), plein écran, au-dessus du chrome de
+         partie. Son contenu est entièrement généré par src/render/map.ts ;
          quand elle est affichée, le corps porte .map-open et le chrome de
          partie ci-dessous est masqué (style.css). -->
     <div class="map" id="map" hidden></div>
@@ -439,7 +243,9 @@
       <div class="header-left">
         <!-- Retour à la carte : sortie de partie, toujours disponible. Une
              flèche nue (icône SVG posée par src/render/render.ts) : le mot
-             « CARTE » et son cadre disaient deux fois la même chose. -->
+             « CARTE » et son cadre disaient deux fois la même chose. En
+             cours de partie (pas gagné), c'est une PROPOSITION d'abandon
+             (doc 02/04) — l'issue dépend des autres joueurs de la room. -->
         <button
           type="button"
           class="back-map"
@@ -450,26 +256,10 @@
         <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
         <span class="level-id" id="level-id"></span>
       </div>
-      <!-- Bord droit du header : les aides, qui n'appartiennent pas à la paire
-           de navigation groupée à gauche (la flèche dit d'où l'on sort, le
-           niveau dit où l'on est). Le son d'abord, la règle au bord - même
-           ordre que sur l'accueil, où le son est aussi le plus loin du coin. -->
+      <!-- Bord droit du header : la règle du jeu — seule aide qui reste ici,
+           le panneau audio a disparu (doc 08 § Q21b, Rune fournit ses propres
+           contrôles). -->
       <div class="header-right">
-        <!-- Réglages sonores : ouvre LE panneau des volumes, celui de
-             l'accueil - structure statique unique que src/render/sound.ts
-             déplace sous le déclencheur actif. La musique joue pendant la
-             partie : c'est ici qu'on veut la régler. -->
-        <div class="sound" id="header-sound-anchor">
-          <button
-            type="button"
-            class="sound-chip"
-            id="sound-chip"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-            aria-label="Réglages sonores"
-            title="Réglages sonores"
-          ></button>
-        </div>
         <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
            Elle ouvre le composant voile + panneau (popover desktop, feuille
            mobile) hérité du sélecteur de difficulté disparu - les classes
@@ -568,14 +358,13 @@
       </ol>
     </section>
 
-    <!-- Statut : overlay plein écran, réservé aux erreurs (chargement des
-         niveaux). Rien à annoncer au boot : la carte s'affiche sans réseau. -->
-    <div class="status" id="status" hidden></div>
-
     <!-- Victoire : overlay plein écran au-dessus du canvas. Les deux boutons de
          tête sont peuplés à la volée (src/render/render.ts) avec ce que la
          victoire vient d'ouvrir : le niveau suivant, et le défi quand une fin
-         de ligne l'a débloqué. Le retour à la carte reste toujours offert. -->
+         de ligne l'a débloqué. Le retour à la carte reste toujours offert -
+         localement (doc 02 § Machine de phase) : aucune action Rune, la partie
+         reste en place pour la room tant qu'une proposition n'a pas été
+         acceptée. -->
     <div class="win" id="win" hidden>
       <span class="confetti c1"></span>
       <span class="confetti c2 cream"></span>
@@ -601,6 +390,13 @@
       </div>
     </div>
 
-    <script type="module" src="src/main.ts"></script>
+    <!-- Logique Rune : fichier séparé, empaqueté par vite-plugin-rune en
+         logic.js (déterministe, tourne aussi côté serveur) — état de la room,
+         progression partagée, lobby de proposition/vote, validation
+         autoritaire des mots (docs 01/02). -->
+    <script type="module" src="src/logic/logic.ts"></script>
+    <!-- Client : Rune.initClient({ onChange }) est la SEULE entrée du rendu
+         (doc 02 § Client) — src/client/client.ts, plus de main.ts séparé. -->
+    <script type="module" src="src/client/client.ts"></script>
   </body>
 </html>

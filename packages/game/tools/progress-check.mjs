@@ -12,45 +12,18 @@
 //
 //   node tools/progress-check.mjs
 //
-// Trois voies de test :
+// Deux voies de test :
 //  - l'arithmétique des identifiants (levels.ts), sur laquelle la carte compte
 //    pour son ordre de rendu ;
-//  - la dérivation pure (cellState/sectionStats/étoiles) via makeProgress, sans
-//    stockage ;
-//  - la persistance (isModeUnlocked, visibleModes, migrateStorage…) via un stub
-//    localStorage posé sur globalThis AVANT l'import du module (d'où l'import
-//    dynamique).
-
-/** Stub localStorage minimal : Map en mémoire, même contrat que le navigateur. */
-class MemoryStorage {
-  /** @type {Map<string, string>} */
-  #store = new Map();
-  /** @param {string} k */
-  getItem(k) {
-    return this.#store.has(k) ? /** @type {string} */ (this.#store.get(k)) : null;
-  }
-  /** @param {string} k @param {string} v */
-  setItem(k, v) {
-    this.#store.set(k, String(v));
-  }
-  /** @param {string} k */
-  removeItem(k) {
-    this.#store.delete(k);
-  }
-  clear() {
-    this.#store.clear();
-  }
-  /** Clés présentes, pour vérifier une purge sans les énumérer une à une. */
-  keys() {
-    return [...this.#store.keys()].sort();
-  }
-}
-
-const storage = new MemoryStorage();
-/** @type {any} */ (globalThis).localStorage = storage;
+//  - la dérivation, pure de bout en bout depuis la suppression de la
+//    persistance (doc 01 § mise en conformité #5) : mono-mode
+//    (cellState/sectionStats/étoiles) via makeProgress, et inter-modes
+//    (isModeUnlocked, visibleModes, resumePoint…) via un ProgressByMode
+//    construit à la main — plus de stub localStorage, plus de migration.
 
 const {
   makeProgress,
+  emptyProgressByMode,
   cellState,
   sectionStats,
   starCount,
@@ -64,19 +37,13 @@ const {
   MAX_STARS,
   STARS_FOR_SECTION,
   STARS_FOR_NEXT_MODE,
-  loadProgress,
-  saveValidated,
   totalValidated,
   modeStars,
   isModeUnlocked,
   nextLockedMode,
   visibleModes,
   isFirstLaunch,
-  loadLastMode,
-  saveLastMode,
-  isModeSeen,
-  markModeSeen,
-  migrateStorage,
+  resumePoint,
 } = await import("../src/game/progress.ts");
 
 const {
@@ -590,171 +557,112 @@ const REFERENCE_COUNT = 27;
   console.log("Verrou à un défi près (sections) : OK");
 }
 
-// --- 8. Persistance et déblocage des modes (via le stub localStorage) ---------
+// --- 8. Dérivations inter-modes (Record<ModeId, ModeProgress>) --------------
+// Persistance disparue (doc 01 § mise en conformité #5c) : ces fonctions ne
+// lisent plus le stockage, elles reçoivent une progression construite à la
+// main. Le déblocage en chaîne des modes (5x5 → 6x6 → 7x7 → 8x8) reste
+// couvert pas à pas, comme avant.
 {
-  const tag = "persistance";
-  storage.clear();
+  const tag = "inter-modes";
+  let progress = emptyProgressByMode();
 
-  check(isFirstLaunch(), `${tag} : premier lancement attendu sur stockage vide`);
-  check(isModeUnlocked("5x5"), `${tag} : 5x5 toujours débloqué`);
-  check(!isModeUnlocked("6x6"), `${tag} : 6x6 verrouillé au départ`);
-  check(nextLockedMode() === "6x6", `${tag} : prochain verrouillé = 6x6`);
+  check(isFirstLaunch(progress), `${tag} : premier lancement attendu sur une progression vide`);
+  check(isModeUnlocked(progress, "5x5"), `${tag} : 5x5 toujours débloqué`);
+  check(!isModeUnlocked(progress, "6x6"), `${tag} : 6x6 verrouillé au départ`);
+  check(nextLockedMode(progress) === "6x6", `${tag} : prochain verrouillé = 6x6`);
   // Au premier lancement, l'onglet 6x6 n'est PAS montré : il coûte 3 étoiles et
   // aucun défi n'est jouable. Même règle que pour les sections — un cadenas
   // permanent est du bruit, un cadenas qui apparaît est un événement.
-  check(!isModeTeased("6x6"), `${tag} : 6x6 pas teasé au départ (0 ★, aucun défi jouable)`);
-  checkEqual(visibleModes(), ["5x5"], `${tag} : seul 5x5 au premier lancement`);
-  check(loadLastMode() === "5x5", `${tag} : dernier mode par défaut = 5x5`);
-  check(modeStars("5x5") === 0, `${tag} : 0 étoile au départ`);
+  check(!isModeTeased(progress, "6x6"), `${tag} : 6x6 pas teasé au départ (0 ★, aucun défi jouable)`);
+  checkEqual(visibleModes(progress), ["5x5"], `${tag} : seul 5x5 au premier lancement`);
+  check(modeStars(progress, "5x5") === 0, `${tag} : 0 étoile au départ`);
 
-  // Écriture de l'état de référence, puis relecture.
-  for (const id of REFERENCE) saveValidated("5x5", id);
-  saveValidated("5x5", "1-1"); // idempotence du rejeu
-  saveValidated("5x5", "1-A"); // idempotence sur un défi : pas de 4e étoile
-  check(totalValidated("5x5") === REFERENCE_COUNT, `${tag} : ${REFERENCE_COUNT} validés persistés`);
-  check(
-    loadProgress("5x5").validated.size === REFERENCE_COUNT,
-    `${tag} : relecture de ${REFERENCE_COUNT} ids`,
-  );
-  check(modeStars("5x5") === 3, `${tag} : 3 étoiles persistées`);
-  check(!isFirstLaunch(), `${tag} : plus un premier lancement`);
+  // État de référence en 5x5 (27 validés, 3 étoiles).
+  progress = { ...progress, "5x5": makeProgress(REFERENCE) };
+  check(totalValidated(progress, "5x5") === REFERENCE_COUNT, `${tag} : ${REFERENCE_COUNT} validés`);
+  check(modeStars(progress, "5x5") === 3, `${tag} : 3 étoiles en 5x5`);
+  check(!isFirstLaunch(progress), `${tag} : plus un premier lancement`);
 
   // 3 étoiles en 5x5 ⇒ 6x6 ouvert ; 7x7 reste verrouillé (0 étoile en 6x6).
-  check(isModeUnlocked("6x6"), `${tag} : 6x6 débloqué par la 3e étoile`);
-  check(!isModeUnlocked("7x7"), `${tag} : 7x7 verrouillé`);
-  check(!isModeUnlocked("8x8"), `${tag} : 8x8 verrouillé`);
-  check(nextLockedMode() === "7x7", `${tag} : prochain verrouillé = 7x7`);
+  check(isModeUnlocked(progress, "6x6"), `${tag} : 6x6 débloqué par la 3e étoile`);
+  check(!isModeUnlocked(progress, "7x7"), `${tag} : 7x7 verrouillé`);
+  check(!isModeUnlocked(progress, "8x8"), `${tag} : 8x8 verrouillé`);
+  check(nextLockedMode(progress) === "7x7", `${tag} : prochain verrouillé = 7x7`);
   // Le verrou du 7x7 est tenu par le 6x6, encore vierge : rien à annoncer.
-  check(!isModeTeased("7x7"), `${tag} : 7x7 pas teasé (6x6 vierge)`);
-  checkEqual(visibleModes(), ["5x5", "6x6"], `${tag} : 7x7 encore caché`);
+  check(!isModeTeased(progress, "7x7"), `${tag} : 7x7 pas teasé (6x6 vierge)`);
+  checkEqual(visibleModes(progress), ["5x5", "6x6"], `${tag} : 7x7 encore caché`);
 
   // 2 étoiles en 6x6 ne suffisent pas : le seuil est bien 3. Et à cet instant
   // AUCUN défi n'y est jouable (1-C exige 1-15) — donc pas de tease non plus.
-  for (const id of [...ids(1, range(1, 10)), "1-A", "1-B"]) saveValidated("6x6", id);
-  check(modeStars("6x6") === 2, `${tag} : 2 étoiles en 6x6`);
-  check(!isModeUnlocked("7x7"), `${tag} : 7x7 verrouillé à 2 étoiles`);
-  check(!isModeTeased("7x7"), `${tag} : 7x7 muet — 2 ★ mais aucun défi jouable`);
-  checkEqual(visibleModes(), ["5x5", "6x6"], `${tag} : 7x7 toujours caché`);
+  progress = {
+    ...progress,
+    "6x6": makeProgress([...ids(1, range(1, 10)), "1-A", "1-B"]),
+  };
+  check(modeStars(progress, "6x6") === 2, `${tag} : 2 étoiles en 6x6`);
+  check(!isModeUnlocked(progress, "7x7"), `${tag} : 7x7 verrouillé à 2 étoiles`);
+  check(!isModeTeased(progress, "7x7"), `${tag} : 7x7 muet — 2 ★ mais aucun défi jouable`);
+  checkEqual(visibleModes(progress), ["5x5", "6x6"], `${tag} : 7x7 toujours caché`);
 
   // 1-15 validé ⇒ 1-C devient JOUABLE. Le 6x6 est alors à un défi de sa 3e
   // étoile : l'onglet 7x7 apparaît, verrouillé, à cet instant précis.
-  for (const n of [11, 12, 13, 14, 15]) saveValidated("6x6", `1-${n}`);
-  check(modeStars("6x6") === 2, `${tag} : toujours 2 étoiles`);
-  check(hasActiveDefi(loadProgress("6x6")), `${tag} : 1-C jouable en 6x6`);
-  check(isModeTeased("7x7"), `${tag} : 7x7 teasé — 1-C ouvrirait le mode`);
-  checkEqual(visibleModes(), ["5x5", "6x6", "7x7"], `${tag} : 7x7 paraît (verrouillé)`);
+  progress = {
+    ...progress,
+    "6x6": makeProgress([...ids(1, range(1, 15)), "1-A", "1-B"]),
+  };
+  check(modeStars(progress, "6x6") === 2, `${tag} : toujours 2 étoiles`);
+  check(hasActiveDefi(progress["6x6"]), `${tag} : 1-C jouable en 6x6`);
+  check(isModeTeased(progress, "7x7"), `${tag} : 7x7 teasé — 1-C ouvrirait le mode`);
+  checkEqual(visibleModes(progress), ["5x5", "6x6", "7x7"], `${tag} : 7x7 paraît (verrouillé)`);
 
-  saveValidated("6x6", "1-C");
-  check(modeStars("6x6") === 3, `${tag} : 3 étoiles en 6x6`);
-  check(isModeUnlocked("7x7"), `${tag} : 7x7 débloqué`);
-  check(!isModeTeased("7x7"), `${tag} : un mode ouvert n'est plus teasé`);
-  check(!isModeUnlocked("8x8"), `${tag} : 8x8 toujours verrouillé`);
+  progress = {
+    ...progress,
+    "6x6": makeProgress([...ids(1, range(1, 15)), "1-A", "1-B", "1-C"]),
+  };
+  check(modeStars(progress, "6x6") === 3, `${tag} : 3 étoiles en 6x6`);
+  check(isModeUnlocked(progress, "7x7"), `${tag} : 7x7 débloqué`);
+  check(!isModeTeased(progress, "7x7"), `${tag} : un mode ouvert n'est plus teasé`);
+  check(!isModeUnlocked(progress, "8x8"), `${tag} : 8x8 toujours verrouillé`);
   // Le 7x7 est vierge : le 8x8 reste caché tant qu'aucun défi 7x7 n'y mène.
-  check(!isModeTeased("8x8"), `${tag} : 8x8 pas teasé (7x7 vierge)`);
-  checkEqual(visibleModes(), ["5x5", "6x6", "7x7"], `${tag} : 8x8 encore caché`);
-  check(nextLockedMode() === "8x8", `${tag} : prochain verrouillé = 8x8`);
+  check(!isModeTeased(progress, "8x8"), `${tag} : 8x8 pas teasé (7x7 vierge)`);
+  checkEqual(visibleModes(progress), ["5x5", "6x6", "7x7"], `${tag} : 8x8 encore caché`);
+  check(nextLockedMode(progress) === "8x8", `${tag} : prochain verrouillé = 8x8`);
 
   // La chaîne est vérifiée en entier : un maillon vidé referme tout l'aval.
-  storage.removeItem("tracemot.progress.5x5");
-  check(!isModeUnlocked("6x6"), `${tag} : 5x5 vidé ⇒ 6x6 refermé`);
-  check(!isModeUnlocked("7x7"), `${tag} : 5x5 vidé ⇒ 7x7 refermé malgré ses 3★ en 6x6`);
-  checkEqual(visibleModes(), ["5x5"], `${tag} : visibleModes reste un préfixe`);
-  for (const id of REFERENCE) saveValidated("5x5", id); // on remet l'état
+  const emptied = { ...progress, "5x5": makeProgress([]) };
+  check(!isModeUnlocked(emptied, "6x6"), `${tag} : 5x5 vidé ⇒ 6x6 refermé`);
+  check(!isModeUnlocked(emptied, "7x7"), `${tag} : 5x5 vidé ⇒ 7x7 refermé malgré ses 3★ en 6x6`);
+  checkEqual(visibleModes(emptied), ["5x5"], `${tag} : visibleModes reste un préfixe`);
 
-  // Dernier mode consulté et pastille « jamais visité ».
-  saveLastMode("6x6");
-  check(loadLastMode() === "6x6", `${tag} : dernier mode = 6x6`);
-  check(!isModeSeen("6x6"), `${tag} : 6x6 pas encore visité`);
-  markModeSeen("6x6");
-  markModeSeen("6x6"); // idempotent
-  check(isModeSeen("6x6"), `${tag} : 6x6 marqué visité`);
-  check(!isModeSeen("7x7"), `${tag} : 7x7 jamais visité`);
-
-  // Un mode mémorisé mais verrouillé (progression effacée) retombe sur 5x5.
-  storage.setItem("tracemot.lastMode", "8x8");
-  check(loadLastMode() === "5x5", `${tag} : mode verrouillé mémorisé ⇒ 5x5`);
-  console.log("Persistance et déblocage des modes : OK");
-}
-
-// --- 9. Migration du stockage ------------------------------------------------
-// Une progression v1 (ids 1-16…1-25, aucun défi A/B/C) n'a plus de sens : ses
-// ids n'existent plus et son compte d'étoiles serait nul. On purge et on
-// versionne, plutôt que de traîner une carte incohérente.
-{
-  const tag = "migration v1";
-  storage.clear();
-  storage.setItem(
-    "tracemot.progress.5x5",
-    JSON.stringify([...ids(1, range(1, 25)), ...ids(2, range(1, 6))]),
+  // Reprise : le dernier mode consulté (lastMode) est essayé en premier.
+  const rp6x6 = resumePoint(progress, "6x6");
+  check(
+    rp6x6 !== null && rp6x6.modeId === "6x6",
+    `${tag} : reprise en 6x6 (dernier mode consulté, un niveau y est jouable)`,
   );
-  storage.setItem("tracemot.progress.6x6", JSON.stringify(["1-1"]));
-  storage.setItem("tracemot.seenModes", JSON.stringify(["6x6"]));
-  storage.setItem("tracemot.lastMode", "6x6");
-  storage.setItem("tracemot.mode", "classique"); // clé du jeu libre disparu
-  storage.setItem("tracemot.difficulty", "3");
 
-  migrateStorage();
+  // Dernier mode consulté mais verrouillé (8x8) : retombe sur un mode ouvert.
+  const rpLocked = resumePoint(progress, "8x8");
+  check(
+    rpLocked !== null && rpLocked.modeId !== "8x8",
+    `${tag} : mode verrouillé mémorisé ⇒ retombe sur un mode débloqué`,
+  );
 
-  checkEqual(storage.keys(), ["tracemot.schema"], `${tag} : tout purgé sauf le schéma`);
-  check(storage.getItem("tracemot.schema") === "2", `${tag} : schéma versionné à « 2 »`);
-  check(totalValidated("5x5") === 0, `${tag} : progression v1 effacée`);
-  check(isFirstLaunch(), `${tag} : on repart d'un premier lancement`);
-  console.log("Migration v1 ⇒ v2 : OK");
+  console.log("Dérivations inter-modes (Record<ModeId, ModeProgress>) : OK");
 }
 
+// --- 9. Idempotence structurelle du Record -----------------------------------
+// Set → Record (doc 01 § mise en conformité #3) : un id répété ne compte
+// qu'une fois, par construction du Record (clé unique), sans code dédié à
+// écrire ni à tester à part — ce test garde l'invariant visible.
 {
-  const tag = "migration v2";
-  storage.clear();
-  storage.setItem("tracemot.schema", "2");
-  storage.setItem("tracemot.progress.5x5", JSON.stringify(["1-1", "1-2", "1-3", "1-4", "1-5", "1-A"]));
-  storage.setItem("tracemot.seenModes", JSON.stringify(["5x5"]));
-  storage.setItem("tracemot.lastMode", "5x5");
-  storage.setItem("tracemot.mode", "classique"); // legacy : purgée dans tous les cas
-
-  migrateStorage();
-
-  check(totalValidated("5x5") === 6, `${tag} : progression v2 intacte`);
-  check(modeStars("5x5") === 1, `${tag} : l'étoile survit`);
-  check(isModeSeen("5x5"), `${tag} : seenModes intact`);
-  check(loadLastMode() === "5x5", `${tag} : lastMode intact`);
-  check(storage.getItem("tracemot.mode") === null, `${tag} : clé du jeu libre purgée`);
-  check(storage.getItem("tracemot.schema") === "2", `${tag} : schéma inchangé`);
-  console.log("Migration v2 (idempotence) : OK");
-}
-
-// --- 10. Stockage indisponible ------------------------------------------------
-// Navigation privée, quota plein : la progression est perdue, mais rien ne jette.
-{
-  const tag = "stockage indisponible";
-  const broken = {
-    getItem() {
-      throw new Error("stockage refusé");
-    },
-    setItem() {
-      throw new Error("stockage refusé");
-    },
-    removeItem() {
-      throw new Error("stockage refusé");
-    },
-  };
-  /** @type {any} */ (globalThis).localStorage = broken;
-  try {
-    migrateStorage();
-    saveValidated("5x5", "1-1");
-    check(totalValidated("5x5") === 0, `${tag} : lecture vide`);
-    check(loadProgress("5x5").validated.size === 0, `${tag} : progression vide`);
-    check(isModeUnlocked("5x5") && !isModeUnlocked("6x6"), `${tag} : verrous par défaut`);
-    check(loadLastMode() === "5x5", `${tag} : mode par défaut`);
-    saveLastMode("6x6");
-    markModeSeen("6x6");
-    check(!isModeSeen("6x6"), `${tag} : rien de mémorisé`);
-    check(isFirstLaunch(), `${tag} : premier lancement`);
-  } catch (err) {
-    check(false, `${tag} : une exception a fui — ${err}`);
-  } finally {
-    /** @type {any} */ (globalThis).localStorage = storage;
-  }
-  console.log("Stockage indisponible : OK");
+  const tag = "idempotence (Record)";
+  const dup = makeProgress([...REFERENCE, "1-1", "1-A"]);
+  check(
+    Object.keys(dup.validated).length === REFERENCE_COUNT,
+    `${tag} : un id répété ne grossit pas le compte`,
+  );
+  check(starCount(dup) === 3, `${tag} : pas de 4e étoile par répétition`);
+  console.log("Idempotence structurelle du Record : OK");
 }
 
 if (failures > 0) {

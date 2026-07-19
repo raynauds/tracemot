@@ -18,6 +18,7 @@
 // Aucune logique de viewport ici : le CSS tranche.
 
 import {
+  DEFAULT_MODE,
   DIFFICULTY_LABELS,
   GAME_MODES,
   defiMode,
@@ -33,17 +34,13 @@ import {
   levelId,
 } from "@tracemot/core";
 import { playSound } from "../audio/audio.ts";
-import { bindOverlayCloser, popOverlay, pushOverlay } from "./history.ts";
-import { arrowLeftIcon, checkIcon, closeIcon, starIcon } from "./icons.ts";
+import { checkIcon, closeIcon, starIcon } from "./icons.ts";
 import {
   cellState,
+  emptyProgressByMode,
   gateModeOf,
-  isModeSeen,
   isModeUnlocked,
-  loadLastMode,
-  loadProgress,
-  markModeSeen,
-  saveLastMode,
+  resumePoint,
   sectionStats,
   sectionTeased,
   starCount,
@@ -52,18 +49,45 @@ import {
   visibleModes,
   type CellState,
   type ModeProgress,
+  type ProgressByMode,
 } from "../game/progress.ts";
 
 const SECTIONS: Section[] = [1, 2, 3, 4];
 // Étoiles d'une section : trois défis, donc trois icônes, pleines ou creuses.
 const SECTION_STARS = 3;
 
-// Onglet affiché. Initialisé au dernier mode consulté, puis piloté par les
-// clics ; c'est le seul état que la carte porte.
-let currentMode: ModeId = loadLastMode();
+// Onglet affiché, piloté par les clics. Initialisé (une seule fois, cf.
+// showMap) au dernier mode consulté — persisted.lastMode, doc 02/08,
+// ex-localStorage — puis laissé sticky : un clic d'onglet ne se fait plus
+// jamais écraser par un rendu qui suit (sharedProgress change à chaque mot
+// trouvé, la carte se rafraîchit donc souvent pendant qu'elle est affichée).
+let currentMode: ModeId = DEFAULT_MODE;
+let modeInitialized = false;
+
+// Progression reçue au dernier rendu (showMap/renderMap) : la carte ne
+// possède aucune progression elle-même, elle ne fait que peindre celle qu'on
+// lui donne — mais un clic d'onglet doit pouvoir re-rendre sans qu'on la lui
+// repasse, d'où ce cache.
+let currentProgress: ProgressByMode = emptyProgressByMode();
+
+// « Vu » n'est pas dérivable de la progression : un mode peut être débloqué et
+// jamais ouvert. Le Set est un cache de session (mise à jour immédiate de la
+// pastille) SEEDÉ depuis persisted.seenModes (doc 02/08) au premier showMap ;
+// toute nouvelle entrée est aussi répercutée au persisted via onModeSeen
+// (bindMap), pour survivre à la session suivante.
+const seenModes = new Set<ModeId>();
+function isModeSeen(modeId: ModeId): boolean {
+  return seenModes.has(modeId);
+}
+function markModeSeen(modeId: ModeId): void {
+  if (seenModes.has(modeId)) return; // déjà vu : pas d'action réseau à répéter
+  seenModes.add(modeId);
+  onModeSeen?.(modeId);
+}
 
 let onSelect: ((modeId: ModeId, id: LevelId) => void) | null = null;
-let onHome: (() => void) | null = null;
+let onModeSeen: ((modeId: ModeId) => void) | null = null;
+let onModeChange: ((modeId: ModeId) => void) | null = null;
 
 const mapEl = document.getElementById("map") as HTMLElement;
 
@@ -116,8 +140,8 @@ function buildTabs(): HTMLElement {
   // en fin de barre, qui l'ancre. Le mettre dans l'onglet est impossible — un
   // panneau ne peut pas vivre dans un <button>.
   let lockedTab: ModeId | null = null;
-  for (const modeId of visibleModes()) {
-    const unlocked = isModeUnlocked(modeId);
+  for (const modeId of visibleModes(currentProgress)) {
+    const unlocked = isModeUnlocked(currentProgress, modeId);
     const tab = el("button", "map-tab");
     tab.type = "button";
     if (!unlocked) {
@@ -158,7 +182,7 @@ function buildTabs(): HTMLElement {
 // précédent, pas forcément celui qu'on regarde (cf. gateModeOf).
 function buildLockedModePanel(modeId: ModeId): DocumentFragment {
   const gate = gateModeOf(modeId);
-  const missing = starsMissingForMode(modeId);
+  const missing = starsMissingForMode(currentProgress, modeId);
   const lines: (string | HTMLElement)[] = [];
   // Même phrase que pour une difficulté verrouillée — un seul verrou, une seule
   // formulation —, au mode gardien près : c'est le PRÉCÉDENT qui tient la porte,
@@ -271,26 +295,34 @@ function buildStars(p: ModeProgress): HTMLElement | null {
   return box;
 }
 
-// Retour à l'accueil : une flèche nue, exactement celle qui sort d'une partie
-// (src/render/header.css). Un seul dessin pour un seul sens — « remonter d'un
-// écran » —, qu'on remonte de la grille à la carte ou de la carte à l'accueil.
-function buildHomeButton(): HTMLElement {
-  const button = el("button", "map-home");
+// La carte est désormais le PREMIER écran (doc 08 § Q21a : l'accueil disparaît,
+// « pas de menu ») : son bouton REPRENDRE migre ici, en tête de carte — le
+// raccourci le plus court vers le jeu, sans passer par les onglets ni les
+// cases. Absent quand il n'y a plus rien à reprendre nulle part (tout validé).
+//
+// Le point de reprise est calculé sur l'onglet AFFICHÉ (currentMode) : c'est le
+// même rôle que jouait `lastMode` pour l'ancien accueil (« le dernier mode
+// consulté »), currentMode EST ce mode ici — pas un second concept à tenir
+// d'accord avec lui.
+function buildResumeButton(): HTMLElement | null {
+  const resume = resumePoint(currentProgress, currentMode);
+  if (!resume) return null;
+  const button = el("button", "map-resume", "REPRENDRE");
   button.type = "button";
-  button.id = "map-home";
-  button.setAttribute("aria-label", "Retour à l'accueil");
-  button.title = "Retour à l'accueil";
-  button.appendChild(arrowLeftIcon());
+  button.dataset.resumeMode = resume.modeId;
+  button.dataset.resumeLevel = resume.id;
   return button;
 }
 
-// Sans marque : le jeu ne se nomme que sur l'accueil (src/render/home.ts), pas
-// sur la carte. La flèche et les onglets ouvrent donc le header — d'où l'on
-// sort, ce qu'on regarde —, le compteur d'étoiles le ferme.
+// Sans marque : le jeu ne se nomme nulle part sur la carte (src/theme/
+// DESIGN.md — un logo n'a rien à faire dans le premier écran d'un jeu Rune).
+// Reprendre et les onglets ouvrent donc le header — d'où l'on reprend, ce
+// qu'on regarde —, le compteur d'étoiles le ferme.
 function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
   const left = el("div", "map-header-left");
-  left.appendChild(buildHomeButton());
+  const resume = buildResumeButton();
+  if (resume) left.appendChild(resume);
   left.appendChild(buildTabs());
   head.appendChild(left);
   head.appendChild(el("div", "map-spring"));
@@ -465,7 +497,7 @@ function buildRow(
   for (let i = 1; i <= ROW_LENGTH; i++) {
     const n = (row - 1) * ROW_LENGTH + i;
     const id = levelId(s, n);
-    if (p.validated.has(id)) doneInRow++;
+    if (id in p.validated) doneInRow++;
     grid.appendChild(buildCell(id, n, cellState(p, id)));
   }
   node.appendChild(grid);
@@ -613,7 +645,8 @@ function buildSection(
 
 export function renderMap(modeId: ModeId): void {
   currentMode = modeId;
-  const p = loadProgress(modeId);
+  markModeSeen(modeId); // idempotent : couvre l'onglet initial ET les clics
+  const p = currentProgress[modeId];
 
   // Le DOM part avec ses panneaux : plus rien n'est ouvert.
   openPanel = null;
@@ -665,23 +698,38 @@ function buildLegend(): HTMLElement {
 // --- Affichage et événements ------------------------------------------------
 
 // Toujours re-rendre : au retour de partie, les cases débloquées par la
-// validation doivent apparaître sans que l'appelant ait à y penser.
-export function showMap(): void {
+// validation doivent apparaître sans que l'appelant ait à y penser (et,
+// désormais, à chaque mot trouvé par n'importe qui — sharedProgress est
+// l'union de la room, doc 03). La carte ne possède aucune progression
+// elle-même (doc 01) : l'appelant la fournit à chaque affichage ; elle reste
+// en cache (currentProgress) pour les rendus internes déclenchés par un clic
+// d'onglet.
+//
+// `lastMode`/`seenModes` : lus depuis `game.persisted` (doc 02/08) — ne
+// SEEDENT `currentMode`/seenModes qu'une fois (modeInitialized) : les rendus
+// suivants ne doivent pas écraser un onglet choisi par le joueur en session.
+export function showMap(
+  progress: ProgressByMode,
+  lastMode: ModeId,
+  seenModesList: ModeId[],
+): void {
+  if (!modeInitialized) {
+    currentMode = lastMode;
+    for (const m of seenModesList) seenModes.add(m);
+    modeInitialized = true;
+  }
+  currentProgress = progress;
   renderMap(currentMode);
   mapEl.hidden = false;
   mapEl.scrollTop = 0;
   // Le chrome de partie (header, registre, zoom) est masqué par le CSS via
   // cette classe : la carte n'a pas à connaître ses éléments un par un.
   document.body.classList.add("map-open");
-  // Une entrée d'historique par ouverture : le geste retour mobile referme
-  // l'écran au lieu de quitter l'application (src/render/history.ts).
-  pushOverlay("map");
 }
 
 export function hideMap(): void {
   mapEl.hidden = true;
   document.body.classList.remove("map-open");
-  popOverlay("map");
 }
 
 // Panneau ouvert, ou null. Un rendu reconstruit tout fermé et remet cette clé à
@@ -710,10 +758,24 @@ function setPanelOpen(key: string | null): void {
 
 // Délégation unique sur #map : le contenu étant reconstruit à chaque rendu,
 // attacher les écouteurs aux cases signifierait les réattacher sans cesse.
+//
+// `onSelectLevel` sert À LA FOIS aux cases/défis et au bouton REPRENDRE :
+// proposer un niveau est le même geste, quelle que soit la case d'où il part.
+// `handlers.onModeSeen` (dispatché vers `Rune.actions.markModeSeen`) ne
+// tourne qu'à la PREMIÈRE ouverture d'un mode (gated par le Set local, cf.
+// markModeSeen) ; `handlers.onModeChange` (→ `Rune.actions.setLastMode`)
+// tourne à CHAQUE clic d'onglet, vu ou non — ce sont deux préférences
+// distinctes (doc 02/08).
 export function bindMap(
   onSelectLevel: (modeId: ModeId, id: LevelId) => void,
+  handlers: {
+    onModeSeen: (modeId: ModeId) => void;
+    onModeChange: (modeId: ModeId) => void;
+  },
 ): void {
   onSelect = onSelectLevel;
+  onModeSeen = handlers.onModeSeen;
+  onModeChange = handlers.onModeChange;
   mapEl.addEventListener("click", (e) => {
     const target = e.target as HTMLElement | null;
     if (!target) return;
@@ -740,21 +802,24 @@ export function bindMap(
       return;
     }
 
-    if (target.closest("#map-home")) {
-      playSound("ui-close");
-      if (onHome) onHome();
-      return;
-    }
-
     const tab = target.closest<HTMLElement>("[data-mode]");
     if (tab) {
       const modeId = tab.dataset.mode as ModeId;
       if (modeId === currentMode) return; // onglet déjà actif : rien, pas même un son
       playSound("ui-secondary");
-      saveLastMode(modeId);
-      markModeSeen(modeId); // éteint la pastille « nouveau »
-      renderMap(modeId);
+      renderMap(modeId); // marque aussi le mode vu (cf. renderMap)
+      onModeChange?.(modeId);
       mapEl.scrollTop = 0;
+      return;
+    }
+
+    const resume = target.closest<HTMLElement>("[data-resume-level]");
+    if (resume && onSelect) {
+      playSound("ui-primary");
+      onSelect(
+        resume.dataset.resumeMode as ModeId,
+        resume.dataset.resumeLevel as LevelId,
+      );
       return;
     }
 
@@ -771,19 +836,4 @@ export function bindMap(
       setPanelOpen(null);
     }
   });
-  // Le mode ouvert d'emblée compte comme vu (sinon sa pastille survivrait à sa
-  // première visite).
-  markModeSeen(currentMode);
-}
-
-// Retour à l'accueil. Séparé de bindMap comme bindMapReturn l'est du reste du
-// header de partie : c'est une sortie d'écran, pas un choix de niveau. Le clic
-// lui-même passe par la délégation ci-dessus — le header est reconstruit à
-// chaque rendu, la flèche n'a donc pas d'écouteur propre.
-export function bindMapHome(onReturn: () => void): void {
-  onHome = onReturn;
-  // Retour navigateur pendant que la carte est ouverte : même sortie que la
-  // flèche « retour à l'accueil » — la carte n'a qu'un seul sens de sortie,
-  // quel que soit le chemin par lequel on y est entré.
-  bindOverlayCloser("map", onReturn);
 }

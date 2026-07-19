@@ -66,31 +66,29 @@ body.map-open .win {
   gap: 14px;
 }
 
-/* Sortie d'écran, comme .back-map en partie (src/render/header.css) : même
-   flèche nue, même encre pleine, même cible de doigt reprise par une marge
-   négative pour que l'icône s'aligne quand même sur le cadre. */
-.map-home {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px;
-  margin: -10px;
-  background: none;
+/* REPRENDRE : le raccourci le plus court vers le jeu, en tête de carte — ex-
+   bouton primaire de l'accueil disparu (doc 08 § Q21a). Plein vermillon,
+   comme .home-primary l'était : c'est la seule action pleine de tout le
+   header, elle prime sur les onglets et les cases. */
+.map-resume {
+  height: 40px;
+  padding: 0 20px;
+  background: var(--vermilion);
   border: none;
-  color: var(--ink);
-  font-size: 24px; /* règle l'icône : .icon tient 1em de côté */
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   cursor: pointer;
 }
 
-/* Survol réservé à la souris : au doigt, le navigateur simule un :hover au tap
-   et le laisse collé jusqu'au tap suivant. */
-@media (hover: hover) {
-  .map-home:hover {
-    color: var(--vermilion);
-  }
+.map-resume:hover {
+  filter: brightness(1.08);
 }
 
-.map-home:active {
-  color: var(--vermilion);
+.map-resume:active {
+  filter: brightness(0.94);
 }
 
 /* Ancre du panneau du mode verrouillé : il ne peut pas vivre dans son onglet
@@ -709,8 +707,11 @@ body.map-open .win {
   .map-header-left {
     gap: 10px;
   }
-  .map-home {
-    font-size: 22px;
+  .map-resume {
+    height: 36px;
+    padding: 0 16px;
+    font-size: 12px;
+    letter-spacing: 1px;
   }
   .map-tabs {
     gap: 8px;

@@ -16,7 +16,7 @@
 
 import { playSound } from "../audio/audio.ts";
 import { KEY_PAN_SPEED } from "../game/config.ts";
-import { state } from "../game/state.ts";
+import { local, usedCells } from "../client/local-state.ts";
 import { buzz, renderPendingWord } from "../render/render.ts";
 import {
   cellAtGlobal,
@@ -67,12 +67,12 @@ let pinchStart: Map<number, Vec2> | null = null;
 // rejoue la hauteur de la case sur laquelle on retombe — la même que lors de
 // son ajout — donc la descente est le miroir exact de la montée.
 function traceTick() {
-  const step = Math.min(state.path.length - 1, 9);
+  const step = Math.min(local.path.length - 1, 9);
   playSound("trace-letter", { rate: 2 ** (step / 12) });
 }
 
 export function clearPath() {
-  state.path = [];
+  local.path = [];
   updateSelection();
   renderTrace();
   renderPendingWord();
@@ -83,7 +83,7 @@ export function clearPath() {
 // adjacentes donnent un segment d'une seule case : le cas courant est juste le
 // plus court des sauts.
 function straightSegment(from: number, to: number): number[] | null {
-  const { cols } = state.geometry;
+  const { cols } = local.geometry;
   let step: number;
   if (Math.floor(from / cols) === Math.floor(to / cols))
     step = to > from ? 1 : -1;
@@ -100,8 +100,8 @@ function straightSegment(from: number, to: number): number[] | null {
 // Démarre un tracé sur la case idx avec le pointeur courant.
 function beginTrace(e: FederatedPointerEvent, idx: number) {
   mode = "trace";
-  state.pointerId = e.pointerId;
-  state.path = [idx];
+  local.pointerId = e.pointerId;
+  local.path = [idx];
   buzz();
   traceTick();
   updateSelection();
@@ -118,29 +118,30 @@ function beginTrace(e: FederatedPointerEvent, idx: number) {
 // Retourne true si le tracé a changé.
 function extendTraceTo(idx: number | null) {
   if (idx === null) return false;
-  const last = state.path[state.path.length - 1];
+  const last = local.path[local.path.length - 1];
   if (idx === last) return false;
 
   const seg = straightSegment(last, idx);
   if (!seg) return false;
 
   const isBacktrack =
-    state.path.length > seg.length &&
-    seg.every((c, k) => c === state.path[state.path.length - 2 - k]);
+    local.path.length > seg.length &&
+    seg.every((c, k) => c === local.path[local.path.length - 2 - k]);
+  // Calculée une fois pour tout le segment, pas case par case : elle est
+  // dérivée (cf. client/local-state.ts), plus stockée à part.
+  const used = usedCells();
   if (isBacktrack) {
     // Miroir de l'avancée (buzz + petite animation de case) : seule la case
     // qui quitte réellement le tracé (l'ancienne tête) est animée, comme
     // l'avancée n'anime que la case qui le rejoint (updateSelection).
-    const releasedHead = state.path[state.path.length - 1];
-    state.path.length -= seg.length;
+    const releasedHead = local.path[local.path.length - 1];
+    local.path.length -= seg.length;
     buzz();
     traceTick();
     popCell(releasedHead);
-  } else if (
-    seg.every((c) => !state.usedCells.has(c) && !state.path.includes(c))
-  ) {
+  } else if (seg.every((c) => !used.has(c) && !local.path.includes(c))) {
     for (const c of seg) {
-      state.path.push(c);
+      local.path.push(c);
       buzz();
       traceTick();
     }
@@ -155,7 +156,7 @@ function extendTraceTo(idx: number | null) {
 
 // Étend le tracé selon la case sous le pointeur (règles inchangées).
 function traceMove(e: FederatedPointerEvent) {
-  if (e.pointerId !== state.pointerId || state.won) return;
+  if (e.pointerId !== local.pointerId || local.won) return;
   // Bouton souris relâché sans pointerup délivré (perte de focus) : on annule
   // le tracé au lieu de l'étendre au survol.
   if (e.pointerType === "mouse" && e.buttons === 0) {
@@ -192,7 +193,7 @@ function panMove(e: FederatedPointerEvent, pos: Vec2) {
 // et la géométrie initiale des deux doigts.
 function beginPinch() {
   if (mode === "trace") {
-    state.pointerId = null;
+    local.pointerId = null;
     clearPath();
   }
   const ids = [...pointers.keys()];
@@ -213,7 +214,7 @@ function beginPinch() {
 // effectivement en pinch une fois que les DEUX doigts ont chacun parcouru
 // PINCH_ESCALATE_PX depuis leur position de pose. Tant que ce n'est pas le
 // cas, rien ne change : le tracé continue au premier doigt (traceMove ignore
-// déjà tout pointeur qui n'est pas state.pointerId).
+// déjà tout pointeur qui n'est pas local.pointerId).
 function checkPinchEscalation() {
   if (!pinchPending || !pinchStart) return;
   for (const [id, start] of pinchStart) {
@@ -249,7 +250,7 @@ function pinchMove() {
 // de mode : un geste en vol référencerait les cases de l'ancienne grille).
 export function cancelAllGestures() {
   if (mode === "trace") {
-    state.pointerId = null;
+    local.pointerId = null;
     clearPath();
   }
   mode = null;
@@ -266,7 +267,7 @@ export function cancelAllGestures() {
 function endGesture() {
   mode = null;
   panPointerId = null;
-  state.pointerId = null;
+  local.pointerId = null;
 }
 
 function onPointerDown(e: FederatedPointerEvent) {
@@ -292,9 +293,9 @@ function onPointerDown(e: FederatedPointerEvent) {
   }
 
   // 1er pointeur : bouton du milieu → pan ; sinon on tente le tracé.
-  if (e.button !== 1 && state.ready && !state.won) {
+  if (e.button !== 1 && local.ready && !local.won) {
     const idx = cellAtGlobal(e.global);
-    if (idx !== null && !state.usedCells.has(idx)) {
+    if (idx !== null && !usedCells().has(idx)) {
       beginTrace(e, idx);
       return;
     }
@@ -308,7 +309,7 @@ function onPointerMove(e: FederatedPointerEvent) {
   // visuel discret) si aucun geste n'est armé ; 3e doigt sinon, ignoré.
   if (!pointers.has(e.pointerId)) {
     const canHover =
-      e.pointerType === "mouse" && mode === null && state.ready && !state.won;
+      e.pointerType === "mouse" && mode === null && local.ready && !local.won;
     if (canHover) setHoverCell(cellAtGlobal(e.global));
     return;
   }
@@ -325,7 +326,7 @@ function onPointerMove(e: FederatedPointerEvent) {
 
 // Fin d'un pointeur (up, upoutside, cancel). commit = valider un tracé abouti.
 function onPointerEnd(e: FederatedPointerEvent, commit: boolean) {
-  const wasTrace = mode === "trace" && e.pointerId === state.pointerId;
+  const wasTrace = mode === "trace" && e.pointerId === local.pointerId;
   pointers.delete(e.pointerId);
 
   if (pinchPending && pointers.size < 2) {
@@ -350,10 +351,10 @@ function onPointerEnd(e: FederatedPointerEvent, commit: boolean) {
   }
 
   if (wasTrace) {
-    state.pointerId = null;
+    local.pointerId = null;
     mode = null;
     if (commit) {
-      if (!state.won) onCommit();
+      if (!local.won) onCommit();
     } else {
       clearPath();
     }
@@ -401,7 +402,7 @@ function isTypingTarget(target: EventTarget | null) {
 // personne ne voit.
 function onKeyDown(e: KeyboardEvent) {
   const dir = KEY_DIRS[e.key.toLowerCase()];
-  if (!dir || !state.ready || isTypingTarget(e.target)) return;
+  if (!dir || !local.ready || isTypingTarget(e.target)) return;
   e.preventDefault();
   pressed.add(dir);
 }

@@ -1,5 +1,5 @@
 // Chrome DOM en surimpression : header de partie (niveau, retour carte),
-// registre repliable des mots trouvés, consigne, statut et victoire.
+// registre repliable des mots trouvés, consigne et victoire.
 // La grille, le tracé et leurs animations sont rendus par PixiJS
 // (render/scene.ts) ; la carte de progression par render/map.ts.
 //
@@ -11,15 +11,9 @@ import { playSound } from "../audio/audio.ts";
 import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
 import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
-import { state } from "../game/state.ts";
-import { wordRejectReason } from "../game/rules.ts";
+import { local, wordCheckContext } from "../client/local-state.ts";
+import { wordRejectReason, type WordRejectCode } from "../game/rules.ts";
 import { showHelp } from "./help.ts";
-import {
-  bindOverlayCloser,
-  currentOverlay,
-  popOverlay,
-  pushOverlay,
-} from "./history.ts";
 import {
   arrowLeftIcon,
   chevronIcon,
@@ -30,7 +24,7 @@ import {
 
 // Ligne vide du registre : un point par lettre attendue (mode actif).
 function wordDots() {
-  return Array.from({ length: state.mode.wordLength }, () => "·").join(" ");
+  return Array.from({ length: local.mode.wordLength }, () => "·").join(" ");
 }
 
 function byId(id: string): HTMLElement {
@@ -39,7 +33,6 @@ function byId(id: string): HTMLElement {
   return el;
 }
 
-const statusEl = byId("status");
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
 const winStarEl = byId("win-star");
@@ -62,7 +55,7 @@ const listRows: HTMLElement[] = []; // les wordCount lignes du registre
 // actif (mises en capitales par le CSS). La phrase serif au-dessus est
 // générique (sans nombres) et vit dans le HTML.
 function renderRuleSpec() {
-  const { wordCount, wordLength } = state.mode;
+  const { wordCount, wordLength } = local.mode;
   ruleSpecEl.textContent = `${wordCount} mots · ${wordLength} lettres`;
 }
 
@@ -76,35 +69,39 @@ backMapEl.appendChild(arrowLeftIcon());
 // Identité du niveau en cours (« 5×5 · 1-12 ») : le seul repère du joueur une
 // fois la carte masquée.
 export function renderLevelHeader() {
-  levelIdEl.textContent = state.levelId
-    ? levelLabel(state.modeId, state.levelId)
+  levelIdEl.textContent = local.levelId
+    ? levelLabel(local.modeId, local.levelId)
     : "";
 }
 
-// Retour à la carte : même action depuis le header et depuis l'écran de
-// victoire (où elle est l'action principale). Sonorisée en fermeture dans les
-// deux cas : c'est une sortie d'écran, pas un engagement — même sur l'écran de
-// victoire, où ses voisins SUIVANT/DÉFI portent le son principal.
-export function bindMapReturn(onReturn: () => void) {
-  const leave = () => {
+// Retour à la carte : DEUX sorties distinctes depuis Rune (doc 02 § Machine de
+// phase), qui ne se confondent plus comme avant le portage.
+//   - La flèche du header (mi-partie, pas gagné) quitte une partie EN COURS
+//     pour les autres aussi : c'est une proposition d'abandon, soumise au même
+//     vote qu'un niveau (doc 02/04) — `onAbandon` dispatche l'action logic.
+//   - Le bouton de l'écran de victoire (et Échap pendant qu'il est affiché)
+//     ferme un overlay purement LOCAL : la partie reste en place pour la room
+//     tant qu'aucune proposition n'est acceptée (« Après victoire, le retour
+//     carte est local », doc 02) — `onCloseWin` ne dispatche rien.
+export function bindMapReturn(handlers: {
+  onAbandon: () => void;
+  onCloseWin: () => void;
+}) {
+  backMapEl.addEventListener("click", () => {
     playSound("ui-close");
-    onReturn();
-  };
-  backMapEl.addEventListener("click", leave);
-  winMapEl.addEventListener("click", leave);
-  // Écran de victoire : seul overlay sans handler clavier (aide, crédits,
-  // carte, panneau règle en ont tous un) — Échap fait ce que fait le bouton
-  // « retour à la carte ». La garde porte sur l'overlay réellement au premier
-  // plan (currentOverlay), et non sur winEl.hidden : le retour à la carte ne
-  // remet pas ce drapeau à true (seul startLevel le fait, cf. renderNewGame),
-  // si bien qu'Échap sur la carte ou l'accueil rejouerait sinon ce retour.
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && currentOverlay() === "win") leave();
+    handlers.onAbandon();
   });
-  // Retour navigateur depuis l'écran de victoire : même sortie que le bouton
-  // « retour à la carte » — c'est l'enchaînement victoire → carte
-  // (src/render/history.ts), pas un simple masquage.
-  bindOverlayCloser("win", leave);
+  const closeWin = () => {
+    playSound("ui-close");
+    handlers.onCloseWin();
+  };
+  winMapEl.addEventListener("click", closeWin);
+  // Écran de victoire : seul overlay sans handler clavier propre (aide, carte,
+  // panneau règle en ont tous un) — Échap fait ce que fait le bouton « retour
+  // à la carte », rien de plus (pas d'historique navigateur, doc 08 § Q22).
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !winEl.hidden) closeWin();
+  });
 }
 
 // --- Registre repliable ----------------------------------------------------
@@ -132,9 +129,9 @@ setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 // --- Règle du jeu (bouton « info » du header) ------------------------------
 
 // La règle vit dans un panneau ouvert par le bouton « info » — sur demande
-// seulement : l'accueil du tout premier niveau appartient désormais à l'écran
-// « Comment jouer » (src/render/help.ts), qui a hérité de l'ouverture d'office
-// et de son drapeau localStorage.
+// seulement : l'accueil du tout premier niveau appartient à l'écran
+// « Comment jouer » (src/render/help.ts), qui s'ouvre d'office à la première
+// partie (persisted.helpSeen, doc 02/08 — plus de drapeau localStorage).
 const ruleChipEl = byId("rule-chip");
 ruleChipEl.appendChild(infoIcon());
 const rulePanelEl = byId("rule-panel");
@@ -188,7 +185,7 @@ export function buildBoard() {
   // varie du simple au quadruple (un défi du 8×8 en demande 32 quand le HTML
   // n'en pré-rend que 5 — les 27 manquantes sont créées ici), et listRows est
   // reconstruit de zéro (les lignes adoptées restent valides).
-  const { wordCount } = state.mode;
+  const { wordCount } = local.mode;
   listRows.length = 0;
   while (wordListEl.children.length > wordCount) {
     wordListEl.lastElementChild?.remove();
@@ -235,29 +232,45 @@ function resetListRow(row: HTMLElement) {
 // Aperçu du tracé en cours dans la première ligne libre du registre :
 // les lettres s'affichent en terne tant que le mot n'est pas validé.
 export function renderPendingWord() {
-  const row = listRows[state.found.length];
+  const row = listRows[local.found.length];
   if (!row) return;
-  if (state.rejectTimer !== null) {
-    clearTimeout(state.rejectTimer);
-    state.rejectTimer = null;
+  if (local.rejectTimer !== null) {
+    clearTimeout(local.rejectTimer);
+    local.rejectTimer = null;
   }
   resetListRow(row);
-  if (state.path.length === 0) return;
+  if (local.path.length === 0) return;
   row.className = "word-row pending";
   const content = row.children[1];
-  const word = state.path.map((i) => state.letters[i]).join("");
+  const word = local.path.map((i) => local.letters[i]).join("");
   // Hint discret : l'encre se densifie dès que le tracé forme un mot
   // acceptable.
-  const isWord = wordRejectReason(word) === null;
+  const isWord = wordRejectReason(word, wordCheckContext()) === null;
   content.className = isWord ? "word-text pending valid" : "word-text pending";
   content.textContent = word;
   keepRowVisible(row);
 }
 
+// Libellé français d'un code de refus (game/rules.ts, désormais pur et
+// dépourvu de toute chaîne affichable — doc 01 § mise en conformité #5).
+// Casse normale, pas de majuscules : ce sont des messages, pas des labels —
+// la règle du projet réserve les majuscules aux labels, boutons et états
+// (DESIGN.md).
+export function rejectLabel(code: WordRejectCode): string {
+  switch (code) {
+    case "length":
+      return `${local.mode.wordLength} lettres requises`;
+    case "notInSolution":
+      return "Incorrecte";
+    case "alreadyFound":
+      return "Déjà trouvé";
+  }
+}
+
 // Mot refusé : lettres en rouge, motif du refus à droite, puis la ligne
 // redevient libre une fois le message lu.
 export function showReject(word: string, reason: string) {
-  const row = listRows[state.found.length];
+  const row = listRows[local.found.length];
   if (!row) return;
   // Le flash et la secousse de la grille sont rendus par render/scene.ts (Pixi).
   row.className = "word-row rejected";
@@ -268,8 +281,8 @@ export function showReject(word: string, reason: string) {
   label.className = "word-reason";
   label.textContent = reason;
   row.appendChild(label);
-  state.rejectTimer = setTimeout(() => {
-    state.rejectTimer = null;
+  local.rejectTimer = setTimeout(() => {
+    local.rejectTimer = null;
     resetListRow(row);
   }, REJECT_DISPLAY_MS);
 }
@@ -296,7 +309,7 @@ export function fillListRow(index: number, word: string, animate: boolean) {
 }
 
 export function renderCounter() {
-  counterEl.innerHTML = `<span class="count">${state.found.length}</span> / ${state.mode.wordCount}`;
+  counterEl.innerHTML = `<span class="count">${local.found.length}</span> / ${local.mode.wordCount}`;
 }
 
 // --- Grille (feedbacks portés en Pixi) -------------------------------------
@@ -314,9 +327,9 @@ export function buzz() {
 // réinitialisé, consigne rétablie, victoire masquée. La grille Pixi est
 // réaffichée par render/scene.ts (renderSceneGrid).
 export function renderNewGame() {
-  if (state.rejectTimer !== null) {
-    clearTimeout(state.rejectTimer);
-    state.rejectTimer = null;
+  if (local.rejectTimer !== null) {
+    clearTimeout(local.rejectTimer);
+    local.rejectTimer = null;
   }
   listRows.forEach(resetListRow);
   renderCounter();
@@ -385,7 +398,7 @@ export function renderWin(
 ) {
   const { star, choices = [] } = opts;
   counterEl.classList.add("full");
-  const { wordCount } = state.mode;
+  const { wordCount } = local.mode;
   winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} TROUVÉ${wordCount > 1 ? "S" : ""}`;
   winStarEl.hidden = !star;
   if (star) {
@@ -403,64 +416,9 @@ export function renderWin(
   }
   renderWinActions(choices);
   winEl.hidden = false;
-  // Une entrée d'historique par ouverture : le geste retour mobile referme
-  // l'écran au lieu de quitter l'application (src/render/history.ts).
-  pushOverlay("win");
 }
 
 // Le retour à la carte et l'enchaînement quittent tous deux l'écran de victoire.
 export function hideWin() {
   winEl.hidden = true;
-  popOverlay("win");
-}
-
-// Échec de chargement d'un niveau. L'overlay est opaque et couvre la carte
-// (z-index 50) : sans quoi le retour à la carte, qui suit immédiatement, le
-// masquerait. Il reste refermable d'un clic ailleurs que sur RÉESSAYER —
-// sinon le joueur y resterait enfermé, alors que l'échec est rattrapable
-// (autre niveau, autre mode).
-//
-// Le message ne dit jamais LA cause (réseau, JSON absent, quota…) : le joueur
-// n'a rien à en faire, seul « ça n'a pas marché, voici comment réessayer »
-// compte. `retry` reprend le chargement qui a échoué (même niveau, même mode)
-// plutôt que de recharger toute la page.
-export function renderLoadError(retry: () => void) {
-  statusEl.classList.add("error");
-  statusEl.textContent = "";
-
-  const message = document.createElement("p");
-  message.className = "status-message";
-  message.textContent = "Impossible de charger ce niveau.";
-  statusEl.appendChild(message);
-
-  const retryEl = document.createElement("button");
-  retryEl.type = "button";
-  retryEl.className = "status-retry";
-  retryEl.textContent = "RÉESSAYER";
-  retryEl.addEventListener("click", (e) => {
-    // Ne pas laisser l'événement remonter jusqu'au clic-pour-fermer posé plus
-    // bas : la nouvelle tentative masquera elle-même ce statut si elle aboutit.
-    e.stopPropagation();
-    hideStatus();
-    retry();
-  });
-  statusEl.appendChild(retryEl);
-
-  const hint = document.createElement("p");
-  hint.className = "status-hint";
-  hint.textContent = "Ou cliquez ailleurs pour revenir à la carte.";
-  statusEl.appendChild(hint);
-
-  statusEl.hidden = false;
-  // Clic-pour-fermer posé une seule fois : renderLoadError se rappelle à chaque
-  // tentative ratée (retry → startLevel → renderLoadError). Sans le retrait
-  // préalable, les écouteurs {once} d'échecs successifs s'empileraient (ils ne
-  // partent qu'au déclenchement) — hideStatus est idempotent mais autant ne pas
-  // les accumuler.
-  statusEl.removeEventListener("click", hideStatus);
-  statusEl.addEventListener("click", hideStatus, { once: true });
-}
-
-export function hideStatus() {
-  statusEl.hidden = true;
 }

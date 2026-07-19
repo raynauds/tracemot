@@ -43,18 +43,17 @@ export function defiMode(m: GameMode): GameMode {
   };
 }
 
-function assertPavage(id: string, m: GameMode) {
+// Pure : ne fait que vérifier, ne throw plus au chargement du module (un throw
+// top-level planterait l'init de la VM logic Rune sans catch possible, doc 01
+// § mise en conformité #2). Le garde-fou est exécuté par tools/check-pavage.mjs,
+// appelé par "npm run check" — pas par l'import de ce module.
+export function assertPavage(id: string, m: GameMode): void {
   if (m.wordCount * m.wordLength !== m.rows * m.cols) {
     throw new Error(
       `Tracemot : mode « ${id} » invalide - ` +
         `${m.wordCount} × ${m.wordLength} ≠ ${m.rows} × ${m.cols}`,
     );
   }
-}
-
-for (const id of MODE_ORDER) {
-  assertPavage(id, GAME_MODES[id]);
-  assertPavage(`${id} (défi)`, defiMode(GAME_MODES[id]));
 }
 
 // Mode par défaut : le seul accessible au premier lancement.

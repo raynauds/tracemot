@@ -1,8 +1,19 @@
-// Progression : persistance des niveaux validés et DÉRIVATION des états de la
-// carte. Aucun DOM ici — la carte (src/render/map.ts) ne fait que peindre ce
+// Progression : DÉRIVATION des états de la carte à partir des niveaux
+// validés. Aucun DOM ici — la carte (src/render/map.ts) ne fait que peindre ce
 // que ce module calcule.
 //
-// Seule la liste des identifiants validés est stockée. Tout le reste (case
+// Le module est scindé en trois groupes (doc 01, mise en conformité #4-6) :
+//   (a) dérivation pure MONO-mode — `ModeProgress` en argument, rien d'autre ;
+//   (b) dérivation INTER-modes — un `Record<ModeId, ModeProgress>` en
+//       argument (+ `lastMode` pour resumePoint) ; elles lisaient hier le
+//       localStorage, elles ne lisent plus rien qu'on ne leur passe ;
+//   (c) — n'existe plus ici : la persistance (localStorage) est supprimée,
+//       remplacée par `game.persisted` (doc 03). Un état persisté (tableau
+//       d'ids validés, JSON pur) se convertit en `ModeProgress` par le seul
+//       point de conversion `makeProgress` — jamais de reconstruction de Set
+//       à la lecture.
+//
+// Seule la liste des identifiants validés compte : tout le reste (case
 // cachée / visible / jouable / validée, étoiles, sections et modes débloqués)
 // s'en déduit à la lecture : impossible de désynchroniser un état persisté d'un
 // état dérivé, et une progression injectée à la main donne un écran exact.
@@ -43,9 +54,16 @@ import {
 
 export type CellState = "hidden" | "disabled" | "active" | "validated";
 
+// JSON pur (doc 01 § mise en conformité #3) : un Record en guise d'ensemble,
+// lookup direct (`id in p.validated`), pas de Set — sérialisable tel quel dans
+// le state Rune et le persisted.
 export interface ModeProgress {
-  validated: Set<LevelId>;
+  validated: Record<LevelId, true>;
 }
+
+// Progression de tous les modes : la forme que prennent les dérivations
+// inter-modes (groupe b) et le `persisted` (doc 03).
+export type ProgressByMode = Record<ModeId, ModeProgress>;
 
 const SECTIONS: Section[] = [1, 2, 3, 4];
 
@@ -65,27 +83,31 @@ export const STARS_FOR_SECTION: Record<Section, number> = {
 };
 export const STARS_FOR_NEXT_MODE = 3;
 
-const PROGRESS_KEY = (modeId: ModeId) => `tracemot.progress.${modeId}`;
-const LAST_MODE_KEY = "tracemot.lastMode";
-const SEEN_MODES_KEY = "tracemot.seenModes";
-const SCHEMA_KEY = "tracemot.schema";
-const SCHEMA_VERSION = "2";
-// Clés du jeu libre disparu (sélecteurs de mode et de difficulté).
-const LEGACY_KEYS = ["tracemot.mode", "tracemot.difficulty"];
-
-// Construit une progression hors stockage (harnais, tests, injection d'état).
+// Construit une progression hors stockage (harnais, tests, injection d'état) —
+// l'UNIQUE point de conversion entre une liste d'ids validés (persisted,
+// JSON pur) et le Record que consomment les dérivations.
 export function makeProgress(ids: LevelId[]): ModeProgress {
-  return { validated: new Set(ids) };
+  const validated: Record<LevelId, true> = {};
+  for (const id of ids) validated[id] = true;
+  return { validated };
 }
 
-// --- Dérivation des états (pure : rien n'est lu ni écrit en stockage) -------
+// Progression vide pour tous les modes : le repli avant que le persisted
+// (doc 03) ne soit câblé.
+export function emptyProgressByMode(): ProgressByMode {
+  return Object.fromEntries(
+    MODE_ORDER.map((m) => [m, makeProgress([])]),
+  ) as ProgressByMode;
+}
+
+// --- (a) Dérivation pure MONO-mode (rien d'autre qu'un ModeProgress) --------
 
 // Une étoile par défi validé, toutes sections confondues.
 export function starCount(p: ModeProgress): number {
   let n = 0;
   for (const s of SECTIONS) {
     for (const key of DEFI_KEYS) {
-      if (p.validated.has(defiId(s, key))) n++;
+      if (defiId(s, key) in p.validated) n++;
     }
   }
   return n;
@@ -151,11 +173,11 @@ function predecessorOf(id: LevelId): LevelId | null {
 function isUnlocked(p: ModeProgress, id: LevelId): boolean {
   if (!sectionUnlocked(p, sectionOf(id))) return false;
   const pred = predecessorOf(id);
-  return pred === null || p.validated.has(pred);
+  return pred === null || pred in p.validated;
 }
 
 export function cellState(p: ModeProgress, id: LevelId): CellState {
-  if (p.validated.has(id)) return "validated";
+  if (id in p.validated) return "validated";
   if (isUnlocked(p, id)) return "active";
   // « Visible désactivée » = un pas d'avance, et pas davantage : la case dont
   // le prédécesseur est justement JOUABLE (débloqué et pas encore validé).
@@ -163,7 +185,7 @@ export function cellState(p: ModeProgress, id: LevelId): CellState {
   // est verrouillée il reste caché, et c'est le jalon verrouillé de la section
   // qui porte le message « ★ Encore N étoiles », pas la case.
   const pred = predecessorOf(id);
-  if (pred !== null && isUnlocked(p, pred) && !p.validated.has(pred)) {
+  if (pred !== null && isUnlocked(p, pred) && !(pred in p.validated)) {
     return "disabled";
   }
   return "hidden";
@@ -236,7 +258,7 @@ export function sectionStats(p: ModeProgress, s: Section): SectionStats {
 
   for (let n = 1; n <= NORMALS_PER_SECTION; n++) {
     const id = levelId(s, n);
-    if (p.validated.has(id)) validatedCount++;
+    if (id in p.validated) validatedCount++;
     if (cellState(p, id) !== "hidden") {
       lastVisibleRow = Math.max(lastVisibleRow, Math.ceil(n / ROW_LENGTH));
     }
@@ -246,7 +268,7 @@ export function sectionStats(p: ModeProgress, s: Section): SectionStats {
   // cases ou son défi ne sont pas cachés », sans exception à retenir.
   for (let r = 1; r <= ROWS_PER_SECTION; r++) {
     const id = defiId(s, DEFI_KEYS[r - 1]);
-    if (p.validated.has(id)) {
+    if (id in p.validated) {
       validatedCount++;
       stars++;
     }
@@ -283,79 +305,47 @@ export function starRewardAt(modeId: ModeId, star: number): string | null {
   return section ? DIFFICULTY_LABELS[section].name : null;
 }
 
-// --- Persistance (localStorage, tolérante aux échecs) -----------------------
+// --- (b) Dérivation INTER-modes (Record<ModeId, ModeProgress> en argument) --
+//
+// Persistance (localStorage) supprimée : ce groupe lisait hier le stockage à
+// travers loadProgress/loadLastMode, il ne lit plus que ce qu'on lui passe.
+// Le remplacement (game.persisted → ProgressByMode) est le chantier Rune
+// suivant (doc 03) ; d'ici là, les appelants construisent une progression
+// locale (cf. emptyProgressByMode) et la font transiter en argument.
 
-function readList(key: string): string[] {
-  let raw: string | null = null;
-  try {
-    raw = localStorage.getItem(key);
-  } catch (_) {
-    /* stockage indisponible */
-  }
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((x) => typeof x === "string");
-  } catch (_) {
-    /* valeur corrompue : on repart d'une liste vide */
-    return [];
-  }
+export function totalValidated(progress: ProgressByMode, modeId: ModeId): number {
+  return Object.keys(progress[modeId].validated).length;
 }
 
-function writeList(key: string, list: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(list));
-  } catch (_) {
-    /* stockage indisponible : la progression ne survivra pas au rechargement */
-  }
-}
-
-export function loadProgress(modeId: ModeId): ModeProgress {
-  return makeProgress(readList(PROGRESS_KEY(modeId)));
-}
-
-// Idempotent : rejouer un niveau déjà validé ne change rien.
-export function saveValidated(modeId: ModeId, id: LevelId): void {
-  const key = PROGRESS_KEY(modeId);
-  const list = readList(key);
-  if (list.includes(id)) return;
-  list.push(id);
-  writeList(key, list);
-}
-
-export function totalValidated(modeId: ModeId): number {
-  return readList(PROGRESS_KEY(modeId)).length;
-}
-
-export function modeStars(modeId: ModeId): number {
-  return starCount(loadProgress(modeId));
+export function modeStars(progress: ProgressByMode, modeId: ModeId): number {
+  return starCount(progress[modeId]);
 }
 
 // Un mode est débloqué si TOUS ceux qui le précèdent valent au moins 3 étoiles.
 // La chaîne est vérifiée en entier, et non seulement le maillon précédent : sans
-// cela, un stockage incohérent (progression d'un mode effacée à la main, mise
-// à jour partielle) rendrait un mode lointain jouable par-dessus son verrou —
-// et visibleModes(), qui suppose que les débloqués forment un PRÉFIXE de
+// cela, une progression incohérente (celle d'un mode effacée, mise à jour
+// partielle) rendrait un mode lointain jouable par-dessus son verrou — et
+// visibleModes(), qui suppose que les débloqués forment un PRÉFIXE de
 // MODE_ORDER, les listerait dans le désordre. L'invariant est ici, structurel.
-export function isModeUnlocked(modeId: ModeId): boolean {
+export function isModeUnlocked(progress: ProgressByMode, modeId: ModeId): boolean {
   const index = MODE_ORDER.indexOf(modeId);
   if (index < 0) return false; // mode inconnu
   for (let i = 0; i < index; i++) {
-    if (modeStars(MODE_ORDER[i]) < STARS_FOR_NEXT_MODE) return false;
+    if (modeStars(progress, MODE_ORDER[i]) < STARS_FOR_NEXT_MODE) return false;
   }
   return true; // 5x5 (index 0) : toujours ouvert
 }
 
 // Le premier mode verrouillé — le seul qui puisse être montré (grisé, cadenas).
 // Les suivants restent cachés : on ne dévoile pas le catalogue.
-export function nextLockedMode(): ModeId | null {
-  return MODE_ORDER.find((m) => !isModeUnlocked(m)) ?? null;
+export function nextLockedMode(progress: ProgressByMode): ModeId | null {
+  return MODE_ORDER.find((m) => !isModeUnlocked(progress, m)) ?? null;
 }
 
 // Le verrou d'un mode est tenu par le mode PRÉCÉDENT : c'est sa progression à
 // lui qu'on interroge, jamais celle du mode qu'on regarde. Le premier mode n'a
-// pas de gardien — il est ouvert d'emblée.
+// pas de gardien — il est ouvert d'emblée. Pure : ne prend pas `progress`, la
+// relation d'ordre ne dépend d'aucune progression.
 export function gateModeOf(modeId: ModeId): ModeId | null {
   const index = MODE_ORDER.indexOf(modeId);
   return index > 0 ? MODE_ORDER[index - 1] : null;
@@ -364,61 +354,47 @@ export function gateModeOf(modeId: ModeId): ModeId | null {
 // Étoiles qui manquent AU GARDIEN pour ouvrir `modeId`. Pendant de
 // starsMissingForSection : ce que l'interface annonce, et la condition
 // d'affichage du verrou (isModeTeased), sortent du même calcul.
-export function starsMissingForMode(modeId: ModeId): number {
+export function starsMissingForMode(
+  progress: ProgressByMode,
+  modeId: ModeId,
+): number {
   const gate = gateModeOf(modeId);
-  if (!gate || isModeUnlocked(modeId)) return 0;
-  return Math.max(0, STARS_FOR_NEXT_MODE - modeStars(gate));
+  if (!gate || isModeUnlocked(progress, modeId)) return 0;
+  return Math.max(0, STARS_FOR_NEXT_MODE - modeStars(progress, gate));
 }
 
 // Même règle que pour une section verrouillée (cf. sectionTeased) : l'onglet du
 // mode suivant n'apparaît que lorsqu'il est À UN DÉFI PRÈS.
-export function isModeTeased(modeId: ModeId): boolean {
+export function isModeTeased(progress: ProgressByMode, modeId: ModeId): boolean {
   const gate = gateModeOf(modeId);
-  if (!gate || isModeUnlocked(modeId)) return false;
+  if (!gate || isModeUnlocked(progress, modeId)) return false;
   // Le gardien doit lui-même être ouvert : sinon le verrou n'est pas le prochain
   // de la chaîne, et rien ne doit paraître.
-  if (!isModeUnlocked(gate)) return false;
-  return starsMissingForMode(modeId) === 1 && hasActiveDefi(loadProgress(gate));
+  if (!isModeUnlocked(progress, gate)) return false;
+  return (
+    starsMissingForMode(progress, modeId) === 1 &&
+    hasActiveDefi(progress[gate])
+  );
 }
 
-export function visibleModes(): ModeId[] {
-  const unlocked = MODE_ORDER.filter(isModeUnlocked);
-  const next = nextLockedMode();
-  return next && isModeTeased(next) ? [...unlocked, next] : unlocked;
+export function visibleModes(progress: ProgressByMode): ModeId[] {
+  const unlocked = MODE_ORDER.filter((m) => isModeUnlocked(progress, m));
+  const next = nextLockedMode(progress);
+  return next && isModeTeased(progress, next) ? [...unlocked, next] : unlocked;
 }
 
 // Aucune progression nulle part : l'accroche de la carte est alors la version
 // « explication de la mécanique ».
-export function isFirstLaunch(): boolean {
-  return MODE_ORDER.every((m) => totalValidated(m) === 0);
-}
-
-// --- Dernier mode consulté et modes déjà visités ----------------------------
-
-export function loadLastMode(): ModeId {
-  let stored: string | null = null;
-  try {
-    stored = localStorage.getItem(LAST_MODE_KEY);
-  } catch (_) {
-    /* stockage indisponible */
-  }
-  const valid = MODE_ORDER.find((m) => m === stored);
-  // Un mode mémorisé mais verrouillé (progression effacée) retombe sur 5x5.
-  return valid && isModeUnlocked(valid) ? valid : MODE_ORDER[0];
-}
-
-export function saveLastMode(modeId: ModeId): void {
-  try {
-    localStorage.setItem(LAST_MODE_KEY, modeId);
-  } catch (_) {
-    /* stockage indisponible : l'onglet rouvert sera celui par défaut */
-  }
+export function isFirstLaunch(progress: ProgressByMode): boolean {
+  return MODE_ORDER.every((m) => totalValidated(progress, m) === 0);
 }
 
 // Où reprendre, tous modes confondus : le premier niveau jouable du dernier mode
-// consulté, et à défaut celui du premier mode débloqué qui en a un. On commence
-// par le dernier mode consulté parce que c'est là que le joueur s'est arrêté —
-// un mode complété ne doit pas pour autant renvoyer à la carte.
+// consulté (`lastMode`), et à défaut celui du premier mode débloqué qui en a
+// un. On commence par le dernier mode consulté parce que c'est là que le
+// joueur s'est arrêté — un mode complété ne doit pas pour autant renvoyer à la
+// carte. Un `lastMode` verrouillé (progression effacée entre-temps) retombe
+// sur le premier mode de la série, toujours ouvert.
 //
 // null : plus rien à jouer nulle part (tout est validé). L'accueil retombe alors
 // sur le choix du niveau, seul geste qui ait encore un sens.
@@ -427,71 +403,18 @@ export interface ResumePoint {
   id: LevelId;
 }
 
-export function resumePoint(): ResumePoint | null {
-  const last = loadLastMode(); // déjà garanti débloqué
+export function resumePoint(
+  progress: ProgressByMode,
+  lastMode: ModeId,
+): ResumePoint | null {
+  const first = isModeUnlocked(progress, lastMode) ? lastMode : MODE_ORDER[0];
   const order = [
-    last,
-    ...MODE_ORDER.filter((m) => m !== last && isModeUnlocked(m)),
+    first,
+    ...MODE_ORDER.filter((m) => m !== first && isModeUnlocked(progress, m)),
   ];
   for (const modeId of order) {
-    const id = firstPlayableLevel(loadProgress(modeId));
+    const id = firstPlayableLevel(progress[modeId]);
     if (id) return { modeId, id };
   }
   return null;
-}
-
-// « Vu » n'est pas dérivable de la progression : un mode peut être débloqué et
-// jamais ouvert. D'où cette clé dédiée, qui pilote la pastille vermillon.
-export function isModeSeen(modeId: ModeId): boolean {
-  return readList(SEEN_MODES_KEY).includes(modeId);
-}
-
-export function markModeSeen(modeId: ModeId): void {
-  const list = readList(SEEN_MODES_KEY);
-  if (list.includes(modeId)) return;
-  list.push(modeId);
-  writeList(SEEN_MODES_KEY, list);
-}
-
-// --- Migration --------------------------------------------------------------
-
-function removeKey(key: string) {
-  try {
-    localStorage.removeItem(key);
-  } catch (_) {
-    /* stockage indisponible : rien à purger */
-  }
-}
-
-// Deux nettoyages, à appeler une fois au démarrage :
-//
-//  - les clés du jeu libre disparu (mode et difficulté au choix) ;
-//  - toute progression écrite AVANT le modèle « défis + étoiles ». Une
-//    progression v1 contient des identifiants qui n'existent plus (1-16…1-25)
-//    et aucun défi A/B/C : le compte d'étoiles serait faux et la carte
-//    incohérente. Le jeu n'étant pas publié, repartir propre vaut mieux qu'une
-//    progression fantôme — d'où la purge franche plutôt qu'une conversion.
-//
-// Le numéro de schéma est écrit APRÈS la purge : une interruption au milieu
-// (onglet fermé, quota) laisse simplement la migration à refaire.
-export function migrateStorage(): void {
-  for (const key of LEGACY_KEYS) removeKey(key);
-
-  let schema: string | null = null;
-  try {
-    schema = localStorage.getItem(SCHEMA_KEY);
-  } catch (_) {
-    /* stockage indisponible : rien à migrer, rien à écrire */
-    return;
-  }
-  if (schema === SCHEMA_VERSION) return;
-
-  for (const modeId of MODE_ORDER) removeKey(PROGRESS_KEY(modeId));
-  removeKey(SEEN_MODES_KEY);
-  removeKey(LAST_MODE_KEY);
-  try {
-    localStorage.setItem(SCHEMA_KEY, SCHEMA_VERSION);
-  } catch (_) {
-    /* stockage indisponible : la migration se rejouera au prochain lancement */
-  }
 }

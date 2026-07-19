@@ -1,7 +1,8 @@
 // Génération hors-ligne des 288 niveaux (4 modes × 4 sections × 18 niveaux :
 // 15 normaux en 3 lignes de 5, plus les 3 défis A/B/C qui closent ces lignes).
-// Écrit packages/game/public/levels/<modeId>.json (que le jeu embarque) ; le
-// runtime ne génère plus rien et ne charge plus de dictionnaire. Exécuté par
+// Écrit packages/game/src/levels/json/<modeId>.json (importé statiquement par
+// packages/game/src/levels/data.ts, cf. doc 01) ; le runtime ne génère plus
+// rien et ne charge plus de dictionnaire. Exécuté par
 // Node 22 (les types sont strippés) :
 //
 //   npm run generate:levels -- [--mode=8x8] [--section=3] [--only=1-7]
@@ -137,7 +138,7 @@ const MAX_DRAWS_PER_LEVEL = 12;
 // qu'il embarque au build ; le studio ne dépend d'aucun asset du jeu.
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const OUT_DIR = path.join(ROOT, "..", "game", "public", "levels");
+const OUT_DIR = path.join(ROOT, "..", "game", "src", "levels", "json");
 
 function readWords(file: string): Set<string> {
   return parseWordList(readFileSync(path.join(ROOT, file), "utf8")).words;

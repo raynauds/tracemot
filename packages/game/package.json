@@ -10,13 +10,17 @@
     "generate:tokens": "node scripts/generate-tokens.ts",
     "check:tokens": "node scripts/generate-tokens.ts --check",
     "check:progress": "node tools/progress-check.mjs",
-    "check": "tsc --noEmit"
+    "check:rune-logic": "eslint src/logic",
+    "check": "tsc --noEmit && npm run check:rune-logic"
   },
   "dependencies": {
     "@tracemot/core": "*",
-    "pixi.js": "^8.19.0"
+    "pixi.js": "^8.19.0",
+    "rune-sdk": "^6.0.1"
   },
   "devDependencies": {
+    "@typescript-eslint/parser": "^8.64.0",
+    "eslint": "^10.7.0",
     "vite": "^8.1.4"
   }
 }

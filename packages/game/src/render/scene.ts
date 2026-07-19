@@ -21,7 +21,7 @@ import {
   ZOOM_STEP,
 } from "../game/config.ts";
 import { SERIF_NAME } from "../theme/tokens.ts";
-import { state } from "../game/state.ts";
+import { local, usedCells } from "../client/local-state.ts";
 import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.ts";
 import { maximizeIcon, minusIcon, plusIcon } from "./icons.ts";
 
@@ -31,7 +31,7 @@ let rows = 0;
 let cols = 0;
 let cellCount = 0;
 function adoptGeometry(): void {
-  ({ rows, cols, cellCount } = state.geometry);
+  ({ rows, cols, cellCount } = local.geometry);
 }
 
 // Constantes de design (proportions), en « unités design ». Elles sont
@@ -142,8 +142,8 @@ export function setHoverCell(i: number | null): void {
 function cellState(
   i: number,
 ): "disabled" | "head" | "sel" | "hover" | "normal" {
-  if (state.usedCells.has(i)) return "disabled";
-  const path = state.path;
+  if (usedCells().has(i)) return "disabled";
+  const path = local.path;
   if (path.length && i === path[path.length - 1]) return "head";
   if (path.includes(i)) return "sel";
   if (i === hoverCell) return "hover";
@@ -309,14 +309,14 @@ function strokePath(
 // Redessine le tracé en cours (ligne d'encre continue).
 export function renderTrace(): void {
   activeTrace.clear();
-  strokePath(activeTrace, state.path, INK);
+  strokePath(activeTrace, local.path, INK);
 }
 
 // Dessine tous les tracés fantômes, le dernier avec un alpha donné (fondu du
 // mot qu'on vient de valider). lastAlpha = 1 → tous pleinement visibles.
 function drawFoundTraces(lastAlpha: number): void {
   ghostTrace.clear();
-  const paths = state.foundPaths;
+  const paths = local.foundPaths;
   for (let k = 0; k < paths.length; k++) {
     const a = k === paths.length - 1 ? lastAlpha : 1;
     strokePath(ghostTrace, paths[k], GHOST, a);
@@ -337,8 +337,8 @@ let prevPathLen = 0;
 // petit rebond la case qui vient de rejoindre le tracé.
 export function updateSelection(): void {
   repaintCells();
-  const len = state.path.length;
-  if (len > prevPathLen && len > 0) popCell(state.path[len - 1]);
+  const len = local.path.length;
+  if (len > prevPathLen && len > 0) popCell(local.path[len - 1]);
   prevPathLen = len;
 }
 
@@ -677,11 +677,11 @@ export function rebuildGrid(): void {
 export function renderSceneGrid(): void {
   if (!app) return;
   for (let i = 0; i < cellCount; i++) {
-    cellTexts[i].text = state.letters[i] ?? "";
+    cellTexts[i].text = local.letters[i] ?? "";
   }
   repaintCells();
-  renderTrace(); // state.path vide → efface le tracé actif
-  renderFoundTraces(); // state.foundPaths vide → efface les fantômes
+  renderTrace(); // local.path vide → efface le tracé actif
+  renderFoundTraces(); // local.foundPaths vide → efface les fantômes
   dealCells(); // distribution en cascade des cases (fondu + tassement)
   // Nouvelle partie : on revient au cadrage « tout voir ».
   if (camera) camera.fit();

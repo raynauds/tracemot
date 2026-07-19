@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check": "tsc --noEmit"
+    "check:pavage": "node tools/check-pavage.mjs",
+    "check": "tsc --noEmit && npm run check:pavage"
   }
 }

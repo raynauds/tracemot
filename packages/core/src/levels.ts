@@ -1,8 +1,9 @@
 // Niveaux prédéfinis : types et arithmétique des identifiants.
 //
 // Toutes les grilles sont générées hors-ligne (packages/studio) et versionnées
-// dans packages/game/public/levels/<modeId>.json ; le runtime ne génère plus
-// rien et ne charge plus de dictionnaire.
+// dans packages/game/src/levels/json/<modeId>.json, importées statiquement
+// par packages/game/src/levels/data.ts ; le runtime ne génère plus rien et ne
+// charge plus de dictionnaire.
 //
 // Un mode = 4 sections × 18 niveaux. Une section = 3 LIGNES de 5 niveaux
 // normaux, chaque ligne étant close par un DÉFI (grille doublée, cf.
@@ -47,9 +48,9 @@ export interface ModeLevels {
   levels: Record<LevelId, LevelData>;
 }
 
-// Le chargement runtime des grilles (fetch du JSON) vit côté jeu
-// (packages/game/src/game/level-loader.ts) : le core ne fait que définir le
-// type du fichier, il ne le lit pas.
+// La résolution runtime des grilles (import statique des JSON) vit côté jeu
+// (packages/game/src/levels/data.ts) : le core ne fait que définir le type du
+// fichier, il ne le lit pas.
 
 // --- Construction et lecture d'un identifiant --------------------------------
 
@@ -61,16 +62,16 @@ export function defiId(section: Section, key: DefiKey): LevelId {
   return `${section}-${key}`;
 }
 
-// Le suffixe suffit à trancher : un normal finit toujours par un chiffre.
-const DEFI_SUFFIX = /-([ABC])$/;
-
+// Le suffixe suffit à trancher : un normal finit toujours par un chiffre, un
+// défi par sa clé A/B/C précédée d'un tiret. Pas de regex (interdite en
+// logic, cf. doc 01) : un simple examen des deux derniers caractères suffit.
 export function isDefi(id: LevelId): boolean {
-  return DEFI_SUFFIX.test(id);
+  const last = id[id.length - 1];
+  return id[id.length - 2] === "-" && (DEFI_KEYS as string[]).includes(last);
 }
 
 export function defiKeyOf(id: LevelId): DefiKey | null {
-  const m = DEFI_SUFFIX.exec(id);
-  return m ? (m[1] as DefiKey) : null;
+  return isDefi(id) ? (id[id.length - 1] as DefiKey) : null;
 }
 
 export function sectionOf(id: LevelId): Section {

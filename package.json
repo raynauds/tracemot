@@ -19,5 +19,10 @@
   },
   "devDependencies": {
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "ts-api-utils": {
+      "typescript": "^5.9.0"
+    }
   }
 }
