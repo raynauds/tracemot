@@ -20,8 +20,8 @@
   display: flex;
   flex-direction: column;
   background: var(--card);
-  border: 1.5px solid var(--ink);
-  box-shadow: 0 14px 34px rgba(38, 34, 28, 0.2);
+  border: var(--rule-standard);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 20%, transparent);
   pointer-events: auto;
 }
 
@@ -34,7 +34,7 @@
   padding: 13px 16px;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--rule-hairline);
   font-family: var(--serif);
   color: var(--ink);
   text-align: left;
@@ -75,6 +75,7 @@
   flex: 1;
   font-family: var(--mono);
   font-size: 13px;
+  font-weight: var(--label-caps-weight);
   letter-spacing: 2.5px;
   color: var(--ink);
 }
@@ -99,6 +100,7 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .word-row {
@@ -107,7 +109,7 @@
   gap: 20px;
   height: 48px;
   flex-shrink: 0; /* liste compressée : on scrolle, on n'aplatit pas */
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--rule-hairline);
 }
 
 .word-row:last-child {
@@ -176,7 +178,9 @@
 .word-dots {
   font-family: var(--mono);
   font-size: 16px;
-  color: var(--ghost);
+  /* --ghost-strong, pas --ghost : ces points se lisent sur --card, --ghost
+     n'y tient qu'à ~2:1 (DESIGN.md § Colors). */
+  color: var(--ghost-strong);
   letter-spacing: 4px;
 }
 
@@ -186,7 +190,8 @@
 }
 
 .word-text.pending {
-  color: var(--ghost);
+  /* --ghost-strong : le mot en cours de tracé se lit, il n'est pas inerte. */
+  color: var(--ghost-strong);
   transition: color 0.15s ease;
 }
 
@@ -261,7 +266,7 @@
     letter-spacing: 3px;
   }
   .word-reason {
-    font-size: 10px;
+    font-size: 9.5px; /* légende compacte (DESIGN.md § Typography) — était 10px */
     letter-spacing: 1px;
   }
 }

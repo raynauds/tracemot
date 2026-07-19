@@ -8,6 +8,7 @@
   --ink: #26221c;
   --muted: #6e6656;
   --ghost: #b9af9c;
+  --ghost-strong: #746b57;
   --vermilion: #b3402a;
   --line: #d8cfbc;
   --map-validated: #efe9da;
@@ -17,4 +18,16 @@
 
   --serif: "Source Serif 4", serif;
   --mono: "IBM Plex Mono", monospace;
+
+  --rule-heavy: 2px solid var(--ink);
+  --rule-standard: 1.5px solid var(--ink);
+  --rule-hairline: 1px solid var(--line);
+  --rule-dashed: 1.5px dashed var(--map-rule);
+
+  --shadow-hard-xs: 1px 1px 0 var(--ink);
+  --shadow-hard-sm: 1.5px 1.5px 0 var(--ink);
+  --shadow-hard-md: 2.5px 2.5px 0 var(--ink);
+  --shadow-hard-lg: 4px 4px 0 var(--ink);
+  --shadow-hard-mini: 2px 2px 0 var(--ink);
+  --shadow-hard-mini-lg: 3px 3px 0 var(--ink);
 }

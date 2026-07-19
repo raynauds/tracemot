@@ -5,6 +5,7 @@
 // Une seule entrée : le lien CRÉDITS de l'accueil (l'ours de la page imprimée).
 
 import { playSound } from "../audio/audio.ts";
+import { bindOverlayCloser, popOverlay, pushOverlay } from "./history.ts";
 import { arrowLeftIcon } from "./icons.ts";
 
 function byId(id: string): HTMLElement {
@@ -21,10 +22,14 @@ backEl.appendChild(arrowLeftIcon());
 export function showCredits(): void {
   creditsEl.hidden = false;
   creditsEl.scrollTop = 0;
+  // Une entrée d'historique par ouverture : le geste retour mobile referme
+  // l'écran au lieu de quitter l'application (src/render/history.ts).
+  pushOverlay("credits");
 }
 
 export function hideCredits(): void {
   creditsEl.hidden = true;
+  popOverlay("credits");
 }
 
 export function bindCredits(): void {
@@ -38,4 +43,7 @@ export function bindCredits(): void {
       hideCredits();
     }
   });
+  // Retour navigateur pendant que l'écran est ouvert : même sortie que la
+  // flèche.
+  bindOverlayCloser("credits", hideCredits);
 }

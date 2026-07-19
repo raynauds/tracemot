@@ -69,7 +69,7 @@
 .sound-label {
   font-family: var(--mono);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--label-caps-weight);
   letter-spacing: 2px;
   color: var(--ink);
 }
@@ -134,8 +134,10 @@
   margin-top: -7px; /* centre le pouce sur la piste de 2px */
   border-radius: 0;
   background: var(--card);
-  border: 1.5px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+  border: var(--rule-standard);
+  /* --shadow-hard-mini (2px) : le palier miniature, pas le standard (1.5px) —
+     un pouce de 16px écraserait sous l'ombre pleine grandeur. */
+  box-shadow: var(--shadow-hard-mini);
 }
 
 .sound-slider:active::-webkit-slider-thumb {
@@ -148,8 +150,8 @@
   height: 16px;
   border-radius: 0;
   background: var(--card);
-  border: 1.5px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+  border: var(--rule-standard);
+  box-shadow: var(--shadow-hard-mini);
 }
 
 .sound-slider:active::-moz-range-thumb {

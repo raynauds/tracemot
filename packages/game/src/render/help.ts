@@ -10,6 +10,7 @@
 // vaut donc « déjà vu » : un joueur qui connaît la règle n'a pas à relire).
 
 import { playSound } from "../audio/audio.ts";
+import { bindOverlayCloser, popOverlay, pushOverlay } from "./history.ts";
 import { arrowLeftIcon, checkIcon, starIcon } from "./icons.ts";
 
 const HELP_SEEN_KEY = "tracemot.help-seen";
@@ -66,10 +67,14 @@ export function showHelp(opts: { firstPlay?: boolean } = {}): void {
   helpEl.hidden = false;
   helpEl.scrollTop = 0;
   markSeen();
+  // Une entrée d'historique par ouverture : le geste retour mobile referme
+  // l'écran au lieu de quitter l'application (src/render/history.ts).
+  pushOverlay("help");
 }
 
 export function hideHelp(): void {
   helpEl.hidden = true;
+  popOverlay("help");
 }
 
 // Appelée par startLevel (main.ts) une fois la grille en place : avant, la
@@ -97,4 +102,8 @@ export function bindHelp(): void {
       hideHelp();
     }
   });
+  // Retour navigateur pendant que l'écran est ouvert : même sortie que la
+  // flèche (hideHelp ne montre rien d'autre par elle-même — l'écran dessous,
+  // accueil ou grille, redevient visible tel quel).
+  bindOverlayCloser("help", hideHelp);
 }

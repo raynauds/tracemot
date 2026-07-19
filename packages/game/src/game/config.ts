@@ -14,6 +14,12 @@ export const REJECT_DISPLAY_MS = 2000;
 // réapparition de la ligne (repli du registre, retour en partie).
 export const WORD_STAMP_MS = 300;
 
+// Délai entre le dernier mot validé et l'affichage de l'écran de victoire :
+// laisse le tampon du mot (STAMP_MS, scene.ts) et le fondu de son tracé
+// fantôme (GHOST_FADE_MS, scene.ts) se jouer sans être aussitôt recouverts
+// par l'overlay .win.
+export const WIN_DELAY_MS = 320;
+
 // --- Géométrie du monde Pixi (unités « monde », échelle 1) -----------------
 // Taille d'une case et espace inter-cases. La grille est rendue à cette
 // échelle puis cadrée par la caméra ; aucune valeur écran n'est figée ici.

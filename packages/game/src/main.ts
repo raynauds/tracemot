@@ -9,6 +9,7 @@ import type { ModeId } from "@tracemot/core";
 import { isDefi } from "@tracemot/core";
 import type { LevelId } from "@tracemot/core";
 import { initAudio, playSound } from "./audio/audio.ts";
+import { WIN_DELAY_MS } from "./game/config.ts";
 import { loadModeLevels } from "./game/level-loader.ts";
 import {
   loadProgress,
@@ -48,6 +49,7 @@ import {
   bindMapReturn,
   bindWinNext,
   buildBoard,
+  buzz,
   fillListRow,
   hideStatus,
   renderCounter,
@@ -79,11 +81,9 @@ async function startLevel(modeId: ModeId, id: LevelId) {
   } catch (err) {
     if (token !== selection) return; // demande périmée : elle n'a plus la parole
     console.error("Tracemot : échec du chargement du niveau", err);
-    renderLoadError(
-      "Impossible de charger le niveau. Servez le jeu via HTTP " +
-        "(ex. « npm run dev ») - l’ouverture directe en file:// ne fonctionne pas." +
-        "\n\nCliquez pour revenir à la carte.",
-    );
+    // Retry ciblé : reprend le chargement de CE niveau (même modeId, même
+    // id), pas un rechargement de toute la page.
+    renderLoadError(() => startLevel(modeId, id));
     // L'échec laisse le joueur sur la carte : aucune partie n'est en place. Il
     // a pu partir de l'accueil (bouton « reprendre ») sans passer par elle : on
     // le range donc explicitement.
@@ -130,26 +130,42 @@ async function startLevel(modeId: ModeId, id: LevelId) {
 //
 // Les suites proposées, elles, se lisent APRÈS : ce sont les cases que cette
 // victoire vient d'ouvrir, elles n'existent donc pas dans la progression d'avant.
+//
+// L'affichage de renderWin() est retardé de WIN_DELAY_MS : appelé aussitôt,
+// l'overlay .win recouvre dans la même passe le tampon du dernier mot (220ms)
+// et le fondu de son tracé fantôme (300ms) — la validation la plus importante
+// serait la moins visible. La sauvegarde de progression, elle, reste
+// immédiate (rejouer vite ne doit pas perdre la victoire).
 function triggerWin() {
   state.won = true;
   const id = state.levelId;
-  if (!id) {
-    renderWin();
-    return;
+  // Jeton anti-course de startLevel : si une autre partie a pris la main
+  // pendant le délai, cette victoire est périmée et ne doit plus s'afficher.
+  const token = selection;
+  let opts: Parameters<typeof renderWin>[0] = {};
+  if (id) {
+    const { modeId } = state;
+    const wasValidated = loadProgress(modeId).validated.has(id);
+    saveValidated(modeId, id);
+    const after = loadProgress(modeId);
+    const choices = nextChoices(after, id);
+    if (!isDefi(id) || wasValidated) {
+      opts = { choices };
+    } else {
+      // Le défi vient d'être gagné : son rang d'étoile est le compte du mode
+      // une fois la sauvegarde faite (la n-ième étoile est celle qu'on vient
+      // de poser).
+      const count = starCount(after);
+      opts = { star: { count, unlocked: starRewardAt(modeId, count) }, choices };
+    }
   }
-  const { modeId } = state;
-  const wasValidated = loadProgress(modeId).validated.has(id);
-  saveValidated(modeId, id);
-  const after = loadProgress(modeId);
-  const choices = nextChoices(after, id);
-  if (!isDefi(id) || wasValidated) {
-    renderWin({ choices });
-    return;
-  }
-  // Le défi vient d'être gagné : son rang d'étoile est le compte du mode une
-  // fois la sauvegarde faite (la n-ième étoile est celle qu'on vient de poser).
-  const count = starCount(after);
-  renderWin({ star: { count, unlocked: starRewardAt(modeId, count) }, choices });
+  setTimeout(() => {
+    // Victoire périmée : une autre partie a pris la main, ou le joueur est
+    // reparti vers la carte (backToMap coupe ready sans toucher selection).
+    if (token !== selection || !state.ready) return;
+    playSound("level-win");
+    renderWin(opts);
+  }, WIN_DELAY_MS);
 }
 
 // Retour à la carte : la partie en cours est abandonnée telle quelle (aucune
@@ -191,6 +207,7 @@ function commitPath() {
   state.foundPaths.push(traced);
   renderUsedCells(); // repeint les cases en disabled
   stampWord(traced); // tampon : tassement des cases + fondu du tracé fantôme
+  buzz(); // validation d'un mot : répondant haptique (chaque lettre en avait déjà un)
   playSound("word-stamp");
   renderCounter();
   if (state.found.length >= state.mode.wordCount) triggerWin();

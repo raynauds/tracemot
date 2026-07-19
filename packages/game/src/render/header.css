@@ -31,7 +31,7 @@
     max(var(--edge), env(safe-area-inset-left));
   background: linear-gradient(
     var(--paper) 55%,
-    rgba(246, 241, 231, 0)
+    color-mix(in srgb, var(--paper) 0%, transparent)
   );
 }
 

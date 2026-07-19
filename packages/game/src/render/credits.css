@@ -12,14 +12,14 @@
 /* Chaque entrée ouvre sous un filet inerte : des blocs feuilletés, pas des
    encadrés — la page reste continue. */
 .credits-entry {
-  border-top: 1px solid var(--line);
+  border-top: var(--rule-hairline);
   padding-top: 15px;
 }
 
 .credits-role {
   font-family: var(--mono);
-  font-size: 10.5px;
-  font-weight: 600;
+  font-size: 11px; /* token meta (DESIGN.md) — était 10.5px, écart sans raison */
+  font-weight: var(--label-caps-weight);
   letter-spacing: 2px;
   color: var(--muted);
 }

@@ -32,7 +32,7 @@
    compteur que celui que la figure 3 met en scène. */
 .help-num {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px; /* token meta (DESIGN.md) — était 10.5px, écart sans raison */
   letter-spacing: 2px;
   color: var(--ghost);
 }
@@ -113,12 +113,12 @@
   align-items: baseline;
   gap: 8px;
   padding-bottom: 5px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--rule-hairline);
 }
 
 .help-ledger-num {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px; /* token meta (DESIGN.md) — était 10px, écart sans raison */
   color: var(--ghost);
 }
 
@@ -139,7 +139,7 @@
 .help-ledger-count {
   align-self: flex-end;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px; /* token meta (DESIGN.md) — était 10.5px, écart sans raison */
   letter-spacing: 1px;
   color: var(--vermilion);
 }
@@ -162,8 +162,11 @@
   align-items: center;
   justify-content: center;
   background: var(--card);
-  border: 1.5px solid var(--ink);
-  box-shadow: 2px 2px 0 var(--ink);
+  border: var(--rule-standard);
+  /* --shadow-hard-mini (2px), pas --shadow-hard-md (2.5px, l'échelle des
+     vraies cases) : à 34px, une miniature garde le filet standard mais une
+     ombre plus légère — l'ombre flexe avec la taille (DESIGN.md). */
+  box-shadow: var(--shadow-hard-mini);
   font-size: 15px;
   font-weight: 700;
 }
@@ -188,8 +191,10 @@
   height: 34px;
   padding: 0 9px;
   background: var(--card);
-  border: 2px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
+  border: var(--rule-heavy);
+  /* --shadow-hard-mini-lg (3px) : plus lourde que la case miniature voisine
+     (mini, 2px), comme le vrai défi actif l'est face à une case (lg vs md). */
+  box-shadow: var(--shadow-hard-mini-lg);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.5px;

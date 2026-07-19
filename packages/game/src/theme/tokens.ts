@@ -18,7 +18,11 @@ export const COLORS = {
   // Encre
   ink: "#26221c", // texte, filets, ombres portées
   muted: "#6e6656", // texte secondaire, libellés
-  ghost: "#b9af9c", // texte inerte : verrouillé, désactivé
+  ghost: "#b9af9c", // texte inerte sur fond SOMBRE (ink) ou état désactivé —
+  // ≈7,3:1 sur --ink, mais ~1,9:1 sur paper/card : jamais du texte lu sur
+  // ces deux surfaces.
+  "ghost-strong": "#746b57", // même rôle, lisible sur paper/card (≥4.5:1 AA) —
+  // le mot en cours de tracé, les liens inertes sur fond clair.
 
   // Accent (unique)
   vermilion: "#b3402a", // l'accent, et lui seul : victoire, étoile, compteur
@@ -48,4 +52,27 @@ export const MONO_NAME = "IBM Plex Mono";
 export const FONTS = {
   serif: `"${SERIF_NAME}", serif`,
   mono: `"${MONO_NAME}", monospace`,
+} as const;
+
+// Les quatre niveaux de filet du système (DESIGN.md § Shapes). Écrits comme
+// raccourcis `border` complets — valeur, style ET couleur — pour que le CSS
+// n'ait qu'à poser `border: var(--rule-x)` au lieu de retaper les trois.
+export const RULES = {
+  heavy: "2px solid var(--ink)", // structurant : modale, header de carte. Rare.
+  standard: "1.5px solid var(--ink)", // filet standard : actionnable, conteneur autonome.
+  hairline: "1px solid var(--line)", // subordonné : sépare deux éléments d'un même conteneur.
+  dashed: "1.5px dashed var(--map-rule)", // inerte : visible mais pas encore atteignable.
+} as const;
+
+// Les ombres dures du système (DESIGN.md § Elevation & Depth) : encre pleine,
+// décalage diagonal égal en X/Y, flou nul. L'échelle documentée — 1 / 1.5 /
+// 2.5 / 4px — plus un palier « mini » dédié aux miniatures (figures d'aide,
+// pouce du curseur), trop petites pour l'échelle principale sans s'écraser.
+export const SHADOWS_HARD = {
+  xs: "1px 1px 0 var(--ink)", // petits éléments, mobile.
+  sm: "1.5px 1.5px 0 var(--ink)", // petits éléments, desktop.
+  md: "2.5px 2.5px 0 var(--ink)", // case de carte, standard.
+  lg: "4px 4px 0 var(--ink)", // défi actif : plus haut parce qu'il compte plus.
+  mini: "2px 2px 0 var(--ink)", // miniature (case d'aide 34px, pouce de curseur 16px).
+  "mini-lg": "3px 3px 0 var(--ink)", // miniature défi (aide) : plus lourde que la case, comme en réel.
 } as const;

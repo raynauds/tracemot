@@ -109,7 +109,7 @@ body.map-open .win {
   gap: 8px;
   padding: 7px 16px;
   background: var(--card);
-  border: 1.5px solid var(--ink);
+  border: var(--rule-standard);
   color: var(--ink);
   font-family: var(--mono);
   font-size: 13px;
@@ -409,7 +409,7 @@ body.map-open .win {
 .map-cell.is-validated,
 .map-cell.is-active {
   border-color: var(--ink);
-  box-shadow: 2.5px 2.5px 0 var(--ink);
+  box-shadow: var(--shadow-hard-md);
   cursor: pointer;
 }
 
@@ -435,7 +435,7 @@ body.map-open .win {
 
 /* Visible mais pas encore atteignable : pointillé, pas d'ombre, pas de relief. */
 .map-cell.is-disabled {
-  border: 1.5px dashed var(--map-rule);
+  border: var(--rule-dashed);
 }
 
 .map-cell-num {
@@ -533,7 +533,7 @@ body.map-open .win {
 .map-defi.is-validated,
 .map-defi.is-active {
   border-color: var(--ink);
-  box-shadow: 2.5px 2.5px 0 var(--ink);
+  box-shadow: var(--shadow-hard-md);
   cursor: pointer;
 }
 
@@ -546,7 +546,7 @@ body.map-open .win {
 .map-defi.is-active {
   background: var(--card);
   border-width: 2px;
-  box-shadow: 4px 4px 0 var(--ink);
+  box-shadow: var(--shadow-hard-lg);
 }
 
 .map-defi.is-validated:hover,
@@ -562,7 +562,7 @@ body.map-open .win {
 }
 
 .map-defi.is-disabled {
-  border: 1.5px dashed var(--map-rule);
+  border: var(--rule-dashed);
 }
 
 .map-defi-mark {
@@ -617,6 +617,17 @@ body.map-open .win {
   color: var(--map-count);
 }
 
+/* Teaser de progression : la colonne du défi encore caché porte le compte des
+   victoires de la ligne (« N/5 avant le défi »). Même empreinte que la carte du
+   défi — largeur et hauteur héritées de .map-defi--card — pour garder
+   l'alignement des lignes, mais sans relief (la bordure transparente et
+   l'absence d'ombre de .map-defi valent déjà) : ce n'est pas encore une cible. */
+.map-defi--card.is-teaser {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Une seule légende subsiste, celle du défi verrouillé : ce qu'il lui manque. */
 .map-defi.is-disabled .map-defi-caption {
   color: var(--ghost);
@@ -637,7 +648,7 @@ body.map-open .win {
     max(var(--edge), env(safe-area-inset-bottom))
     max(var(--edge), env(safe-area-inset-left));
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 9.5px; /* légende compacte (DESIGN.md § Typography) — était 10.5px */
   letter-spacing: 1px;
   color: var(--map-count);
 }
@@ -660,18 +671,18 @@ body.map-open .win {
 
 .map-legend-swatch.is-validated {
   background: var(--map-validated);
-  border: 1.5px solid var(--ink);
-  box-shadow: 1.5px 1.5px 0 var(--ink);
+  border: var(--rule-standard);
+  box-shadow: var(--shadow-hard-sm);
 }
 
 .map-legend-swatch.is-active {
   background: var(--card);
-  border: 1.5px solid var(--ink);
-  box-shadow: 1.5px 1.5px 0 var(--ink);
+  border: var(--rule-standard);
+  box-shadow: var(--shadow-hard-sm);
 }
 
 .map-legend-swatch.is-disabled {
-  border: 1.5px dashed var(--map-rule);
+  border: var(--rule-dashed);
 }
 
 /* --- Carte : mobile --- */
@@ -737,7 +748,7 @@ body.map-open .win {
     font-size: 16px;
   }
   .map-milestone-count {
-    font-size: 10px;
+    font-size: 9.5px; /* légende compacte (DESIGN.md § Typography) — était 10px */
     letter-spacing: 0.5px;
   }
   .map-milestone-stars {
@@ -804,10 +815,14 @@ body.map-open .win {
     line-height: 1.2;
   }
   .map-defi--band .map-defi-caption {
-    font-size: 9px;
+    font-size: 9.5px; /* légende compacte (DESIGN.md § Typography) — était 9px */
     letter-spacing: 0.5px;
     line-height: 1;
     white-space: nowrap;
+  }
+  /* Teaser de progression : bandeau pleine largeur sans relief, compte centré. */
+  .map-defi--band.is-teaser {
+    justify-content: center;
   }
 
   .map-legend {
@@ -825,6 +840,6 @@ body.map-open .win {
   }
   .map-legend-swatch.is-validated,
   .map-legend-swatch.is-active {
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--shadow-hard-xs);
   }
 }

@@ -19,6 +19,9 @@ const PACK =
 export const SOUNDS = {
   "trace-letter": { path: `${PACK} - Cursor - 4.mp3`, volume: 0.6 },
   "word-stamp": { path: "UI Soundpack/African4.mp3", volume: 3 },
+  // TODO(son victoire) : placeholder — même fichier que « word-stamp » en
+  // attendant le vrai son de victoire (le propriétaire le fournira plus tard).
+  "level-win": { path: "UI Soundpack/African4.mp3", volume: 3 },
   "word-reject": { path: `${PACK} - Cancel - 1.mp3`, volume: 0.8 },
   "ui-primary": { path: `${PACK} - Select - 1.mp3`, volume: 0.8 },
   "ui-secondary": { path: `${PACK} - Cursor - 2.mp3`, volume: 0.8 },

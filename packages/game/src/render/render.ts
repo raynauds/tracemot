@@ -13,6 +13,13 @@ import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
+import { showHelp } from "./help.ts";
+import {
+  bindOverlayCloser,
+  currentOverlay,
+  popOverlay,
+  pushOverlay,
+} from "./history.ts";
 import {
   arrowLeftIcon,
   chevronIcon,
@@ -85,6 +92,19 @@ export function bindMapReturn(onReturn: () => void) {
   };
   backMapEl.addEventListener("click", leave);
   winMapEl.addEventListener("click", leave);
+  // Écran de victoire : seul overlay sans handler clavier (aide, crédits,
+  // carte, panneau règle en ont tous un) — Échap fait ce que fait le bouton
+  // « retour à la carte ». La garde porte sur l'overlay réellement au premier
+  // plan (currentOverlay), et non sur winEl.hidden : le retour à la carte ne
+  // remet pas ce drapeau à true (seul startLevel le fait, cf. renderNewGame),
+  // si bien qu'Échap sur la carte ou l'accueil rejouerait sinon ce retour.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && currentOverlay() === "win") leave();
+  });
+  // Retour navigateur depuis l'écran de victoire : même sortie que le bouton
+  // « retour à la carte » — c'est l'enchaînement victoire → carte
+  // (src/render/history.ts), pas un simple masquage.
+  bindOverlayCloser("win", leave);
 }
 
 // --- Registre repliable ----------------------------------------------------
@@ -121,6 +141,7 @@ const rulePanelEl = byId("rule-panel");
 const ruleOverlayEl = byId("rule-overlay");
 const ruleCloseEl = byId("rule-close");
 ruleCloseEl.appendChild(closeIcon());
+const ruleHelpLinkEl = byId("rule-help-link");
 
 function setRulePanelOpen(open: boolean) {
   rulePanelEl.hidden = !open;
@@ -142,6 +163,14 @@ ruleCloseEl.addEventListener("click", () => {
 ruleOverlayEl.addEventListener("click", () => {
   playSound("ui-close");
   setRulePanelOpen(false);
+});
+// Le panneau ne montre qu'un résumé (rule-spec) ; ce lien mène au tutoriel
+// entier sans repasser par l'accueil — sinon le revoir en partie coûte deux
+// sorties d'écran (retour carte, puis retour accueil).
+ruleHelpLinkEl.addEventListener("click", () => {
+  playSound("ui-secondary");
+  setRulePanelOpen(false);
+  showHelp();
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !rulePanelEl.hidden) {
@@ -369,26 +398,66 @@ export function renderWin(
     // que pour la complétion du mode, on n'annonce donc que le gain.
     winStarUnlockEl.hidden = star.unlocked === null;
     winStarUnlockEl.textContent = star.unlocked
-      ? `Débloque : ${star.unlocked}`
+      ? `Accès à : ${star.unlocked}`
       : "";
   }
   renderWinActions(choices);
   winEl.hidden = false;
+  // Une entrée d'historique par ouverture : le geste retour mobile referme
+  // l'écran au lieu de quitter l'application (src/render/history.ts).
+  pushOverlay("win");
 }
 
 // Le retour à la carte et l'enchaînement quittent tous deux l'écran de victoire.
 export function hideWin() {
   winEl.hidden = true;
+  popOverlay("win");
 }
 
 // Échec de chargement d'un niveau. L'overlay est opaque et couvre la carte
 // (z-index 50) : sans quoi le retour à la carte, qui suit immédiatement, le
-// masquerait. Il est donc refermable d'un clic — sinon le joueur y resterait
-// enfermé, alors que l'échec est rattrapable (autre niveau, autre mode).
-export function renderLoadError(message: string) {
+// masquerait. Il reste refermable d'un clic ailleurs que sur RÉESSAYER —
+// sinon le joueur y resterait enfermé, alors que l'échec est rattrapable
+// (autre niveau, autre mode).
+//
+// Le message ne dit jamais LA cause (réseau, JSON absent, quota…) : le joueur
+// n'a rien à en faire, seul « ça n'a pas marché, voici comment réessayer »
+// compte. `retry` reprend le chargement qui a échoué (même niveau, même mode)
+// plutôt que de recharger toute la page.
+export function renderLoadError(retry: () => void) {
   statusEl.classList.add("error");
-  statusEl.textContent = message;
+  statusEl.textContent = "";
+
+  const message = document.createElement("p");
+  message.className = "status-message";
+  message.textContent = "Impossible de charger ce niveau.";
+  statusEl.appendChild(message);
+
+  const retryEl = document.createElement("button");
+  retryEl.type = "button";
+  retryEl.className = "status-retry";
+  retryEl.textContent = "RÉESSAYER";
+  retryEl.addEventListener("click", (e) => {
+    // Ne pas laisser l'événement remonter jusqu'au clic-pour-fermer posé plus
+    // bas : la nouvelle tentative masquera elle-même ce statut si elle aboutit.
+    e.stopPropagation();
+    hideStatus();
+    retry();
+  });
+  statusEl.appendChild(retryEl);
+
+  const hint = document.createElement("p");
+  hint.className = "status-hint";
+  hint.textContent = "Ou cliquez ailleurs pour revenir à la carte.";
+  statusEl.appendChild(hint);
+
   statusEl.hidden = false;
+  // Clic-pour-fermer posé une seule fois : renderLoadError se rappelle à chaque
+  // tentative ratée (retry → startLevel → renderLoadError). Sans le retrait
+  // préalable, les écouteurs {once} d'échecs successifs s'empileraient (ils ne
+  // partent qu'au déclenchement) — hideStatus est idempotent mais autant ne pas
+  // les accumuler.
+  statusEl.removeEventListener("click", hideStatus);
   statusEl.addEventListener("click", hideStatus, { once: true });
 }
 

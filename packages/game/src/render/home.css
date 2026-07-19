@@ -96,7 +96,7 @@ body.home-open .win {
 .home-state {
   margin: 18px 0 0;
   padding-top: 14px;
-  border-top: 1.5px solid var(--ink);
+  border-top: var(--rule-standard);
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 400;
@@ -146,7 +146,7 @@ body.home-open .win {
 .home-levels {
   height: 54px;
   background: var(--card);
-  border: 1.5px solid var(--ink);
+  border: var(--rule-standard);
   color: var(--ink);
   font-family: var(--mono);
   font-size: 13px;
@@ -203,9 +203,11 @@ body.home-open .win {
   background: none;
   border: none;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 2px;
-  color: var(--ghost);
+  /* --ghost-strong, pas --ghost : ce lien se lit sur le papier, --ghost n'y
+     tient qu'à ~1,9:1 (DESIGN.md § Colors). */
+  color: var(--ghost-strong);
   cursor: pointer;
 }
 

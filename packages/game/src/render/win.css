@@ -23,8 +23,11 @@
   }
 }
 
+/* 72px : le corps du token typo `hero` (DESIGN.md), aligné sur le plafond du
+   titre d'accueil (`brand`, clamp(40px,12vw,72px)) sans en être un
+   consommateur — `brand` reste exclusif à l'accueil (DESIGN.md § Marque). */
 .win-title {
-  font-size: 76px;
+  font-size: 72px;
   font-weight: 700;
   font-style: italic;
   letter-spacing: 1px;
@@ -163,7 +166,7 @@
 
 .win-second:hover {
   border-color: var(--paper);
-  background: rgba(246, 241, 231, 0.08);
+  background: color-mix(in srgb, var(--paper) 8%, transparent);
 }
 
 /* Confettis - positions et tailles proportionnelles à l'emprise */
@@ -232,6 +235,18 @@
   height: 11px;
   --r: 52deg;
   animation-delay: 1.1s;
+}
+
+
+/* --- Mouvement réduit --- */
+
+/* Les 6 confettis tournent en boucle infinie (déclencheur vestibulaire) :
+   on les fige à leur pose de départ, celle du "from" de confetti-float. */
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    animation: none;
+    transform: rotate(var(--r));
+  }
 }
 
 

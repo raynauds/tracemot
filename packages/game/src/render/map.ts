@@ -33,6 +33,7 @@ import {
   levelId,
 } from "@tracemot/core";
 import { playSound } from "../audio/audio.ts";
+import { bindOverlayCloser, popOverlay, pushOverlay } from "./history.ts";
 import { arrowLeftIcon, checkIcon, closeIcon, starIcon } from "./icons.ts";
 import {
   cellState,
@@ -348,14 +349,23 @@ function defiSub(modeId: ModeId, locked: boolean): string {
   return locked ? `${sub} DE ${m.wordLength} LETTRES` : sub;
 }
 
-// Seul le défi verrouillé a une légende — elle dit ce qui lui manque. Ouvert ou
+// Seul le défi verrouillé (« disabled », donc à 4/5) a une légende. Ouvert ou
 // gagné, il n'en a pas : le relief du bouton dit déjà qu'on peut le lancer, et
 // l'étoile pleine qu'il est gagné. Le répéter en toutes lettres n'ajoute rien.
-const DEFI_CAPTION: Record<Exclude<CellState, "hidden">, string | null> = {
-  validated: null,
-  active: null,
-  disabled: "TERMINEZ LA LIGNE",
-};
+//
+// Verrouillé, elle ne dit plus une injonction générique (« terminez la
+// ligne ») mais la progression déjà faite dans la ligne. Elle n'en porte que la
+// DERNIÈRE marche (4/5) : la case défi n'ayant l'état « disabled » qu'au moment
+// où le dernier normal devient jouable, ses quatre prédécesseurs sont déjà
+// validés ici. Les marches précédentes (0→3/5) reviennent au teaser
+// (buildDefiProgress), tant que le défi n'existe pas encore comme case.
+function defiCaption(
+  state: Exclude<CellState, "hidden">,
+  doneInRow: number,
+): string | null {
+  if (state !== "disabled") return null;
+  return `${doneInRow}/${ROW_LENGTH} avant le défi`;
+}
 
 // Le défi porte l'étoile qu'il met en jeu, et son remplissage EST le score :
 // creuse tant qu'elle reste à prendre, pleine une fois gagnée. Même signe que
@@ -372,6 +382,7 @@ function buildDefi(
   row: Row,
   state: Exclude<CellState, "hidden">,
   variant: "card" | "band",
+  doneInRow: number,
 ): HTMLElement {
   const key = defiOfRow(row);
   const id = defiId(s, key);
@@ -387,7 +398,7 @@ function buildDefi(
   texts.appendChild(
     el("span", "map-defi-sub", defiSub(modeId, state === "disabled")),
   );
-  const caption = DEFI_CAPTION[state];
+  const caption = defiCaption(state, doneInRow);
   if (caption) texts.appendChild(el("span", "map-defi-caption", caption));
   defi.appendChild(texts);
 
@@ -418,13 +429,25 @@ function buildDefi(
   return defi;
 }
 
-// Placeholder desktop : garde la colonne du défi occupée quand celui-ci est
-// encore caché, sinon les grilles des lignes ne seraient pas alignées entre
-// elles (une ligne sans défi serait centrée sur toute la largeur).
-function defiPlaceholder(): HTMLElement {
-  const ghost = el("div", "map-defi map-defi--card is-hidden");
-  ghost.setAttribute("aria-hidden", "true");
-  return ghost;
+// Peint À LA PLACE du défi tant qu'il reste caché (doneInRow 0→3) : la case défi
+// n'a d'état « disabled » — le seul qui porte une légende (cf. defiCaption) —
+// qu'à 4/5, quand le dernier normal de la ligne devient jouable. Sans ce teaser,
+// aucune des quatre premières victoires de la ligne ne se lirait sur la carte.
+//
+// Il garde aussi la colonne du défi occupée (même empreinte que .map-defi--card)
+// pour que les lignes restent alignées, et se décline en carte (desktop) et
+// bandeau (mobile) comme le défi. Muet pour le lecteur d'écran : les cases
+// disent déjà leur état une à une, ceci n'est qu'un rappel visuel.
+function buildDefiProgress(
+  doneInRow: number,
+  variant: "card" | "band",
+): HTMLElement {
+  const node = el("div", `map-defi map-defi--${variant} is-teaser`);
+  node.setAttribute("aria-hidden", "true");
+  node.appendChild(
+    el("span", "map-defi-caption", `${doneInRow}/${ROW_LENGTH} avant le défi`),
+  );
+  return node;
 }
 
 // Une ligne = ses 5 normaux PUIS son défi (carte desktop + bandeau mobile).
@@ -438,19 +461,24 @@ function buildRow(
 ): HTMLElement {
   const node = el("div", "map-row");
   const grid = el("div", "map-grid");
+  let doneInRow = 0;
   for (let i = 1; i <= ROW_LENGTH; i++) {
     const n = (row - 1) * ROW_LENGTH + i;
     const id = levelId(s, n);
+    if (p.validated.has(id)) doneInRow++;
     grid.appendChild(buildCell(id, n, cellState(p, id)));
   }
   node.appendChild(grid);
 
   const state = cellState(p, defiId(s, defiOfRow(row)));
   if (state === "hidden") {
-    node.appendChild(defiPlaceholder());
+    // Défi encore caché : la colonne porte le compte des victoires de la ligne,
+    // dans les deux enveloppes comme le défi lui-même (cf. buildDefiProgress).
+    node.appendChild(buildDefiProgress(doneInRow, "card"));
+    node.appendChild(buildDefiProgress(doneInRow, "band"));
   } else {
-    node.appendChild(buildDefi(modeId, s, row, state, "card"));
-    node.appendChild(buildDefi(modeId, s, row, state, "band"));
+    node.appendChild(buildDefi(modeId, s, row, state, "card", doneInRow));
+    node.appendChild(buildDefi(modeId, s, row, state, "band", doneInRow));
   }
   return node;
 }
@@ -645,11 +673,15 @@ export function showMap(): void {
   // Le chrome de partie (header, registre, zoom) est masqué par le CSS via
   // cette classe : la carte n'a pas à connaître ses éléments un par un.
   document.body.classList.add("map-open");
+  // Une entrée d'historique par ouverture : le geste retour mobile referme
+  // l'écran au lieu de quitter l'application (src/render/history.ts).
+  pushOverlay("map");
 }
 
 export function hideMap(): void {
   mapEl.hidden = true;
   document.body.classList.remove("map-open");
+  popOverlay("map");
 }
 
 // Panneau ouvert, ou null. Un rendu reconstruit tout fermé et remet cette clé à
@@ -750,4 +782,8 @@ export function bindMap(
 // chaque rendu, la flèche n'a donc pas d'écouteur propre.
 export function bindMapHome(onReturn: () => void): void {
   onHome = onReturn;
+  // Retour navigateur pendant que la carte est ouverte : même sortie que la
+  // flèche « retour à l'accueil » — la carte n'a qu'un seul sens de sortie,
+  // quel que soit le chemin par lequel on y est entré.
+  bindOverlayCloser("map", onReturn);
 }

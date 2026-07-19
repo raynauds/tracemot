@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { COLORS, FONTS } from "../src/theme/tokens.ts";
+import { COLORS, FONTS, RULES, SHADOWS_HARD } from "../src/theme/tokens.ts";
 
 const OUT = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -31,6 +31,10 @@ const css = `/* FICHIER GÉNÉRÉ — ne pas éditer à la main.
 ${Object.entries(COLORS).map(([n, v]) => decl(n, v)).join("\n")}
 
 ${Object.entries(FONTS).map(([n, v]) => decl(n, v)).join("\n")}
+
+${Object.entries(RULES).map(([n, v]) => decl(`rule-${n}`, v)).join("\n")}
+
+${Object.entries(SHADOWS_HARD).map(([n, v]) => decl(`shadow-hard-${n}`, v)).join("\n")}
 }
 `;
 

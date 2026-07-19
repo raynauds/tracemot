@@ -67,7 +67,7 @@
 .screen-title {
   margin: 8px 0 0;
   padding-bottom: 14px;
-  border-bottom: 1.5px solid var(--ink);
+  border-bottom: var(--rule-standard);
   font-size: 32px;
   font-weight: 700;
   line-height: 1.1;
