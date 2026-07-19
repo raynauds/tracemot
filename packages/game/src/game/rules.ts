@@ -1,6 +1,7 @@
 // Validation d'un mot. Partagée entre la validation au lâcher du tracé
-// (main.ts) et le hint d'encre du registre (render.ts) — et destinée à logic
-// ET client (doc 01) : fonction PURE, aucun import du singleton `state`.
+// (client/client.ts, commitWord) et le hint d'encre du registre (render.ts)
+// — et destinée à logic ET client (doc 01) : fonction PURE, aucun import du
+// singleton `state`.
 //
 // Le dictionnaire n'est plus chargé au runtime : la référence est la
 // solution du niveau, prégénérée. Un mot traçable mais hors solution est

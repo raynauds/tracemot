@@ -35,6 +35,7 @@ function byId(id: string): HTMLElement {
 }
 
 const winEl = byId("win");
+const winTitleTextEl = byId("win-title-text");
 const winSubEl = byId("win-sub");
 const winStandingsEl = byId("win-standings");
 const winStarEl = byId("win-star");
@@ -48,6 +49,20 @@ const levelIdEl = byId("level-id");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
 const ruleSpecEl = byId("rule-spec");
+const ledgerLabelEl = byId("ledger-label");
+const rulePanelTitleEl = byId("rule-panel-title");
+const rulePanelLineEl = byId("rule-panel-line");
+
+// --- Textes statiques (doc 08 § i18n) ---------------------------------------
+// Posés une fois au chargement, comme les icônes ci-dessous : ce module ne
+// re-rend jamais ces libellés hors mise à jour de données (contrairement à
+// help.ts, dont les textes sont recalculés à chaque ouverture) — limite
+// assumée pour ce premier passage i18n (doc 08, v1 recommandée).
+backMapEl.setAttribute("aria-label", Rune.t("Retour à la carte"));
+backMapEl.title = Rune.t("Retour à la carte");
+ledgerLabelEl.textContent = Rune.t("MOTS TROUVÉS");
+winTitleTextEl.textContent = Rune.t("Gagné");
+winMapEl.textContent = Rune.t("RETOUR À LA CARTE");
 
 const listRows: HTMLElement[] = []; // les wordCount lignes du registre
 
@@ -58,7 +73,10 @@ const listRows: HTMLElement[] = []; // les wordCount lignes du registre
 // générique (sans nombres) et vit dans le HTML.
 function renderRuleSpec() {
   const { wordCount, wordLength } = local.mode;
-  ruleSpecEl.textContent = `${wordCount} mots · ${wordLength} lettres`;
+  ruleSpecEl.textContent = Rune.t("{{count}} mots · {{length}} lettres", {
+    count: String(wordCount),
+    length: String(wordLength),
+  });
 }
 
 // --- Header de partie -------------------------------------------------------
@@ -136,11 +154,20 @@ setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 // partie (persisted.helpSeen, doc 02/08 — plus de drapeau localStorage).
 const ruleChipEl = byId("rule-chip");
 ruleChipEl.appendChild(infoIcon());
+ruleChipEl.setAttribute("aria-label", Rune.t("Règle du jeu"));
+ruleChipEl.title = Rune.t("Règle du jeu");
 const rulePanelEl = byId("rule-panel");
+rulePanelEl.setAttribute("aria-label", Rune.t("Règle du jeu"));
+rulePanelTitleEl.textContent = Rune.t("RÈGLE");
+rulePanelLineEl.textContent = Rune.t(
+  "Reliez des lettres voisines pour tracer les mots. Chaque lettre ne sert qu'une fois.",
+);
 const ruleOverlayEl = byId("rule-overlay");
 const ruleCloseEl = byId("rule-close");
 ruleCloseEl.appendChild(closeIcon());
+ruleCloseEl.setAttribute("aria-label", Rune.t("Fermer"));
 const ruleHelpLinkEl = byId("rule-help-link");
+ruleHelpLinkEl.textContent = Rune.t("COMMENT JOUER");
 
 function setRulePanelOpen(open: boolean) {
   rulePanelEl.hidden = !open;
@@ -270,11 +297,13 @@ export function renderPendingWord() {
 export function rejectLabel(code: WordRejectCode): string {
   switch (code) {
     case "length":
-      return `${local.mode.wordLength} lettres requises`;
+      return Rune.t("{{count}} lettres requises", {
+        count: String(local.mode.wordLength),
+      });
     case "notInSolution":
-      return "Incorrecte";
+      return Rune.t("Incorrecte");
     case "alreadyFound":
-      return "Déjà trouvé";
+      return Rune.t("Déjà trouvé");
   }
 }
 
@@ -377,11 +406,14 @@ let onPlayLevel: ((id: LevelId) => void) | null = null;
 // le repli « continuer » (l'ordre canonique le place avant la ligne suivante).
 function fillChoice(el: HTMLElement, choice: NextChoice): void {
   if (isDefi(choice.id)) {
-    el.append(`DÉFI ${choice.id}`, starIcon());
+    el.append(Rune.t("DÉFI {{id}}", { id: choice.id }), starIcon());
     return;
   }
-  const verb = choice.kind === "next" ? "SUIVANT" : "CONTINUER";
-  el.append(`${verb} · ${choice.id}`);
+  const label =
+    choice.kind === "next"
+      ? Rune.t("SUIVANT · {{id}}", { id: choice.id })
+      : Rune.t("CONTINUER · {{id}}", { id: choice.id });
+  el.append(label);
 }
 
 export function bindWinNext(onPlay: (id: LevelId) => void) {
@@ -423,13 +455,17 @@ function rankGlyph(rank: number): string {
 // « 1 mot » (singulier), « 0 mot »/« 3 mots » sinon — la légende de la spec
 // (doc 07) ne met le pluriel qu'à partir de 2.
 function wordCountLabel(count: number): string {
-  return count === 1 ? "1 mot" : `${count} mots`;
+  return count === 1
+    ? Rune.t("1 mot")
+    : Rune.t("{{count}} mots", { count: String(count) });
 }
 
 // Moi : jamais mon propre nom Rune ni ma propre couleur — le vermillon me
 // désigne partout ailleurs dans l'app (doc 06), le classement ne déroge pas.
 function playerLabel(id: PlayerId): string {
-  return id === local.yourPlayerId ? "Moi" : Rune.getPlayerInfo(id).displayName;
+  return id === local.yourPlayerId
+    ? Rune.t("Moi")
+    : Rune.getPlayerInfo(id).displayName;
 }
 
 function standingAccentClass(id: PlayerId): string {
@@ -488,15 +524,20 @@ function renderStandings(winSummary: WinSummary | null): void {
     li.append(rankSpan, avatar, name, countSpan);
     li.setAttribute(
       "aria-label",
-      `Rang ${rank} : ${playerLabel(playerId)}, ${wordCountLabel(count)}`,
+      Rune.t("Rang {{rank}} : {{name}}, {{count}}", {
+        rank: String(rank),
+        name: playerLabel(playerId),
+        count: wordCountLabel(count),
+      }),
     );
     winStandingsEl.appendChild(li);
   }
 }
 
-// star : passé par main.ts au seul cas qui vaut une récompense — un défi gagné
-// pour la première fois. Le rejeu d'un défi et les niveaux normaux laissent
-// l'écran de victoire inchangé, sans quoi l'étoile ne voudrait plus rien dire.
+// star : passé par client/client.ts (winRenderOpts) au seul cas qui vaut une
+// récompense — un défi gagné pour la première fois. Le rejeu d'un défi et les
+// niveaux normaux laissent l'écran de victoire inchangé, sans quoi l'étoile ne
+// voudrait plus rien dire.
 // choices : ce que la victoire vient d'ouvrir (0 à 2 niveaux).
 export function renderWin(
   opts: {
@@ -508,20 +549,26 @@ export function renderWin(
   const { star, choices = [], winSummary = null } = opts;
   counterEl.classList.add("full");
   const { wordCount } = local.mode;
-  winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} TROUVÉ${wordCount > 1 ? "S" : ""}`;
+  winSubEl.textContent =
+    wordCount > 1
+      ? Rune.t("{{count}} MOTS TROUVÉS", { count: String(wordCount) })
+      : Rune.t("{{count}} MOT TROUVÉ", { count: String(wordCount) });
   renderStandings(winSummary);
   winStarEl.hidden = !star;
   if (star) {
     winStarGainEl.textContent = "";
     winStarGainEl.append(
       starIcon(),
-      `Étoile gagnée — ${star.count} / ${MAX_STARS}`,
+      Rune.t("Étoile gagnée — {{count}} / {{max}}", {
+        count: String(star.count),
+        max: String(MAX_STARS),
+      }),
     );
     // Les étoiles au-delà des paliers ne débloquent rien : elles ne comptent
     // que pour la complétion du mode, on n'annonce donc que le gain.
     winStarUnlockEl.hidden = star.unlocked === null;
     winStarUnlockEl.textContent = star.unlocked
-      ? `Accès à : ${star.unlocked}`
+      ? Rune.t("Accès à : {{unlock}}", { unlock: star.unlocked })
       : "";
   }
   renderWinActions(choices);

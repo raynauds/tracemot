@@ -349,6 +349,11 @@
     animation: none;
     transform: rotate(var(--r));
   }
+  /* Classement (doc 07/08) : l'entrée en fondu + léger déplacement disparaît,
+     la liste apparaît directement dans son état final. */
+  .win-standings {
+    animation: none;
+  }
 }
 
 

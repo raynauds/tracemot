@@ -445,7 +445,15 @@ function paintRemoteMarkers(): void {
     const slot = local.colorSlots[playerId];
     const color = slot !== undefined ? PLAYER_COLORS[slot] : INK;
     const mutedSince = now - info.lastChangedAt - REMOTE_MUTE_AFTER_MS;
-    const fade = mutedSince <= 0 ? 1 : Math.max(0, 1 - mutedSince / REMOTE_FADE_MS);
+    // prefers-reduced-motion (doc 08) : pas de fondu progressif — le marqueur
+    // reste plein tant que le tracé est actif, puis disparaît net.
+    const fade = reducedMotion
+      ? mutedSince <= 0
+        ? 1
+        : 0
+      : mutedSince <= 0
+        ? 1
+        : Math.max(0, 1 - mutedSince / REMOTE_FADE_MS);
     if (fade <= 0) {
       releaseRemoteMarker(playerId);
       continue;
@@ -708,17 +716,22 @@ function buildZoomControls(): void {
   // Boutons de pas + / − : masqués sur mobile (le pinch suffit), voir zoom.css.
   addButton(
     plusIcon(),
-    "Zoomer",
+    Rune.t("Zoomer"),
     () => camera.zoomAt(camera.screenCenter(), ZOOM_STEP),
     "zoom-btn--step",
   );
   addButton(
     minusIcon(),
-    "Dézoomer",
+    Rune.t("Dézoomer"),
     () => camera.zoomAt(camera.screenCenter(), 1 / ZOOM_STEP),
     "zoom-btn--step",
   );
-  addButton(maximizeIcon(), "Tout voir", () => camera.fit(), "zoom-btn--fit");
+  addButton(
+    maximizeIcon(),
+    Rune.t("Tout voir"),
+    () => camera.fit(),
+    "zoom-btn--fit",
+  );
   document.body.appendChild(bar);
 }
 
@@ -819,8 +832,8 @@ export async function initScene(): Promise<void> {
 // Reconstruit la grille Pixi à la forme du niveau lancé (elle change d'un
 // niveau à l'autre — un défi double le côté) : annule les animations en cours,
 // détruit cases et lettres, recadre la caméra sur la nouvelle forme, recrée la
-// grille. Les lettres sont reposées ensuite par renderSceneGrid (main.ts,
-// startLevel).
+// grille. Les lettres sont reposées ensuite par renderSceneGrid (client/
+// client.ts, enterGameScreen).
 export function rebuildGrid(): void {
   if (!app) return;
   cancelTweens(); // aucun onUpdate ne doit toucher une case détruite

@@ -65,28 +65,28 @@ function levelDescription(proposal: Proposal): string {
 
 function buildPrompt(proposal: Proposal): void {
   cardEl.textContent = "";
-  cardEl.setAttribute("aria-label", "Proposition de niveau");
-  cardEl.appendChild(el("span", "lobby-title", "PROPOSITION"));
+  cardEl.setAttribute("aria-label", Rune.t("Proposition de niveau"));
+  cardEl.appendChild(el("span", "lobby-title", Rune.t("PROPOSITION")));
 
   const line = el("p", "lobby-line");
   line.appendChild(avatar(proposal.proposedBy));
   const who = playerName(proposal.proposedBy);
   if (proposal.kind === "abandon") {
-    line.append(`${who} propose d'abandonner la partie`);
+    line.append(Rune.t("{{who}} propose d'abandonner la partie", { who }));
   } else {
-    line.append(`${who} propose `);
+    line.append(Rune.t("{{who}} propose ", { who }));
     line.appendChild(el("strong", undefined, levelDescription(proposal)));
   }
   cardEl.appendChild(line);
 
   const actions = el("div", "lobby-actions");
-  const accept = el("button", "lobby-btn", "PRÊT ?");
+  const accept = el("button", "lobby-btn", Rune.t("PRÊT ?"));
   accept.type = "button";
   accept.addEventListener("click", () => {
     playSound("ui-primary");
     onAccept?.();
   });
-  const refuse = el("button", "lobby-btn", "PAS MAINTENANT");
+  const refuse = el("button", "lobby-btn", Rune.t("PAS MAINTENANT"));
   refuse.type = "button";
   refuse.addEventListener("click", () => {
     playSound("ui-close");
@@ -102,14 +102,14 @@ function buildWaiting(
   isProposer: boolean,
 ): void {
   cardEl.textContent = "";
-  cardEl.setAttribute("aria-label", "En attente des autres joueurs");
-  cardEl.appendChild(el("span", "lobby-title", "EN ATTENTE DES AUTRES"));
+  cardEl.setAttribute("aria-label", Rune.t("En attente des autres joueurs"));
+  cardEl.appendChild(el("span", "lobby-title", Rune.t("EN ATTENTE DES AUTRES")));
 
   const line = el("p", "lobby-line");
   if (proposal.kind === "abandon") {
-    line.append("Abandon proposé");
+    line.append(Rune.t("Abandon proposé"));
   } else {
-    line.append("Niveau proposé : ");
+    line.append(Rune.t("Niveau proposé : "));
     line.appendChild(el("strong", undefined, levelDescription(proposal)));
   }
   cardEl.appendChild(line);
@@ -124,7 +124,7 @@ function buildWaiting(
       el(
         "span",
         `lobby-roster-status${ready ? " is-ready" : ""}`,
-        ready ? "PRÊT" : "EN ATTENTE",
+        ready ? Rune.t("PRÊT") : Rune.t("EN ATTENTE"),
       ),
     );
     list.appendChild(row);
@@ -132,7 +132,7 @@ function buildWaiting(
   cardEl.appendChild(list);
 
   if (isProposer) {
-    const cancel = el("button", "lobby-btn", "ANNULER");
+    const cancel = el("button", "lobby-btn", Rune.t("ANNULER"));
     cancel.type = "button";
     cancel.addEventListener("click", () => {
       playSound("ui-close");

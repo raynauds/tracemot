@@ -303,11 +303,13 @@ function notifyLobbyEvents(
   if (event?.name === "playerJoined" && event.params) {
     const playerId = event.params.playerId as string;
     if (playerId !== yourPlayerId) {
-      showSnackbar(`${Rune.getPlayerInfo(playerId).displayName} a rejoint la partie`);
+      const name = Rune.getPlayerInfo(playerId).displayName;
+      showSnackbar(Rune.t("{{name}} a rejoint la partie", { name }));
     }
   } else if (event?.name === "playerLeft" && event.params) {
     const playerId = event.params.playerId as string;
-    showSnackbar(`${Rune.getPlayerInfo(playerId).displayName} a quitté la partie`);
+    const name = Rune.getPlayerInfo(playerId).displayName;
+    showSnackbar(Rune.t("{{name}} a quitté la partie", { name }));
   }
 
   if (refusalJustHappened(game, previousGame)) {
@@ -316,12 +318,16 @@ function notifyLobbyEvents(
     // refus (même filet), doc 04 § Timeout.
     if (by !== yourPlayerId) {
       const name = Rune.getPlayerInfo(by).displayName;
-      showSnackbar(reason === "timeout" ? `Sans réponse de ${name}` : `${name} a refusé`);
+      showSnackbar(
+        reason === "timeout"
+          ? Rune.t("Sans réponse de {{name}}", { name })
+          : Rune.t("{{name}} a refusé", { name }),
+      );
     }
   }
   if (proposalRaceLost(game, previousGame, yourPlayerId)) {
     const name = Rune.getPlayerInfo(game.proposal!.proposedBy).displayName;
-    showSnackbar(`${name} a proposé en premier`);
+    showSnackbar(Rune.t("{{name}} a proposé en premier", { name }));
   }
 }
 
@@ -444,8 +450,12 @@ async function boot(): Promise<void> {
         syncFromGame(game); // won/ready/found/traces à jour, même sans mot trouvé
         renderRemoteTraces(); // redessine tracés distants + fond des cases (doc 05)
         if (race) {
+          const name = Rune.getPlayerInfo(race.winner).displayName;
           showSnackbar(
-            `${Rune.getPlayerInfo(race.winner).displayName} a trouvé « ${race.word} » juste avant`,
+            Rune.t("{{name}} a trouvé « {{word}} » juste avant", {
+              name,
+              word: race.word,
+            }),
           );
         }
         if (foundGrew) handleFoundGrowth(game, previousGame.found.length);

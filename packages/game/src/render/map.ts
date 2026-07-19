@@ -168,7 +168,7 @@ function foldMark(): HTMLElement {
 
 function buildTabs(): HTMLElement {
   const nav = el("nav", "map-tabs");
-  nav.setAttribute("aria-label", "Mode de jeu");
+  nav.setAttribute("aria-label", Rune.t("Mode de jeu"));
   // Il y a au plus un onglet verrouillé (cf. visibleModes) : son panneau se pose
   // en fin de barre, qui l'ancre. Le mettre dans l'onglet est impossible — un
   // panneau ne peut pas vivre dans un <button>.
@@ -190,7 +190,9 @@ function buildTabs(): HTMLElement {
       asPanelTrigger(tab, `mode-${modeId}`);
       tab.setAttribute(
         "aria-label",
-        `Mode ${modeLabel(modeId)}, verrouillé — ce qu'il faut pour l'ouvrir`,
+        Rune.t("Mode {{mode}}, verrouillé — ce qu'il faut pour l'ouvrir", {
+          mode: modeLabel(modeId),
+        }),
       );
       tab.appendChild(lockIcon());
       lockedTab = modeId;
@@ -204,7 +206,9 @@ function buildTabs(): HTMLElement {
         tab.classList.add("is-shared");
         tab.setAttribute(
           "aria-label",
-          `Mode ${modeLabel(modeId)}, débloqué grâce à la room`,
+          Rune.t("Mode {{mode}}, débloqué grâce à la room", {
+            mode: modeLabel(modeId),
+          }),
         );
       }
     }
@@ -233,28 +237,47 @@ function buildLockedModePanel(modeId: ModeId): DocumentFragment {
   // formulation —, au mode gardien près : c'est le PRÉCÉDENT qui tient la porte,
   // pas forcément celui qu'on regarde, il faut donc le nommer.
   if (gate) {
-    lines.push(missingStarsLine(missing, `ce mode (en ${modeLabel(gate)})`));
+    lines.push(
+      missingStarsLine(
+        missing,
+        Rune.t("ce mode (en {{mode}})", { mode: modeLabel(gate) }),
+      ),
+    );
   }
   const m = GAME_MODES[modeId];
   lines.push(
     el(
       "p",
       "panel-spec",
-      `${m.wordCount} mots de ${m.wordLength} lettres · ${m.rows}×${m.cols}`,
+      Rune.t("{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}", {
+        count: String(m.wordCount),
+        length: String(m.wordLength),
+        rows: String(m.rows),
+        cols: String(m.cols),
+      }),
     ),
   );
-  return buildInfoPanel(`mode-${modeId}`, `MODE ${modeLabel(modeId)}`, lines);
+  return buildInfoPanel(
+    `mode-${modeId}`,
+    Rune.t("MODE {{mode}}", { mode: modeLabel(modeId) }),
+    lines,
+  );
 }
 
 // Ce que le panneau des étoiles explique : comment on les gagne, et ce qu'elles
 // ouvrent. Ni seuil ni nom de difficulté : la mécanique, pas le barème — la
 // carte, elle, annonce le prochain palier au moment où il est à portée
 // (« ★ Encore 1 étoile »).
-const STARS_LINES = [
-  "Chaque défi validé rapporte une étoile.",
-  "Elles ouvrent les difficultés suivantes, et le mode au-dessus - des " +
-    "grilles plus grandes, des mots plus longs.",
-];
+// Fonction plutôt que constante : rappelée à chaque rendu (comme tout ce
+// module), donc jamais figée sur une langue si le joueur en change en Dev UI.
+function starsLines(): string[] {
+  return [
+    Rune.t("Chaque défi validé rapporte une étoile."),
+    Rune.t(
+      "Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.",
+    ),
+  ];
+}
 
 // Voile + panneau : le composant partagé du header de partie
 // (src/render/panel.css), réemployé tel quel. La carte en pose trois — le
@@ -291,7 +314,7 @@ function buildInfoPanel(
   head.appendChild(el("span", "diff-panel-title", title));
   const close = el("button", "diff-close");
   close.type = "button";
-  close.setAttribute("aria-label", "Fermer");
+  close.setAttribute("aria-label", Rune.t("Fermer"));
   close.appendChild(closeIcon());
   head.appendChild(close);
   panel.appendChild(head);
@@ -328,7 +351,10 @@ function buildStars(p: ModeProgress): HTMLElement | null {
   asPanelTrigger(chip, "stars");
   chip.setAttribute(
     "aria-label",
-    `${stars} ${stars > 1 ? "étoiles" : "étoile"} — ce qu'elles ouvrent`,
+    Rune.t("{{count}} {{word}} — ce qu'elles ouvrent", {
+      count: String(stars),
+      word: stars > 1 ? Rune.t("étoiles") : Rune.t("étoile"),
+    }),
   );
   chip.appendChild(el("span", "map-stars-count", String(stars)));
   const icon = starIcon();
@@ -336,7 +362,7 @@ function buildStars(p: ModeProgress): HTMLElement | null {
   chip.appendChild(icon);
   box.appendChild(chip);
 
-  box.appendChild(buildInfoPanel("stars", "ÉTOILES", STARS_LINES));
+  box.appendChild(buildInfoPanel("stars", Rune.t("ÉTOILES"), starsLines()));
   return box;
 }
 
@@ -352,7 +378,7 @@ function buildStars(p: ModeProgress): HTMLElement | null {
 function buildResumeButton(): HTMLElement | null {
   const resume = resumePoint(currentProgress, currentMode);
   if (!resume) return null;
-  const button = el("button", "map-resume", "REPRENDRE");
+  const button = el("button", "map-resume", Rune.t("REPRENDRE"));
   button.type = "button";
   button.dataset.resumeMode = resume.modeId;
   button.dataset.resumeLevel = resume.id;
@@ -380,6 +406,13 @@ function stateClass(s: CellState): string {
   return `is-${s}`;
 }
 
+// Suffixe d'aria-label « débloqué grâce à la room » (doc 03/06 § Q9), partagé
+// par les cases et les défis — jamais que le badge visuel (le coin replié)
+// n'ait pas son équivalent textuel.
+function viaRoomSuffix(viaRoom: boolean): string {
+  return viaRoom ? Rune.t(", débloqué grâce à la room") : "";
+}
+
 function buildCell(
   id: LevelId,
   n: number,
@@ -404,7 +437,7 @@ function buildCell(
   }
   // Badge neutre « grâce à la room » (doc 03/06 § Q9) : le coin replié suffit
   // visuellement, l'aria-label porte l'équivalent textuel.
-  const suffix = viaRoom ? ", débloqué grâce à la room" : "";
+  const suffix = viaRoomSuffix(viaRoom);
   if (playable) {
     const button = cell as HTMLButtonElement;
     button.type = "button";
@@ -412,11 +445,14 @@ function buildCell(
     button.setAttribute(
       "aria-label",
       state === "validated"
-        ? `Niveau ${id}, validé, rejouable${suffix}`
-        : `Niveau ${id}, jouable${suffix}`,
+        ? Rune.t("Niveau {{id}}, validé, rejouable{{suffix}}", { id, suffix })
+        : Rune.t("Niveau {{id}}, jouable{{suffix}}", { id, suffix }),
     );
   } else {
-    cell.setAttribute("aria-label", `Niveau ${id}, à débloquer`);
+    cell.setAttribute(
+      "aria-label",
+      Rune.t("Niveau {{id}}, à débloquer", { id }),
+    );
   }
   return cell;
 }
@@ -429,8 +465,17 @@ function buildCell(
 // des mots ne décide plus rien — la grille, elle, le dira.
 function defiSub(modeId: ModeId, locked: boolean): string {
   const m = defiMode(GAME_MODES[modeId]);
-  const sub = `${m.rows}×${m.cols} · ${m.wordCount} MOTS`;
-  return locked ? `${sub} DE ${m.wordLength} LETTRES` : sub;
+  const sub = Rune.t("{{rows}}×{{cols}} · {{count}} MOTS", {
+    rows: String(m.rows),
+    cols: String(m.cols),
+    count: String(m.wordCount),
+  });
+  return locked
+    ? Rune.t("{{sub}} DE {{length}} LETTRES", {
+        sub,
+        length: String(m.wordLength),
+      })
+    : sub;
 }
 
 // Seul le défi verrouillé (« disabled », donc à 4/5) a une légende. Ouvert ou
@@ -443,12 +488,21 @@ function defiSub(modeId: ModeId, locked: boolean): string {
 // où le dernier normal devient jouable, ses quatre prédécesseurs sont déjà
 // validés ici. Les marches précédentes (0→3/5) reviennent au teaser
 // (buildDefiProgress), tant que le défi n'existe pas encore comme case.
+// Partagée par defiCaption et buildDefiProgress (même phrase, deux endroits) :
+// un seul appel Rune.t() à tenir à jour.
+function beforeDefiCaption(doneInRow: number): string {
+  return Rune.t("{{done}}/{{total}} avant le défi", {
+    done: String(doneInRow),
+    total: String(ROW_LENGTH),
+  });
+}
+
 function defiCaption(
   state: Exclude<CellState, "hidden">,
   doneInRow: number,
 ): string | null {
   if (state !== "disabled") return null;
-  return `${doneInRow}/${ROW_LENGTH} avant le défi`;
+  return beforeDefiCaption(doneInRow);
 }
 
 // Le défi porte l'étoile qu'il met en jeu, et son remplissage EST le score :
@@ -478,7 +532,7 @@ function buildDefi(
   const mark = defiMark(state);
   mark.classList.add("map-defi-mark");
   defi.appendChild(mark);
-  defi.appendChild(el("span", "map-defi-title", "DÉFI"));
+  defi.appendChild(el("span", "map-defi-title", Rune.t("DÉFI")));
   const texts = el("span", "map-defi-texts");
   texts.appendChild(
     el("span", "map-defi-sub", defiSub(modeId, state === "disabled")),
@@ -497,11 +551,14 @@ function buildDefi(
 
   // Trois défis par section, tous de la même difficulté : la clé A/B/C est ce
   // qui les distingue à l'oreille d'un lecteur d'écran.
-  const name = `Défi ${DIFFICULTY_LABELS[s].name} ${key}`;
+  const name = Rune.t("Défi {{name}} {{key}}", {
+    name: DIFFICULTY_LABELS[s].name,
+    key,
+  });
   // Badge neutre « grâce à la room » (doc 03/06 § Q9), même règle que les
   // cases : le coin replié (CSS, cf. .map-defi.is-shared) porte le visuel,
   // l'aria-label son équivalent textuel.
-  const suffix = viaRoom ? ", débloqué grâce à la room" : "";
+  const suffix = viaRoomSuffix(viaRoom);
   if (playable) {
     const button = defi as HTMLButtonElement;
     button.type = "button";
@@ -509,11 +566,14 @@ function buildDefi(
     button.setAttribute(
       "aria-label",
       state === "validated"
-        ? `${name}, validé, rejouable${suffix}`
-        : `${name}, prêt à jouer${suffix}`,
+        ? Rune.t("{{name}}, validé, rejouable{{suffix}}", { name, suffix })
+        : Rune.t("{{name}}, prêt à jouer{{suffix}}", { name, suffix }),
     );
   } else {
-    defi.setAttribute("aria-label", `${name}, à débloquer`);
+    defi.setAttribute(
+      "aria-label",
+      Rune.t("{{name}}, à débloquer", { name }),
+    );
   }
   return defi;
 }
@@ -533,9 +593,7 @@ function buildDefiProgress(
 ): HTMLElement {
   const node = el("div", `map-defi map-defi--${variant} is-teaser`);
   node.setAttribute("aria-hidden", "true");
-  node.appendChild(
-    el("span", "map-defi-caption", `${doneInRow}/${ROW_LENGTH} avant le défi`),
-  );
+  node.appendChild(el("span", "map-defi-caption", beforeDefiCaption(doneInRow)));
   return node;
 }
 
@@ -596,14 +654,18 @@ function buildStarRow(stars: number): HTMLElement {
 function missingStarsLine(missing: number, what: string): HTMLElement {
   const line = el("p", "panel-line");
   line.appendChild(
-    document.createTextNode(`Il vous manque encore ${missing} `),
+    document.createTextNode(
+      Rune.t("Il vous manque encore {{count}} ", { count: String(missing) }),
+    ),
   );
   const icon = starIcon();
   icon.removeAttribute("aria-hidden");
   icon.setAttribute("role", "img");
-  icon.setAttribute("aria-label", missing > 1 ? "étoiles" : "étoile");
+  icon.setAttribute("aria-label", missing > 1 ? Rune.t("étoiles") : Rune.t("étoile"));
   line.appendChild(icon);
-  line.appendChild(document.createTextNode(` pour débloquer ${what}.`));
+  line.appendChild(
+    document.createTextNode(Rune.t(" pour débloquer {{what}}.", { what })),
+  );
   return line;
 }
 
@@ -624,10 +686,14 @@ function buildMilestone(
   const label = el("button", "map-milestone-label");
   label.type = "button";
   asPanelTrigger(label, `section-${s}`);
-  const viaRoomSuffix = viaRoom ? ", débloqué grâce à la room" : "";
+  const sharedSuffix = viaRoomSuffix(viaRoom);
+  const lockedOrSharedSuffix = locked ? Rune.t(", verrouillé") : sharedSuffix;
   label.setAttribute(
     "aria-label",
-    `${DIFFICULTY_LABELS[s].name}${locked ? ", verrouillé" : viaRoomSuffix} — ce que c'est`,
+    Rune.t("{{name}}{{suffix}} — ce que c'est", {
+      name: DIFFICULTY_LABELS[s].name,
+      suffix: lockedOrSharedSuffix,
+    }),
   );
   label.appendChild(
     el("span", "map-milestone-name", DIFFICULTY_LABELS[s].name),
@@ -655,7 +721,7 @@ function buildMilestone(
       locked
         ? [
             DIFFICULTY_LABELS[s].desc,
-            missingStarsLine(missing, "cette difficulté"),
+            missingStarsLine(missing, Rune.t("cette difficulté")),
           ]
         : [DIFFICULTY_LABELS[s].desc],
     ),
@@ -673,7 +739,7 @@ function buildMilestone(
 function buildLockedSection(p: ModeProgress, s: Section): HTMLElement {
   const price = el("span", "map-milestone-count");
   price.appendChild(starIcon());
-  price.appendChild(el("span", undefined, "Encore 1 étoile"));
+  price.appendChild(el("span", undefined, Rune.t("Encore 1 étoile")));
 
   const section = el("section", "map-section");
   section.appendChild(
@@ -775,10 +841,12 @@ function legendItem(className: string, label: string): HTMLElement {
 // silencieuse sur un signe qu'elle ne montre jamais.
 function buildLegend(withShared: boolean): HTMLElement {
   const legend = el("div", "map-legend");
-  legend.appendChild(legendItem("is-validated", "VALIDÉ"));
-  legend.appendChild(legendItem("is-active", "JOUABLE"));
-  legend.appendChild(legendItem("is-disabled", "À DÉBLOQUER"));
-  if (withShared) legend.appendChild(legendItem("is-shared", "GRÂCE À LA ROOM"));
+  legend.appendChild(legendItem("is-validated", Rune.t("VALIDÉ")));
+  legend.appendChild(legendItem("is-active", Rune.t("JOUABLE")));
+  legend.appendChild(legendItem("is-disabled", Rune.t("À DÉBLOQUER")));
+  if (withShared) {
+    legend.appendChild(legendItem("is-shared", Rune.t("GRÂCE À LA ROOM")));
+  }
   return legend;
 }
 

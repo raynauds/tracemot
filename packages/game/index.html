@@ -36,6 +36,486 @@
     />
     <link rel="stylesheet" href="style.css" />
 
+    <!-- i18n (doc 08 § i18n) : traductions statiquement extraites par
+         `npx rune@latest extract-translations` (script npm "i18n:extract"),
+         qui (dés)peuple ce tag à partir des appels Rune.t() du client — ce
+         tag doit rester AVANT le chargement du SDK Rune pour que les
+         traductions se chargent (elles le sont : le SDK n'est chargé que par
+         les scripts de fin de <body>, cf. plus bas). Ne pas changer id/type :
+         Rune s'y ancre pour charger les traductions. Le contenu du JEU
+         (mots, dictionnaires, noms de difficulté) reste français et ne passe
+         pas par Rune.t() (doc 08 § i18n, Q3) — seule l'UI (boutons, états,
+         messages) y passe. Traductions initiales générées par LLM à partir
+         des clés extraites ; à faire relire avant publication. -->
+    <script id="rune-translation-data" type="application/json">
+      {
+        "en": {
+          "Fermer les règles": "Close the rules",
+          "Fermer": "Close",
+          "Comment jouer": "How to play",
+          "Tracer": "Trace",
+          "Reliez des lettres voisines, sur une même ligne ou une même colonne, puis relâchez : le mot se soumet tout seul.": "Connect neighboring letters, on the same row or column, then release: the word submits itself.",
+          "Une lettre, une fois": "One letter, once",
+          "Chaque lettre ne sert qu'à un seul mot : les cases d'un mot validé sortent du jeu.": "Each letter serves only one word: cells of a validated word leave the grid.",
+          "Finir la grille": "Finish the grid",
+          "La grille est finie quand tous ses mots sont trouvés : le registre les compte pour vous.": "The grid is finished once every word is found: the ledger counts them for you.",
+          "Gagner des étoiles": "Earn stars",
+          "Chaque défi validé rapporte une étoile. Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.": "Each validated challenge earns a star. Stars unlock the next difficulties, and the mode above - bigger grids, longer words.",
+          "DÉFI": "CHALLENGE",
+          "C'EST PARTI": "LET'S GO",
+          "Retour à la carte": "Back to map",
+          "MOTS TROUVÉS": "WORDS FOUND",
+          "Gagné": "Won",
+          "RETOUR À LA CARTE": "BACK TO MAP",
+          "Règle du jeu": "Game rules",
+          "RÈGLE": "RULES",
+          "Reliez des lettres voisines pour tracer les mots. Chaque lettre ne sert qu'une fois.": "Connect neighboring letters to trace words. Each letter is used only once.",
+          "COMMENT JOUER": "HOW TO PLAY",
+          "DÉFI {{id}}": "CHALLENGE {{id}}",
+          "SUIVANT · {{id}}": "NEXT · {{id}}",
+          "CONTINUER · {{id}}": "CONTINUE · {{id}}",
+          "1 mot": "1 word",
+          "Moi": "Me",
+          "Accès à : {{unlock}}": "Unlocks: {{unlock}}",
+          "Zoomer": "Zoom in",
+          "Dézoomer": "Zoom out",
+          "Tout voir": "Fit all",
+          "En attente des autres joueurs": "Waiting for other players",
+          "EN ATTENTE DES AUTRES": "WAITING FOR OTHERS",
+          "Abandon proposé": "Abandon proposed",
+          "Niveau proposé : ": "Level proposed: ",
+          "PRÊT": "READY",
+          "EN ATTENTE": "WAITING",
+          "ANNULER": "CANCEL",
+          "Proposition de niveau": "Level proposal",
+          "PROPOSITION": "PROPOSAL",
+          "{{who}} propose d'abandonner la partie": "{{who}} proposes to abandon the game",
+          "{{who}} propose ": "{{who}} proposes ",
+          "PRÊT ?": "READY?",
+          "PAS MAINTENANT": "NOT NOW",
+          "Mode de jeu": "Game mode",
+          "Mode {{mode}}, débloqué grâce à la room": "Mode {{mode}}, unlocked thanks to the room",
+          "Mode {{mode}}, verrouillé — ce qu'il faut pour l'ouvrir": "Mode {{mode}}, locked — what's needed to unlock it",
+          "ce mode (en {{mode}})": "this mode (in {{mode}})",
+          "MODE {{mode}}": "MODE {{mode}}",
+          "étoiles": "stars",
+          "étoile": "star",
+          "ÉTOILES": "STARS",
+          "Chaque défi validé rapporte une étoile.": "Each validated challenge earns a star.",
+          "Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.": "They unlock the next difficulties, and the mode above - bigger grids, longer words.",
+          "REPRENDRE": "RESUME",
+          ", débloqué grâce à la room": ", unlocked thanks to the room",
+          "Niveau {{id}}, validé, rejouable{{suffix}}": "Level {{id}}, validated, replayable{{suffix}}",
+          "Niveau {{id}}, jouable{{suffix}}": "Level {{id}}, playable{{suffix}}",
+          "Niveau {{id}}, à débloquer": "Level {{id}}, to unlock",
+          "{{done}}/{{total}} avant le défi": "{{done}}/{{total}} before the challenge",
+          "{{sub}} DE {{length}} LETTRES": "{{sub}} OF {{length}} LETTERS",
+          "Défi {{name}} {{key}}": "Challenge {{name}} {{key}}",
+          "{{name}}, validé, rejouable{{suffix}}": "{{name}}, validated, replayable{{suffix}}",
+          "{{name}}, prêt à jouer{{suffix}}": "{{name}}, ready to play{{suffix}}",
+          "{{name}}, à débloquer": "{{name}}, to unlock",
+          " pour débloquer {{what}}.": " to unlock {{what}}.",
+          ", verrouillé": ", locked",
+          "{{name}}{{suffix}} — ce que c'est": "{{name}}{{suffix}} — what it is",
+          "cette difficulté": "this difficulty",
+          "Encore 1 étoile": "1 more star",
+          "VALIDÉ": "DONE",
+          "JOUABLE": "PLAYABLE",
+          "À DÉBLOQUER": "TO UNLOCK",
+          "GRÂCE À LA ROOM": "THANKS TO THE ROOM",
+          "Incorrecte": "Incorrect",
+          "Déjà trouvé": "Already found",
+          "{{name}} a rejoint la partie": "{{name}} joined the game",
+          "{{name}} a quitté la partie": "{{name}} left the game",
+          "Sans réponse de {{name}}": "No response from {{name}}",
+          "{{name}} a refusé": "{{name}} declined",
+          "{{name}} a proposé en premier": "{{name}} proposed first",
+          "{{name}} a trouvé « {{word}} » juste avant": "{{name}} found “{{word}}” just before you",
+          "{{count}} mots · {{length}} lettres_one": "{{count}} word · {{length}} letters",
+          "{{count}} mots · {{length}} lettres_other": "{{count}} words · {{length}} letters",
+          "{{count}} mots_one": "{{count}} word",
+          "{{count}} mots_other": "{{count}} words",
+          "Rang {{rank}} : {{name}}, {{count}}_one": "Rank {{rank}}: {{name}}, {{count}}",
+          "Rang {{rank}} : {{name}}, {{count}}_other": "Rank {{rank}}: {{name}}, {{count}}",
+          "{{count}} MOTS TROUVÉS_one": "{{count}} WORD FOUND",
+          "{{count}} MOTS TROUVÉS_other": "{{count}} WORDS FOUND",
+          "{{count}} MOT TROUVÉ_one": "{{count}} WORD FOUND",
+          "{{count}} MOT TROUVÉ_other": "{{count}} WORDS FOUND",
+          "Étoile gagnée — {{count}} / {{max}}_one": "Star earned — {{count}} / {{max}}",
+          "Étoile gagnée — {{count}} / {{max}}_other": "Star earned — {{count}} / {{max}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_one": "{{count}} word of {{length}} letters · {{rows}}×{{cols}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_other": "{{count}} words of {{length}} letters · {{rows}}×{{cols}}",
+          "{{count}} {{word}} — ce qu'elles ouvrent_one": "{{count}} {{word}} — what they unlock",
+          "{{count}} {{word}} — ce qu'elles ouvrent_other": "{{count}} {{word}} — what they unlock",
+          "{{rows}}×{{cols}} · {{count}} MOTS_one": "{{rows}}×{{cols}} · {{count}} WORD",
+          "{{rows}}×{{cols}} · {{count}} MOTS_other": "{{rows}}×{{cols}} · {{count}} WORDS",
+          "Il vous manque encore {{count}} _one": "You still need {{count}} ",
+          "Il vous manque encore {{count}} _other": "You still need {{count}} ",
+          "{{count}} lettres requises_one": "{{count}} letter required",
+          "{{count}} lettres requises_other": "{{count}} letters required"
+        },
+        "es": {
+          "Fermer les règles": "Cerrar las reglas",
+          "Fermer": "Cerrar",
+          "Comment jouer": "Cómo jugar",
+          "Tracer": "Trazar",
+          "Reliez des lettres voisines, sur une même ligne ou une même colonne, puis relâchez : le mot se soumet tout seul.": "Une letras vecinas, en la misma fila o columna, y suelte: la palabra se valida sola.",
+          "Une lettre, une fois": "Una letra, una vez",
+          "Chaque lettre ne sert qu'à un seul mot : les cases d'un mot validé sortent du jeu.": "Cada letra solo sirve para una palabra: las casillas de una palabra validada salen del juego.",
+          "Finir la grille": "Terminar la cuadrícula",
+          "La grille est finie quand tous ses mots sont trouvés : le registre les compte pour vous.": "La cuadrícula termina cuando se encuentran todas sus palabras: el registro las cuenta por usted.",
+          "Gagner des étoiles": "Gana estrellas",
+          "Chaque défi validé rapporte une étoile. Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.": "Cada desafío validado otorga una estrella. Abren las siguientes dificultades y el modo superior: cuadrículas más grandes, palabras más largas.",
+          "DÉFI": "DESAFÍO",
+          "C'EST PARTI": "¡EMPEZAR!",
+          "Retour à la carte": "Volver al mapa",
+          "MOTS TROUVÉS": "PALABRAS ENCONTRADAS",
+          "Gagné": "Ganado",
+          "RETOUR À LA CARTE": "VOLVER AL MAPA",
+          "Règle du jeu": "Reglas del juego",
+          "RÈGLE": "REGLAS",
+          "Reliez des lettres voisines pour tracer les mots. Chaque lettre ne sert qu'une fois.": "Una letras vecinas para trazar palabras. Cada letra se usa una sola vez.",
+          "COMMENT JOUER": "CÓMO JUGAR",
+          "DÉFI {{id}}": "DESAFÍO {{id}}",
+          "SUIVANT · {{id}}": "SIGUIENTE · {{id}}",
+          "CONTINUER · {{id}}": "CONTINUAR · {{id}}",
+          "1 mot": "1 palabra",
+          "Moi": "Yo",
+          "Accès à : {{unlock}}": "Da acceso a: {{unlock}}",
+          "Zoomer": "Acercar",
+          "Dézoomer": "Alejar",
+          "Tout voir": "Ver todo",
+          "En attente des autres joueurs": "Esperando a los demás jugadores",
+          "EN ATTENTE DES AUTRES": "ESPERANDO A LOS DEMÁS",
+          "Abandon proposé": "Abandono propuesto",
+          "Niveau proposé : ": "Nivel propuesto: ",
+          "PRÊT": "LISTO",
+          "EN ATTENTE": "ESPERANDO",
+          "ANNULER": "CANCELAR",
+          "Proposition de niveau": "Propuesta de nivel",
+          "PROPOSITION": "PROPUESTA",
+          "{{who}} propose d'abandonner la partie": "{{who}} propone abandonar la partida",
+          "{{who}} propose ": "{{who}} propone ",
+          "PRÊT ?": "¿LISTO?",
+          "PAS MAINTENANT": "AHORA NO",
+          "Mode de jeu": "Modo de juego",
+          "Mode {{mode}}, débloqué grâce à la room": "Modo {{mode}}, desbloqueado gracias a la sala",
+          "Mode {{mode}}, verrouillé — ce qu'il faut pour l'ouvrir": "Modo {{mode}}, bloqueado — lo que hace falta para desbloquearlo",
+          "ce mode (en {{mode}})": "este modo (en {{mode}})",
+          "MODE {{mode}}": "MODO {{mode}}",
+          "étoiles": "estrellas",
+          "étoile": "estrella",
+          "ÉTOILES": "ESTRELLAS",
+          "Chaque défi validé rapporte une étoile.": "Cada desafío validado otorga una estrella.",
+          "Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.": "Abren las siguientes dificultades y el modo superior: cuadrículas más grandes, palabras más largas.",
+          "REPRENDRE": "REANUDAR",
+          ", débloqué grâce à la room": ", desbloqueado gracias a la sala",
+          "Niveau {{id}}, validé, rejouable{{suffix}}": "Nivel {{id}}, validado, rejugable{{suffix}}",
+          "Niveau {{id}}, jouable{{suffix}}": "Nivel {{id}}, jugable{{suffix}}",
+          "Niveau {{id}}, à débloquer": "Nivel {{id}}, por desbloquear",
+          "{{done}}/{{total}} avant le défi": "{{done}}/{{total}} antes del desafío",
+          "{{sub}} DE {{length}} LETTRES": "{{sub}} DE {{length}} LETRAS",
+          "Défi {{name}} {{key}}": "Desafío {{name}} {{key}}",
+          "{{name}}, validé, rejouable{{suffix}}": "{{name}}, validado, rejugable{{suffix}}",
+          "{{name}}, prêt à jouer{{suffix}}": "{{name}}, listo para jugar{{suffix}}",
+          "{{name}}, à débloquer": "{{name}}, por desbloquear",
+          " pour débloquer {{what}}.": " para desbloquear {{what}}.",
+          ", verrouillé": ", bloqueado",
+          "{{name}}{{suffix}} — ce que c'est": "{{name}}{{suffix}} — de qué se trata",
+          "cette difficulté": "esta dificultad",
+          "Encore 1 étoile": "1 estrella más",
+          "VALIDÉ": "VALIDADO",
+          "JOUABLE": "JUGABLE",
+          "À DÉBLOQUER": "POR DESBLOQUEAR",
+          "GRÂCE À LA ROOM": "GRACIAS A LA SALA",
+          "Incorrecte": "Incorrecta",
+          "Déjà trouvé": "Ya encontrada",
+          "{{name}} a rejoint la partie": "{{name}} se ha unido a la partida",
+          "{{name}} a quitté la partie": "{{name}} ha abandonado la partida",
+          "Sans réponse de {{name}}": "Sin respuesta de {{name}}",
+          "{{name}} a refusé": "{{name}} ha rechazado",
+          "{{name}} a proposé en premier": "{{name}} ha propuesto primero",
+          "{{name}} a trouvé « {{word}} » juste avant": "{{name}} encontró «{{word}}» justo antes",
+          "{{count}} mots · {{length}} lettres_one": "{{count}} palabra · {{length}} letras",
+          "{{count}} mots · {{length}} lettres_many": "{{count}} palabras · {{length}} letras",
+          "{{count}} mots · {{length}} lettres_other": "{{count}} palabras · {{length}} letras",
+          "{{count}} mots_one": "{{count}} palabra",
+          "{{count}} mots_many": "{{count}} palabras",
+          "{{count}} mots_other": "{{count}} palabras",
+          "Rang {{rank}} : {{name}}, {{count}}_one": "Puesto {{rank}}: {{name}}, {{count}}",
+          "Rang {{rank}} : {{name}}, {{count}}_many": "Puesto {{rank}}: {{name}}, {{count}}",
+          "Rang {{rank}} : {{name}}, {{count}}_other": "Puesto {{rank}}: {{name}}, {{count}}",
+          "{{count}} MOTS TROUVÉS_one": "{{count}} PALABRA ENCONTRADA",
+          "{{count}} MOTS TROUVÉS_many": "{{count}} PALABRAS ENCONTRADAS",
+          "{{count}} MOTS TROUVÉS_other": "{{count}} PALABRAS ENCONTRADAS",
+          "{{count}} MOT TROUVÉ_one": "{{count}} PALABRA ENCONTRADA",
+          "{{count}} MOT TROUVÉ_many": "{{count}} PALABRAS ENCONTRADAS",
+          "{{count}} MOT TROUVÉ_other": "{{count}} PALABRAS ENCONTRADAS",
+          "Étoile gagnée — {{count}} / {{max}}_one": "Estrella ganada — {{count}} / {{max}}",
+          "Étoile gagnée — {{count}} / {{max}}_many": "Estrella ganada — {{count}} / {{max}}",
+          "Étoile gagnée — {{count}} / {{max}}_other": "Estrella ganada — {{count}} / {{max}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_one": "{{count}} palabra de {{length}} letras · {{rows}}×{{cols}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_many": "{{count}} palabras de {{length}} letras · {{rows}}×{{cols}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_other": "{{count}} palabras de {{length}} letras · {{rows}}×{{cols}}",
+          "{{count}} {{word}} — ce qu'elles ouvrent_one": "{{count}} {{word}} — lo que abren",
+          "{{count}} {{word}} — ce qu'elles ouvrent_many": "{{count}} {{word}} — lo que abren",
+          "{{count}} {{word}} — ce qu'elles ouvrent_other": "{{count}} {{word}} — lo que abren",
+          "{{rows}}×{{cols}} · {{count}} MOTS_one": "{{rows}}×{{cols}} · {{count}} PALABRA",
+          "{{rows}}×{{cols}} · {{count}} MOTS_many": "{{rows}}×{{cols}} · {{count}} PALABRAS",
+          "{{rows}}×{{cols}} · {{count}} MOTS_other": "{{rows}}×{{cols}} · {{count}} PALABRAS",
+          "Il vous manque encore {{count}} _one": "Todavía te falta {{count}} ",
+          "Il vous manque encore {{count}} _many": "Todavía te faltan {{count}} ",
+          "Il vous manque encore {{count}} _other": "Todavía te faltan {{count}} ",
+          "{{count}} lettres requises_one": "{{count}} letra requerida",
+          "{{count}} lettres requises_many": "{{count}} letras requeridas",
+          "{{count}} lettres requises_other": "{{count}} letras requeridas"
+        },
+        "pt": {
+          "Fermer les règles": "Fechar as regras",
+          "Fermer": "Fechar",
+          "Comment jouer": "Como jogar",
+          "Tracer": "Traçar",
+          "Reliez des lettres voisines, sur une même ligne ou une même colonne, puis relâchez : le mot se soumet tout seul.": "Ligue letras vizinhas, na mesma linha ou coluna, e solte: a palavra é enviada sozinha.",
+          "Une lettre, une fois": "Uma letra, uma vez",
+          "Chaque lettre ne sert qu'à un seul mot : les cases d'un mot validé sortent du jeu.": "Cada letra serve para uma única palavra: as casas de uma palavra validada saem do jogo.",
+          "Finir la grille": "Terminar a grelha",
+          "La grille est finie quand tous ses mots sont trouvés : le registre les compte pour vous.": "A grelha termina quando todas as palavras são encontradas: o registo conta-as por si.",
+          "Gagner des étoiles": "Ganhe estrelas",
+          "Chaque défi validé rapporte une étoile. Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.": "Cada desafio validado dá uma estrela. Elas desbloqueiam as dificuldades seguintes, e o modo acima - grelhas maiores, palavras mais longas.",
+          "DÉFI": "DESAFIO",
+          "C'EST PARTI": "VAMOS LÁ",
+          "Retour à la carte": "Voltar ao mapa",
+          "MOTS TROUVÉS": "PALAVRAS ENCONTRADAS",
+          "Gagné": "Ganhou",
+          "RETOUR À LA CARTE": "VOLTAR AO MAPA",
+          "Règle du jeu": "Regras do jogo",
+          "RÈGLE": "REGRAS",
+          "Reliez des lettres voisines pour tracer les mots. Chaque lettre ne sert qu'une fois.": "Ligue letras vizinhas para traçar palavras. Cada letra é usada apenas uma vez.",
+          "COMMENT JOUER": "COMO JOGAR",
+          "DÉFI {{id}}": "DESAFIO {{id}}",
+          "SUIVANT · {{id}}": "SEGUINTE · {{id}}",
+          "CONTINUER · {{id}}": "CONTINUAR · {{id}}",
+          "1 mot": "1 palavra",
+          "Moi": "Eu",
+          "Accès à : {{unlock}}": "Dá acesso a: {{unlock}}",
+          "Zoomer": "Aproximar",
+          "Dézoomer": "Afastar",
+          "Tout voir": "Ver tudo",
+          "En attente des autres joueurs": "A aguardar os outros jogadores",
+          "EN ATTENTE DES AUTRES": "A AGUARDAR OS OUTROS",
+          "Abandon proposé": "Abandono proposto",
+          "Niveau proposé : ": "Nível proposto: ",
+          "PRÊT": "PRONTO",
+          "EN ATTENTE": "A AGUARDAR",
+          "ANNULER": "CANCELAR",
+          "Proposition de niveau": "Proposta de nível",
+          "PROPOSITION": "PROPOSTA",
+          "{{who}} propose d'abandonner la partie": "{{who}} propõe abandonar a partida",
+          "{{who}} propose ": "{{who}} propõe ",
+          "PRÊT ?": "PRONTO?",
+          "PAS MAINTENANT": "AGORA NÃO",
+          "Mode de jeu": "Modo de jogo",
+          "Mode {{mode}}, débloqué grâce à la room": "Modo {{mode}}, desbloqueado graças à sala",
+          "Mode {{mode}}, verrouillé — ce qu'il faut pour l'ouvrir": "Modo {{mode}}, bloqueado — o que falta para o desbloquear",
+          "ce mode (en {{mode}})": "este modo (em {{mode}})",
+          "MODE {{mode}}": "MODO {{mode}}",
+          "étoiles": "estrelas",
+          "étoile": "estrela",
+          "ÉTOILES": "ESTRELAS",
+          "Chaque défi validé rapporte une étoile.": "Cada desafio validado dá uma estrela.",
+          "Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.": "Elas desbloqueiam as dificuldades seguintes, e o modo acima - grelhas maiores, palavras mais longas.",
+          "REPRENDRE": "CONTINUAR",
+          ", débloqué grâce à la room": ", desbloqueado graças à sala",
+          "Niveau {{id}}, validé, rejouable{{suffix}}": "Nível {{id}}, validado, rejogável{{suffix}}",
+          "Niveau {{id}}, jouable{{suffix}}": "Nível {{id}}, jogável{{suffix}}",
+          "Niveau {{id}}, à débloquer": "Nível {{id}}, por desbloquear",
+          "{{done}}/{{total}} avant le défi": "{{done}}/{{total}} antes do desafio",
+          "{{sub}} DE {{length}} LETTRES": "{{sub}} DE {{length}} LETRAS",
+          "Défi {{name}} {{key}}": "Desafio {{name}} {{key}}",
+          "{{name}}, validé, rejouable{{suffix}}": "{{name}}, validado, rejogável{{suffix}}",
+          "{{name}}, prêt à jouer{{suffix}}": "{{name}}, pronto a jogar{{suffix}}",
+          "{{name}}, à débloquer": "{{name}}, por desbloquear",
+          " pour débloquer {{what}}.": " para desbloquear {{what}}.",
+          ", verrouillé": ", bloqueado",
+          "{{name}}{{suffix}} — ce que c'est": "{{name}}{{suffix}} — do que se trata",
+          "cette difficulté": "esta dificuldade",
+          "Encore 1 étoile": "Mais 1 estrela",
+          "VALIDÉ": "VALIDADO",
+          "JOUABLE": "JOGÁVEL",
+          "À DÉBLOQUER": "POR DESBLOQUEAR",
+          "GRÂCE À LA ROOM": "GRAÇAS À SALA",
+          "Incorrecte": "Incorreta",
+          "Déjà trouvé": "Já encontrada",
+          "{{name}} a rejoint la partie": "{{name}} entrou na partida",
+          "{{name}} a quitté la partie": "{{name}} saiu da partida",
+          "Sans réponse de {{name}}": "Sem resposta de {{name}}",
+          "{{name}} a refusé": "{{name}} recusou",
+          "{{name}} a proposé en premier": "{{name}} propôs primeiro",
+          "{{name}} a trouvé « {{word}} » juste avant": "{{name}} encontrou «{{word}}» mesmo antes",
+          "{{count}} mots · {{length}} lettres_one": "{{count}} palavra · {{length}} letras",
+          "{{count}} mots · {{length}} lettres_many": "{{count}} palavras · {{length}} letras",
+          "{{count}} mots · {{length}} lettres_other": "{{count}} palavras · {{length}} letras",
+          "{{count}} mots_one": "{{count}} palavra",
+          "{{count}} mots_many": "{{count}} palavras",
+          "{{count}} mots_other": "{{count}} palavras",
+          "Rang {{rank}} : {{name}}, {{count}}_one": "Posição {{rank}}: {{name}}, {{count}}",
+          "Rang {{rank}} : {{name}}, {{count}}_many": "Posição {{rank}}: {{name}}, {{count}}",
+          "Rang {{rank}} : {{name}}, {{count}}_other": "Posição {{rank}}: {{name}}, {{count}}",
+          "{{count}} MOTS TROUVÉS_one": "{{count}} PALAVRA ENCONTRADA",
+          "{{count}} MOTS TROUVÉS_many": "{{count}} PALAVRAS ENCONTRADAS",
+          "{{count}} MOTS TROUVÉS_other": "{{count}} PALAVRAS ENCONTRADAS",
+          "{{count}} MOT TROUVÉ_one": "{{count}} PALAVRA ENCONTRADA",
+          "{{count}} MOT TROUVÉ_many": "{{count}} PALAVRAS ENCONTRADAS",
+          "{{count}} MOT TROUVÉ_other": "{{count}} PALAVRAS ENCONTRADAS",
+          "Étoile gagnée — {{count}} / {{max}}_one": "Estrela ganha — {{count}} / {{max}}",
+          "Étoile gagnée — {{count}} / {{max}}_many": "Estrela ganha — {{count}} / {{max}}",
+          "Étoile gagnée — {{count}} / {{max}}_other": "Estrela ganha — {{count}} / {{max}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_one": "{{count}} palavra de {{length}} letras · {{rows}}×{{cols}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_many": "{{count}} palavras de {{length}} letras · {{rows}}×{{cols}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_other": "{{count}} palavras de {{length}} letras · {{rows}}×{{cols}}",
+          "{{count}} {{word}} — ce qu'elles ouvrent_one": "{{count}} {{word}} — o que desbloqueiam",
+          "{{count}} {{word}} — ce qu'elles ouvrent_many": "{{count}} {{word}} — o que desbloqueiam",
+          "{{count}} {{word}} — ce qu'elles ouvrent_other": "{{count}} {{word}} — o que desbloqueiam",
+          "{{rows}}×{{cols}} · {{count}} MOTS_one": "{{rows}}×{{cols}} · {{count}} PALAVRA",
+          "{{rows}}×{{cols}} · {{count}} MOTS_many": "{{rows}}×{{cols}} · {{count}} PALAVRAS",
+          "{{rows}}×{{cols}} · {{count}} MOTS_other": "{{rows}}×{{cols}} · {{count}} PALAVRAS",
+          "Il vous manque encore {{count}} _one": "Ainda falta-lhe {{count}} ",
+          "Il vous manque encore {{count}} _many": "Ainda faltam-lhe {{count}} ",
+          "Il vous manque encore {{count}} _other": "Ainda faltam-lhe {{count}} ",
+          "{{count}} lettres requises_one": "{{count}} letra necessária",
+          "{{count}} lettres requises_many": "{{count}} letras necessárias",
+          "{{count}} lettres requises_other": "{{count}} letras necessárias"
+        },
+        "ru": {
+          "Fermer les règles": "Закрыть правила",
+          "Fermer": "Закрыть",
+          "Comment jouer": "Как играть",
+          "Tracer": "Прокладывать",
+          "Reliez des lettres voisines, sur une même ligne ou une même colonne, puis relâchez : le mot se soumet tout seul.": "Соедините соседние буквы в одной строке или столбце и отпустите — слово отправится само.",
+          "Une lettre, une fois": "Одна буква — один раз",
+          "Chaque lettre ne sert qu'à un seul mot : les cases d'un mot validé sortent du jeu.": "Каждая буква используется только для одного слова: клетки найденного слова выходят из игры.",
+          "Finir la grille": "Заполнить сетку",
+          "La grille est finie quand tous ses mots sont trouvés : le registre les compte pour vous.": "Сетка завершена, когда найдены все слова — счёт ведёт список найденных слов.",
+          "Gagner des étoiles": "Зарабатывайте звёзды",
+          "Chaque défi validé rapporte une étoile. Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.": "Каждое пройденное испытание приносит звезду. Звёзды открывают следующие уровни сложности и режим выше — сетки больше, слова длиннее.",
+          "DÉFI": "ИСПЫТАНИЕ",
+          "C'EST PARTI": "НАЧАТЬ",
+          "Retour à la carte": "Назад к карте",
+          "MOTS TROUVÉS": "НАЙДЕНО СЛОВ",
+          "Gagné": "Победа",
+          "RETOUR À LA CARTE": "НАЗАД К КАРТЕ",
+          "Règle du jeu": "Правила игры",
+          "RÈGLE": "ПРАВИЛА",
+          "Reliez des lettres voisines pour tracer les mots. Chaque lettre ne sert qu'une fois.": "Соединяйте соседние буквы, чтобы составлять слова. Каждая буква используется только один раз.",
+          "COMMENT JOUER": "КАК ИГРАТЬ",
+          "DÉFI {{id}}": "ИСПЫТАНИЕ {{id}}",
+          "SUIVANT · {{id}}": "ДАЛЕЕ · {{id}}",
+          "CONTINUER · {{id}}": "ПРОДОЛЖИТЬ · {{id}}",
+          "1 mot": "1 слово",
+          "Moi": "Я",
+          "Accès à : {{unlock}}": "Открывает: {{unlock}}",
+          "Zoomer": "Приблизить",
+          "Dézoomer": "Отдалить",
+          "Tout voir": "Показать всё",
+          "En attente des autres joueurs": "Ожидание остальных игроков",
+          "EN ATTENTE DES AUTRES": "ОЖИДАНИЕ ОСТАЛЬНЫХ",
+          "Abandon proposé": "Предложено сдаться",
+          "Niveau proposé : ": "Предложен уровень: ",
+          "PRÊT": "ГОТОВ",
+          "EN ATTENTE": "ОЖИДАНИЕ",
+          "ANNULER": "ОТМЕНА",
+          "Proposition de niveau": "Предложение уровня",
+          "PROPOSITION": "ПРЕДЛОЖЕНИЕ",
+          "{{who}} propose d'abandonner la partie": "{{who}} предлагает сдаться",
+          "{{who}} propose ": "{{who}} предлагает ",
+          "PRÊT ?": "ГОТОВЫ?",
+          "PAS MAINTENANT": "НЕ СЕЙЧАС",
+          "Mode de jeu": "Режим игры",
+          "Mode {{mode}}, débloqué grâce à la room": "Режим {{mode}}, открыт благодаря комнате",
+          "Mode {{mode}}, verrouillé — ce qu'il faut pour l'ouvrir": "Режим {{mode}}, закрыт — что нужно для открытия",
+          "ce mode (en {{mode}})": "этот режим (в {{mode}})",
+          "MODE {{mode}}": "РЕЖИМ {{mode}}",
+          "étoiles": "звёзды",
+          "étoile": "звезда",
+          "ÉTOILES": "ЗВЁЗДЫ",
+          "Chaque défi validé rapporte une étoile.": "Каждое пройденное испытание приносит звезду.",
+          "Elles ouvrent les difficultés suivantes, et le mode au-dessus - des grilles plus grandes, des mots plus longs.": "Они открывают следующие уровни сложности и режим выше — сетки больше, слова длиннее.",
+          "REPRENDRE": "ПРОДОЛЖИТЬ",
+          ", débloqué grâce à la room": ", открыто благодаря комнате",
+          "Niveau {{id}}, validé, rejouable{{suffix}}": "Уровень {{id}}, пройден, можно переиграть{{suffix}}",
+          "Niveau {{id}}, jouable{{suffix}}": "Уровень {{id}}, доступен{{suffix}}",
+          "Niveau {{id}}, à débloquer": "Уровень {{id}}, ещё закрыт",
+          "{{done}}/{{total}} avant le défi": "{{done}}/{{total}} до испытания",
+          "{{sub}} DE {{length}} LETTRES": "{{sub}} ИЗ {{length}} БУКВ",
+          "Défi {{name}} {{key}}": "Испытание {{name}} {{key}}",
+          "{{name}}, validé, rejouable{{suffix}}": "{{name}}, пройдено, можно переиграть{{suffix}}",
+          "{{name}}, prêt à jouer{{suffix}}": "{{name}}, готово к игре{{suffix}}",
+          "{{name}}, à débloquer": "{{name}}, ещё закрыто",
+          " pour débloquer {{what}}.": " чтобы открыть {{what}}.",
+          ", verrouillé": ", закрыто",
+          "{{name}}{{suffix}} — ce que c'est": "{{name}}{{suffix}} — что это",
+          "cette difficulté": "эту сложность",
+          "Encore 1 étoile": "Ещё 1 звезда",
+          "VALIDÉ": "ПРОЙДЕНО",
+          "JOUABLE": "ДОСТУПНО",
+          "À DÉBLOQUER": "ЗАКРЫТО",
+          "GRÂCE À LA ROOM": "БЛАГОДАРЯ КОМНАТЕ",
+          "Incorrecte": "Неверно",
+          "Déjà trouvé": "Уже найдено",
+          "{{name}} a rejoint la partie": "{{name}} присоединился к игре",
+          "{{name}} a quitté la partie": "{{name}} покинул игру",
+          "Sans réponse de {{name}}": "Нет ответа от {{name}}",
+          "{{name}} a refusé": "{{name}} отказался",
+          "{{name}} a proposé en premier": "{{name}} предложил первым",
+          "{{name}} a trouvé « {{word}} » juste avant": "{{name}} нашёл «{{word}}» чуть раньше",
+          "{{count}} mots · {{length}} lettres_one": "{{count}} слово · {{length}} букв",
+          "{{count}} mots · {{length}} lettres_few": "{{count}} слова · {{length}} букв",
+          "{{count}} mots · {{length}} lettres_many": "{{count}} слов · {{length}} букв",
+          "{{count}} mots · {{length}} lettres_other": "{{count}} слова · {{length}} букв",
+          "{{count}} mots_one": "{{count}} слово",
+          "{{count}} mots_few": "{{count}} слова",
+          "{{count}} mots_many": "{{count}} слов",
+          "{{count}} mots_other": "{{count}} слова",
+          "Rang {{rank}} : {{name}}, {{count}}_one": "Место {{rank}}: {{name}}, {{count}}",
+          "Rang {{rank}} : {{name}}, {{count}}_few": "Место {{rank}}: {{name}}, {{count}}",
+          "Rang {{rank}} : {{name}}, {{count}}_many": "Место {{rank}}: {{name}}, {{count}}",
+          "Rang {{rank}} : {{name}}, {{count}}_other": "Место {{rank}}: {{name}}, {{count}}",
+          "{{count}} MOTS TROUVÉS_one": "НАЙДЕНО {{count}} СЛОВО",
+          "{{count}} MOTS TROUVÉS_few": "НАЙДЕНО {{count}} СЛОВА",
+          "{{count}} MOTS TROUVÉS_many": "НАЙДЕНО {{count}} СЛОВ",
+          "{{count}} MOTS TROUVÉS_other": "НАЙДЕНО {{count}} СЛОВА",
+          "{{count}} MOT TROUVÉ_one": "НАЙДЕНО {{count}} СЛОВО",
+          "{{count}} MOT TROUVÉ_few": "НАЙДЕНО {{count}} СЛОВА",
+          "{{count}} MOT TROUVÉ_many": "НАЙДЕНО {{count}} СЛОВ",
+          "{{count}} MOT TROUVÉ_other": "НАЙДЕНО {{count}} СЛОВА",
+          "Étoile gagnée — {{count}} / {{max}}_one": "Получена звезда — {{count}} / {{max}}",
+          "Étoile gagnée — {{count}} / {{max}}_few": "Получена звезда — {{count}} / {{max}}",
+          "Étoile gagnée — {{count}} / {{max}}_many": "Получена звезда — {{count}} / {{max}}",
+          "Étoile gagnée — {{count}} / {{max}}_other": "Получена звезда — {{count}} / {{max}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_one": "{{count}} слово из {{length}} букв · {{rows}}×{{cols}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_few": "{{count}} слова из {{length}} букв · {{rows}}×{{cols}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_many": "{{count}} слов из {{length}} букв · {{rows}}×{{cols}}",
+          "{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}_other": "{{count}} слова из {{length}} букв · {{rows}}×{{cols}}",
+          "{{count}} {{word}} — ce qu'elles ouvrent_one": "{{count}} {{word}} — что они открывают",
+          "{{count}} {{word}} — ce qu'elles ouvrent_few": "{{count}} {{word}} — что они открывают",
+          "{{count}} {{word}} — ce qu'elles ouvrent_many": "{{count}} {{word}} — что они открывают",
+          "{{count}} {{word}} — ce qu'elles ouvrent_other": "{{count}} {{word}} — что они открывают",
+          "{{rows}}×{{cols}} · {{count}} MOTS_one": "{{rows}}×{{cols}} · {{count}} СЛОВО",
+          "{{rows}}×{{cols}} · {{count}} MOTS_few": "{{rows}}×{{cols}} · {{count}} СЛОВА",
+          "{{rows}}×{{cols}} · {{count}} MOTS_many": "{{rows}}×{{cols}} · {{count}} СЛОВ",
+          "{{rows}}×{{cols}} · {{count}} MOTS_other": "{{rows}}×{{cols}} · {{count}} СЛОВА",
+          "Il vous manque encore {{count}} _one": "Вам ещё не хватает {{count}} ",
+          "Il vous manque encore {{count}} _few": "Вам ещё не хватает {{count}} ",
+          "Il vous manque encore {{count}} _many": "Вам ещё не хватает {{count}} ",
+          "Il vous manque encore {{count}} _other": "Вам ещё не хватает {{count}} ",
+          "{{count}} lettres requises_one": "требуется {{count}} буква",
+          "{{count}} lettres requises_few": "требуется {{count}} буквы",
+          "{{count}} lettres requises_many": "требуется {{count}} букв",
+          "{{count}} lettres requises_other": "требуется {{count}} буквы"
+        }
+      }
+    </script>
+
     <!-- Attributions requises par les licences des sons (doc 08 § Q21c) : la
          page « Crédits » a disparu du build Rune (best practice « pas de
          branding » — cf. les autres écrans retirés du build ci-dessous), mais
@@ -73,18 +553,14 @@
          révèle. Structure statique, liée par src/render/help.ts (qui y pose la
          flèche, les coches et l'étoile des figures). Conservé par la review
          Rune (doc 08) : un onboarding n'est pas un menu. -->
+    <!-- Textes (titre, étapes, bouton) posés par src/render/help.ts via
+         Rune.t() (doc 08 § i18n) : rien de traduisible en dur ici. -->
     <div class="screen help" id="help" hidden>
       <header class="screen-head">
-        <button
-          type="button"
-          class="screen-back"
-          id="help-back"
-          aria-label="Fermer les règles"
-          title="Fermer"
-        ></button>
+        <button type="button" class="screen-back" id="help-back"></button>
       </header>
       <div class="screen-body">
-        <h2 class="screen-title">Comment jouer</h2>
+        <h2 class="screen-title" id="help-title"></h2>
         <ol class="help-steps">
           <li class="help-step">
             <!-- Chaque règle se montre avant de se dire : la figure rejoue la
@@ -116,11 +592,8 @@
             </figure>
             <div class="help-text">
               <span class="help-num">01</span>
-              <h3 class="help-heading">Tracer</h3>
-              <p class="help-line">
-                Reliez des lettres voisines, sur une même ligne ou une même
-                colonne, puis relâchez : le mot se soumet tout seul.
-              </p>
+              <h3 class="help-heading"></h3>
+              <p class="help-line"></p>
             </div>
           </li>
           <li class="help-step">
@@ -161,11 +634,8 @@
             </figure>
             <div class="help-text">
               <span class="help-num">02</span>
-              <h3 class="help-heading">Une lettre, une fois</h3>
-              <p class="help-line">
-                Chaque lettre ne sert qu'à un seul mot : les cases d'un mot
-                validé sortent du jeu.
-              </p>
+              <h3 class="help-heading"></h3>
+              <p class="help-line"></p>
             </div>
           </li>
           <li class="help-step">
@@ -191,11 +661,8 @@
             </figure>
             <div class="help-text">
               <span class="help-num">03</span>
-              <h3 class="help-heading">Finir la grille</h3>
-              <p class="help-line">
-                La grille est finie quand tous ses mots sont trouvés : le
-                registre les compte pour vous.
-              </p>
+              <h3 class="help-heading"></h3>
+              <p class="help-line"></p>
             </div>
           </li>
           <li class="help-step">
@@ -209,26 +676,21 @@
                 ></span>
                 <span class="help-map-cell">3</span>
                 <span class="help-map-defi"
-                  ><span class="help-map-star"></span>DÉFI</span
+                  ><span class="help-map-star"></span
+                  ><span class="help-map-defi-label"></span></span
                 >
               </div>
             </figure>
             <div class="help-text">
               <span class="help-num">04</span>
-              <h3 class="help-heading">Gagner des étoiles</h3>
-              <p class="help-line">
-                Chaque défi validé rapporte une étoile. Elles ouvrent les
-                difficultés suivantes, et le mode au-dessus - des grilles plus
-                grandes, des mots plus longs.
-              </p>
+              <h3 class="help-heading"></h3>
+              <p class="help-line"></p>
             </div>
           </li>
         </ol>
         <!-- Visible seulement quand l'écran s'ouvre de lui-même à la première
              partie : la grille attend juste dessous, le bouton y plonge. -->
-        <button type="button" class="help-start" id="help-start" hidden>
-          C'EST PARTI
-        </button>
+        <button type="button" class="help-start" id="help-start" hidden></button>
       </div>
     </div>
 
@@ -246,13 +708,8 @@
              « CARTE » et son cadre disaient deux fois la même chose. En
              cours de partie (pas gagné), c'est une PROPOSITION d'abandon
              (doc 02/04) — l'issue dépend des autres joueurs de la room. -->
-        <button
-          type="button"
-          class="back-map"
-          id="back-map"
-          aria-label="Retour à la carte"
-          title="Retour à la carte"
-        ></button>
+        <!-- aria-label/title posés par src/render/render.ts via Rune.t(). -->
+        <button type="button" class="back-map" id="back-map"></button>
         <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
         <span class="level-id" id="level-id"></span>
       </div>
@@ -264,6 +721,8 @@
            Elle ouvre le composant voile + panneau (popover desktop, feuille
            mobile) hérité du sélecteur de difficulté disparu - les classes
            .diff-overlay / .diff-panel lui survivent et restent partagées. -->
+        <!-- Libellés/aria-labels posés par src/render/render.ts via Rune.t()
+             (doc 08 § i18n). -->
         <div class="rule" id="rule">
           <button
             type="button"
@@ -271,40 +730,22 @@
             id="rule-chip"
             aria-haspopup="dialog"
             aria-expanded="false"
-            aria-label="Règle du jeu"
-            title="Règle du jeu"
           ></button>
           <div class="diff-overlay" id="rule-overlay" hidden></div>
-          <div
-            class="diff-panel rule-panel"
-            id="rule-panel"
-            role="dialog"
-            aria-label="Règle du jeu"
-            hidden
-          >
+          <div class="diff-panel rule-panel" id="rule-panel" role="dialog" hidden>
             <div class="diff-panel-head">
-              <span class="diff-panel-title">RÈGLE</span>
+              <span class="diff-panel-title" id="rule-panel-title"></span>
               <!-- La croix est une icône SVG posée par src/render/render.ts. -->
-              <button
-                type="button"
-                class="diff-close"
-                id="rule-close"
-                aria-label="Fermer"
-              ></button>
+              <button type="button" class="diff-close" id="rule-close"></button>
             </div>
-            <p class="panel-line">
-              Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
-              sert qu'une fois.
-            </p>
+            <p class="panel-line" id="rule-panel-line"></p>
             <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
                  src/render/render.ts réécrit selon le niveau lancé. -->
-            <p class="panel-spec" id="rule-spec">5 mots · 5 lettres</p>
+            <p class="panel-spec" id="rule-spec"></p>
             <!-- Ce résumé n'est qu'un rappel : le tutoriel complet
                  (src/render/help.ts) reste à un clic, sans sortir deux fois
                  de l'écran pour le retrouver. -->
-            <button type="button" class="panel-link" id="rule-help-link">
-              COMMENT JOUER
-            </button>
+            <button type="button" class="panel-link" id="rule-help-link"></button>
           </div>
         </div>
       </div>
@@ -321,7 +762,8 @@
         aria-expanded="true"
         aria-controls="word-list"
       >
-        <span class="ledger-label">MOTS TROUVÉS</span>
+        <!-- Texte posé par src/render/render.ts via Rune.t(). -->
+        <span class="ledger-label" id="ledger-label"></span>
         <!-- Pré-rempli (0 / wordCount du mode par défaut) pour éviter un
              shift ; src/render/render.ts réécrit selon le niveau lancé puis à
              chaque mot. -->
@@ -372,7 +814,9 @@
       <span class="confetti c4 cream"></span>
       <span class="confetti c5"></span>
       <span class="confetti c6"></span>
-      <div class="win-title">Gagné<span class="dot">.</span></div>
+      <!-- Texte posé par src/render/render.ts via Rune.t() ; le point reste un
+           signe décoratif séparé (dot). -->
+      <div class="win-title"><span id="win-title-text"></span><span class="dot">.</span></div>
       <div class="win-sub" id="win-sub"></div>
       <!-- Classement (doc 07) : un joueur par ligne, tri par mots décroissant,
            masqué en solo dans la room (rien à classer) — entièrement rendu
@@ -388,9 +832,8 @@
       <div class="win-actions">
         <button type="button" class="win-primary" id="win-next" hidden></button>
         <button type="button" class="win-defi" id="win-defi" hidden></button>
-        <button type="button" class="win-second" id="win-map">
-          RETOUR À LA CARTE
-        </button>
+        <!-- Texte posé par src/render/render.ts via Rune.t(). -->
+        <button type="button" class="win-second" id="win-map"></button>
       </div>
     </div>
 
