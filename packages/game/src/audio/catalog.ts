@@ -19,9 +19,10 @@ const PACK =
 export const SOUNDS = {
   "trace-letter": { path: `${PACK} - Cursor - 4.mp3`, volume: 0.6 },
   "word-stamp": { path: "UI Soundpack/African4.mp3", volume: 3 },
-  // TODO(son victoire) : placeholder — même fichier que « word-stamp » en
-  // attendant le vrai son de victoire (le propriétaire le fournira plus tard).
-  "level-win": { path: "UI Soundpack/African4.mp3", volume: 3 },
+  "level-win": {
+    path: "Kenney Game Assets All-in-1 3.6.0/jingles-saxophone_09.ogg",
+    volume: 1,
+  },
   "word-reject": { path: `${PACK} - Cancel - 1.mp3`, volume: 0.8 },
   "ui-primary": { path: `${PACK} - Select - 1.mp3`, volume: 0.8 },
   "ui-secondary": { path: `${PACK} - Cursor - 2.mp3`, volume: 0.8 },
