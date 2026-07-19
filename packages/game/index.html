@@ -556,16 +556,16 @@
          réactivent (pointer-events: auto). -->
 
     <!-- Comment jouer : l'écran des règles, plein écran. Ouvert par le lien
-         COMMENT JOUER du panneau règle (header de partie), et de lui-même à la
-         toute première partie - par-dessus la grille prête, que sa fermeture
-         révèle. Structure statique, liée par src/render/help.ts (qui y pose la
-         flèche, les coches et l'étoile des figures). Conservé par la review
-         Rune (doc 08) : un onboarding n'est pas un menu. -->
+         COMMENT JOUER du panneau règle (header de partie), et de lui-même au
+         tout premier lancement du jeu - par-dessus l'écran d'arrivée, que sa
+         fermeture révèle. Structure statique, liée par src/render/help.ts (qui
+         y pose la croix, les coches et l'étoile des figures). Conservé par la
+         review Rune (doc 08) : un onboarding n'est pas un menu. -->
     <!-- Textes (titre, étapes, bouton) posés par src/render/help.ts via
          Rune.t() (doc 08 § i18n) : rien de traduisible en dur ici. -->
     <div class="screen help" id="help" hidden>
       <header class="screen-head">
-        <button type="button" class="screen-back" id="help-back"></button>
+        <button type="button" class="screen-close" id="help-close"></button>
       </header>
       <div class="screen-body">
         <h2 class="screen-title" id="help-title"></h2>

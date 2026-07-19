@@ -5,8 +5,9 @@
 // correct si la langue change en cours de session (Dev UI § langues).
 //
 // Deux entrées : le panneau règle du header de partie (lien COMMENT JOUER),
-// et la toute première partie — l'écran s'ouvre alors de lui-même PAR-DESSUS
-// la grille prête (startLevel a fini son travail), sa fermeture la révèle.
+// et le tout premier lancement du jeu — l'écran s'ouvre alors de lui-même
+// PAR-DESSUS l'écran d'arrivée (carte ou grille, client.ts au premier
+// stateSync), sa fermeture le révèle.
 //
 // « Vu » n'est plus un drapeau localStorage : il vit dans `game.persisted`
 // (doc 02/08, ex-tracemot.help-seen) — ce module ne LIT ni n'ÉCRIT plus rien
@@ -14,7 +15,7 @@
 // persister l'action `setHelpSeen` via `onSeen`.
 
 import { playSound } from "../audio/audio.ts";
-import { arrowLeftIcon, checkIcon, starIcon } from "./icons.ts";
+import { checkIcon, closeIcon, starIcon } from "./icons.ts";
 
 function byId(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -23,17 +24,17 @@ function byId(id: string): HTMLElement {
 }
 
 const helpEl = byId("help");
-const backEl = byId("help-back");
+const closeEl = byId("help-close");
 const startEl = byId("help-start");
 const titleEl = byId("help-title");
 const headingEls = helpEl.querySelectorAll<HTMLElement>(".help-heading");
 const lineEls = helpEl.querySelectorAll<HTMLElement>(".help-line");
 const defiLabelEl = helpEl.querySelector<HTMLElement>(".help-map-defi-label");
 
-// La flèche de sortie, et les signes des figures HTML (le registre coché, la
+// La croix de sortie, et les signes des figures HTML (le registre coché, la
 // case validée, l'étoile du défi — creuse : elle reste à prendre). Les figures
 // SVG, elles, portent leur dessin en propre.
-backEl.appendChild(arrowLeftIcon());
+closeEl.appendChild(closeIcon());
 for (const mark of document.querySelectorAll(
   "#help .help-ledger-check, #help .help-map-check",
 )) {
@@ -84,8 +85,8 @@ let onSeen: (() => void) | null = null;
 export function showHelp(opts: { firstPlay?: boolean } = {}): void {
   // Textes recalculés à chaque ouverture (pas au chargement du module) : ils
   // reflètent la langue courante même si le joueur l'a changée en Dev UI.
-  backEl.setAttribute("aria-label", Rune.t("Fermer les règles"));
-  backEl.title = Rune.t("Fermer");
+  closeEl.setAttribute("aria-label", Rune.t("Fermer les règles"));
+  closeEl.title = Rune.t("Fermer");
   titleEl.textContent = Rune.t("Comment jouer");
   helpSteps().forEach((step, i) => {
     const heading = headingEls[i];
@@ -95,9 +96,9 @@ export function showHelp(opts: { firstPlay?: boolean } = {}): void {
   });
   if (defiLabelEl) defiLabelEl.textContent = Rune.t("DÉFI");
   startEl.textContent = Rune.t("C'EST PARTI");
-  // Le bouton du bas n'existe qu'à la première partie : la grille attend juste
-  // dessous, il y plonge. Ouvert depuis le panneau règle, la sortie est la
-  // flèche.
+  // Le bouton du bas n'existe qu'au premier lancement : l'écran d'arrivée
+  // attend juste dessous, il y plonge. Ouvert depuis le panneau règle, la
+  // sortie est la croix.
   startEl.hidden = !opts.firstPlay;
   helpEl.hidden = false;
   helpEl.scrollTop = 0;
@@ -108,8 +109,9 @@ export function hideHelp(): void {
   helpEl.hidden = true;
 }
 
-// Appelée par client.ts une fois la grille en place, si `persisted.helpSeen`
-// n'est pas encore posé : avant, la fermeture ne révélerait rien.
+// Appelée par client.ts au tout premier stateSync, une fois l'écran d'arrivée
+// peint, si `persisted.helpSeen` n'est pas encore posé : avant, la fermeture
+// ne révélerait rien.
 export function showHelpOnFirstPlay(helpSeen: boolean): void {
   if (helpSeen) return;
   showHelp({ firstPlay: true });
@@ -119,11 +121,11 @@ export function showHelpOnFirstPlay(helpSeen: boolean): void {
 
 export function bindHelp(handlers: { onSeen: () => void }): void {
   onSeen = handlers.onSeen;
-  backEl.addEventListener("click", () => {
+  closeEl.addEventListener("click", () => {
     playSound("ui-close");
     hideHelp();
   });
-  // « C'est parti » engage la partie qui attend dessous : son principal.
+  // « C'est parti » engage le jeu qui attend dessous : son principal.
   startEl.addEventListener("click", () => {
     playSound("ui-primary");
     hideHelp();

@@ -1,6 +1,6 @@
 /* Écran secondaire (règles, doc « Comment jouer ») : plein écran opaque,
    sur le modèle de la carte — il porte son propre scroll, le body ne
-   défile jamais. Le squelette (fond, tête, flèche, titre, colonne) est
+   défile jamais. Le squelette (fond, tête, croix, titre, colonne) est
    partagé ; help.css (seul écran de ce type restant, chantier 6) n'ajoute
    que son contenu. */
 
@@ -18,19 +18,22 @@
   font-family: var(--serif);
 }
 
-/* La tête ne porte que la flèche de sortie, sur le cadre de l'application
-   (--edge) — exactement le retrait du header de la carte. */
+/* La tête ne porte que la croix de sortie, poussée à droite, sur le cadre de
+   l'application (--edge) — exactement le retrait du header de la carte. */
 .screen-head {
+  display: flex;
+  justify-content: flex-end;
   padding: max(var(--edge), env(safe-area-inset-top))
     max(var(--edge), env(safe-area-inset-right)) 0
     max(var(--edge), env(safe-area-inset-left));
 }
 
-/* Sortie d'écran : la flèche nue de la carte et du header de partie — un seul
-   dessin pour un seul sens, « remonter d'un écran ». Le padding n'est là que
-   pour la cible du doigt ; la marge négative le reprend pour que la flèche
-   s'aligne quand même sur le cadre. */
-.screen-back {
+/* Sortie d'écran : la croix nue des panneaux (règle, décompte des étoiles) —
+   cet écran se referme par-dessus la page qui l'a ouvert, il n'y a pas de
+   « remonter » comme sur la carte. Le padding n'est là que pour la cible du
+   doigt ; la marge négative le reprend pour que la croix s'aligne quand même
+   sur le cadre. */
+.screen-close {
   display: inline-flex;
   align-items: center;
   padding: 10px;
@@ -45,12 +48,12 @@
 /* Vermillon au pointeur, comme toutes les icônes nues. Survol réservé à la
    souris : au doigt, le navigateur simule un :hover au tap et le laisse collé. */
 @media (hover: hover) {
-  .screen-back:hover {
+  .screen-close:hover {
     color: var(--vermilion);
   }
 }
 
-.screen-back:active {
+.screen-close:active {
   color: var(--vermilion);
 }
 
@@ -79,7 +82,7 @@
 /* --- Mobile (maquette 390x844) --- */
 
 @media (max-width: 860px) {
-  .screen-back {
+  .screen-close {
     font-size: 22px;
   }
   .screen-title {

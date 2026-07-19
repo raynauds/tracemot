@@ -150,9 +150,9 @@ setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 // --- Règle du jeu (bouton « info » du header) ------------------------------
 
 // La règle vit dans un panneau ouvert par le bouton « info » — sur demande
-// seulement : l'accueil du tout premier niveau appartient à l'écran
-// « Comment jouer » (src/render/help.ts), qui s'ouvre d'office à la première
-// partie (persisted.helpSeen, doc 02/08 — plus de drapeau localStorage).
+// seulement : l'accueil appartient à l'écran « Comment jouer »
+// (src/render/help.ts), qui s'ouvre d'office au tout premier lancement du jeu
+// (persisted.helpSeen, doc 02/08 — plus de drapeau localStorage).
 const ruleChipEl = byId("rule-chip");
 ruleChipEl.appendChild(infoIcon());
 ruleChipEl.setAttribute("aria-label", Rune.t("Règle du jeu"));

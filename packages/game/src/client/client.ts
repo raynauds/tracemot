@@ -216,12 +216,6 @@ function enterGameScreen(game: Game): void {
   hideMap();
   if (game.won) {
     renderWin(winRenderOpts(game));
-  } else if (yourPlayerId) {
-    // Spectateur (yourPlayerId indéfini) : jamais d'écran « Comment jouer »
-    // automatique — `setHelpSeen` n'est jamais dispatché pour lui (bindHelp
-    // onSeen, plus bas), donc `helpSeen` resterait éternellement faux et
-    // l'overlay reviendrait à chaque reconstruction/manche.
-    showHelpOnFirstPlay(yourPersisted(game).helpSeen ?? false);
   }
 }
 
@@ -455,6 +449,16 @@ async function boot(): Promise<void> {
       if (event?.name === "stateSync" && event.isNewGame) {
         if (game.phase === "playing") enterGameScreen(game);
         else enterMapScreen(game);
+        // Tout premier lancement du jeu (persisted.helpSeen jamais posé) :
+        // « Comment jouer » s'ouvre de lui-même PAR-DESSUS l'écran d'arrivée
+        // tout juste peint — ici et seulement ici, plus à chaque première
+        // manche (enterGameScreen). Spectateur (yourPlayerId indéfini)
+        // exclu : `setHelpSeen` n'est jamais dispatché pour lui (bindHelp
+        // onSeen, plus bas), donc `helpSeen` resterait éternellement faux et
+        // l'overlay reviendrait à chaque reconstruction.
+        if (yourPlayerId) {
+          showHelpOnFirstPlay(yourPersisted(game).helpSeen ?? false);
+        }
         // Rien n'est affiché tant que .booting est là (style.css) : on ne la
         // retire qu'une fois le tout premier écran effectivement peint —
         // avant ce point, `Rune.initClient` n'a encore rien rendu (doc 08 §
