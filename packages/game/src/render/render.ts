@@ -15,6 +15,7 @@ import { local, wordCheckContext } from "../client/local-state.ts";
 import type { FoundWord, PlayerId, WinSummary } from "../logic/types.ts";
 import { wordRejectReason, type WordRejectCode } from "../game/rules.ts";
 import { showHelp } from "./help.ts";
+import { countParam } from "./i18n.ts";
 import {
   arrowLeftIcon,
   chevronIcon,
@@ -74,7 +75,7 @@ const listRows: HTMLElement[] = []; // les wordCount lignes du registre
 function renderRuleSpec() {
   const { wordCount, wordLength } = local.mode;
   ruleSpecEl.textContent = Rune.t("{{count}} mots · {{length}} lettres", {
-    count: String(wordCount),
+    count: countParam(wordCount),
     length: String(wordLength),
   });
 }
@@ -298,7 +299,7 @@ export function rejectLabel(code: WordRejectCode): string {
   switch (code) {
     case "length":
       return Rune.t("{{count}} lettres requises", {
-        count: String(local.mode.wordLength),
+        count: countParam(local.mode.wordLength),
       });
     case "notInSolution":
       return Rune.t("Incorrecte");
@@ -457,7 +458,7 @@ function rankGlyph(rank: number): string {
 function wordCountLabel(count: number): string {
   return count === 1
     ? Rune.t("1 mot")
-    : Rune.t("{{count}} mots", { count: String(count) });
+    : Rune.t("{{count}} mots", { count: countParam(count) });
 }
 
 // Moi : jamais mon propre nom Rune ni ma propre couleur — le vermillon me
@@ -524,10 +525,13 @@ function renderStandings(winSummary: WinSummary | null): void {
     li.append(rankSpan, avatar, name, countSpan);
     li.setAttribute(
       "aria-label",
-      Rune.t("Rang {{rank}} : {{name}}, {{count}}", {
+      // {{words}} et non {{count}} : la valeur est un libellé déjà traduit
+      // (wordCountLabel), pas un nombre — nommer le paramètre `count`
+      // enclencherait la mécanique de pluriel d'i18next (cf. ./i18n.ts).
+      Rune.t("Rang {{rank}} : {{name}}, {{words}}", {
         rank: String(rank),
         name: playerLabel(playerId),
-        count: wordCountLabel(count),
+        words: wordCountLabel(count),
       }),
     );
     winStandingsEl.appendChild(li);
@@ -551,8 +555,8 @@ export function renderWin(
   const { wordCount } = local.mode;
   winSubEl.textContent =
     wordCount > 1
-      ? Rune.t("{{count}} MOTS TROUVÉS", { count: String(wordCount) })
-      : Rune.t("{{count}} MOT TROUVÉ", { count: String(wordCount) });
+      ? Rune.t("{{count}} MOTS TROUVÉS", { count: countParam(wordCount) })
+      : Rune.t("{{count}} MOT TROUVÉ", { count: countParam(wordCount) });
   renderStandings(winSummary);
   winStarEl.hidden = !star;
   if (star) {
@@ -560,7 +564,7 @@ export function renderWin(
     winStarGainEl.append(
       starIcon(),
       Rune.t("Étoile gagnée — {{count}} / {{max}}", {
-        count: String(star.count),
+        count: countParam(star.count),
         max: String(MAX_STARS),
       }),
     );

@@ -35,6 +35,7 @@ import {
 } from "@tracemot/core";
 import { playSound } from "../audio/audio.ts";
 import { checkIcon, closeIcon, starIcon } from "./icons.ts";
+import { countParam } from "./i18n.ts";
 import {
   cellState,
   emptyProgressByMode,
@@ -250,7 +251,7 @@ function buildLockedModePanel(modeId: ModeId): DocumentFragment {
       "p",
       "panel-spec",
       Rune.t("{{count}} mots de {{length}} lettres · {{rows}}×{{cols}}", {
-        count: String(m.wordCount),
+        count: countParam(m.wordCount),
         length: String(m.wordLength),
         rows: String(m.rows),
         cols: String(m.cols),
@@ -352,7 +353,7 @@ function buildStars(p: ModeProgress): HTMLElement | null {
   chip.setAttribute(
     "aria-label",
     Rune.t("{{count}} {{word}} — ce qu'elles ouvrent", {
-      count: String(stars),
+      count: countParam(stars),
       word: stars > 1 ? Rune.t("étoiles") : Rune.t("étoile"),
     }),
   );
@@ -468,7 +469,7 @@ function defiSub(modeId: ModeId, locked: boolean): string {
   const sub = Rune.t("{{rows}}×{{cols}} · {{count}} MOTS", {
     rows: String(m.rows),
     cols: String(m.cols),
-    count: String(m.wordCount),
+    count: countParam(m.wordCount),
   });
   return locked
     ? Rune.t("{{sub}} DE {{length}} LETTRES", {
@@ -655,7 +656,7 @@ function missingStarsLine(missing: number, what: string): HTMLElement {
   const line = el("p", "panel-line");
   line.appendChild(
     document.createTextNode(
-      Rune.t("Il vous manque encore {{count}} ", { count: String(missing) }),
+      Rune.t("Il vous manque encore {{count}} ", { count: countParam(missing) }),
     ),
   );
   const icon = starIcon();

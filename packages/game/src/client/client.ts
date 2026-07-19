@@ -353,6 +353,21 @@ function notifyLobbyEvents(
   }
 }
 
+// Deux actions partent du chemin de RENDU et non d'un geste du joueur :
+// `markModeSeen` (renderMap, dès l'affichage de la carte) et `setHelpSeen`
+// (showHelp, à l'ouverture automatique de l'aide). Ce rendu s'exécute pendant
+// onChange, où Rune interdit tout dispatch (« Action called while onChange
+// was executing ») — d'où le report en macro-tâche, hors de la pile
+// d'onChange. `yourPlayerId` est relu au moment du dispatch (le spectateur
+// reste exclu même si son statut a changé entre-temps).
+function dispatchAfterOnChange(name: string, dispatch: () => void): void {
+  setTimeout(() => {
+    if (!yourPlayerId) return;
+    dispatch();
+    trackAction(name);
+  }, 0);
+}
+
 // --- Boot --------------------------------------------------------------------
 
 async function boot(): Promise<void> {
@@ -372,8 +387,9 @@ async function boot(): Promise<void> {
   bindMap(proposeLevel, {
     onModeSeen: (modeId) => {
       if (!yourPlayerId) return;
-      Rune.actions.markModeSeen({ modeId });
-      trackAction("markModeSeen");
+      dispatchAfterOnChange("markModeSeen", () =>
+        Rune.actions.markModeSeen({ modeId }),
+      );
     },
     onModeChange: (modeId) => {
       if (!yourPlayerId) return;
@@ -414,8 +430,7 @@ async function boot(): Promise<void> {
   bindHelp({
     onSeen: () => {
       if (!yourPlayerId) return;
-      Rune.actions.setHelpSeen({});
-      trackAction("setHelpSeen");
+      dispatchAfterOnChange("setHelpSeen", () => Rune.actions.setHelpSeen({}));
     },
   });
   // Enchaînement depuis l'écran de victoire : toujours dans le mode courant —
