@@ -12,6 +12,7 @@ import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
 import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { local, wordCheckContext } from "../client/local-state.ts";
+import type { FoundWord } from "../logic/types.ts";
 import { wordRejectReason, type WordRejectCode } from "../game/rules.ts";
 import { showHelp } from "./help.ts";
 import {
@@ -220,6 +221,14 @@ function keepRowVisible(row: HTMLElement) {
   }
 }
 
+// Pastille avatar d'un mot trouvé par un AUTRE joueur (doc 05/06) : un enfant
+// de plus dans la ligne, jamais aux index 0/1 (num/contenu) qui restent
+// adressés par index ailleurs dans ce fichier — toujours retirée avant d'en
+// reposer une, pour ne jamais en laisser une périmée sur une ligne réutilisée.
+function clearRowAvatar(row: HTMLElement) {
+  row.querySelector(".word-avatar")?.remove();
+}
+
 function resetListRow(row: HTMLElement) {
   row.className = "word-row empty";
   const content = row.children[1];
@@ -227,6 +236,7 @@ function resetListRow(row: HTMLElement) {
   content.textContent = wordDots();
   const reason = row.querySelector(".word-reason");
   if (reason) reason.remove();
+  clearRowAvatar(row);
 }
 
 // Aperçu du tracé en cours dans la première ligne libre du registre :
@@ -296,12 +306,25 @@ export function showReject(word: string, reason: string) {
 // Timer plutôt qu'`animationend` : si le registre est replié au moment de la
 // validation, l'animation ne se joue jamais et l'événement ne part pas — la
 // classe survivrait justement dans le cas qu'on veut couvrir.
-export function fillListRow(index: number, word: string, animate: boolean) {
+export function fillListRow(index: number, entry: FoundWord, animate: boolean) {
   const row = listRows[index];
   row.className = "word-row";
   const content = row.children[1];
   content.className = animate ? "word-text stamp" : "word-text";
-  content.textContent = word;
+  content.textContent = entry.word;
+  clearRowAvatar(row);
+  // Mes mots restent vermillon, sans pastille (doc 05/06 § Q18b) ; ceux d'un
+  // autre joueur teintent le numéro (.word-num, ledger.css § owner-N) et
+  // affichent son avatar Rune.
+  if (entry.by !== local.yourPlayerId) {
+    const slot = local.colorSlots[entry.by];
+    if (slot !== undefined) row.classList.add(`owner-${slot}`);
+    const avatar = document.createElement("img");
+    avatar.className = "word-avatar";
+    avatar.src = Rune.getPlayerInfo(entry.by).avatarUrl;
+    avatar.alt = "";
+    row.appendChild(avatar);
+  }
   if (animate) {
     setTimeout(() => content.classList.remove("stamp"), WORD_STAMP_MS);
   }

@@ -12,7 +12,7 @@
     "check:progress": "node tools/progress-check.mjs",
     "check:shared-progress": "node tools/shared-progress-check.mjs",
     "check:rune-logic": "eslint src/logic",
-    "check": "tsc --noEmit && npm run check:rune-logic && npm run check:progress && npm run check:shared-progress"
+    "check": "tsc --noEmit && npm run check:rune-logic && npm run check:progress && npm run check:shared-progress && npm run check:tokens"
   },
   "dependencies": {
     "@tracemot/core": "*",

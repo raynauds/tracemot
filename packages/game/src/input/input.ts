@@ -16,7 +16,13 @@
 
 import { playSound } from "../audio/audio.ts";
 import { KEY_PAN_SPEED } from "../game/config.ts";
-import { local, usedCells } from "../client/local-state.ts";
+import {
+  cancelTracePublish,
+  flushEmptyTrace,
+  local,
+  publishTrace,
+  usedCells,
+} from "../client/local-state.ts";
 import { buzz, renderPendingWord } from "../render/render.ts";
 import {
   cellAtGlobal,
@@ -71,11 +77,22 @@ function traceTick() {
   playSound("trace-letter", { rate: 2 ** (step / 12) });
 }
 
-export function clearPath() {
+// Remet le tracé local à zéro. `publish` (défaut true) efface aussitôt le
+// tracé publié chez les autres (doigt levé sans soumission, doc 05) ; le seul
+// cas où on veut `false` est un commit ACCEPTÉ (client.ts § commitWord) —
+// `submitWord` vide déjà `traces[playerId]` côté logic, republier un
+// effacement en plus n'apporterait rien (doc 05 § « pas d'action
+// d'effacement supplémentaire dans le cas nominal »).
+export function clearPath(publish: boolean = true) {
   local.path = [];
   updateSelection();
   renderTrace();
   renderPendingWord();
+  // Le tracé finit d'une façon ou d'une autre : un envoi trailing programmé
+  // ne doit jamais survivre à la remise à zéro locale, sans quoi il
+  // republierait un contenu périmé après coup (doc 05).
+  if (publish) flushEmptyTrace();
+  else cancelTracePublish();
 }
 
 // Cases traversées en ligne droite de `from` (exclu) vers `to` (inclus), ou
@@ -107,6 +124,7 @@ function beginTrace(e: FederatedPointerEvent, idx: number) {
   updateSelection();
   renderTrace();
   renderPendingWord();
+  publishTrace(); // no-op tant que le tracé fait moins de 2 lettres (doc 05)
 }
 
 // Étend le tracé vers la case idx. Si idx est aligné avec la dernière case du
@@ -151,6 +169,7 @@ function extendTraceTo(idx: number | null) {
   updateSelection();
   renderTrace();
   renderPendingWord();
+  publishTrace(); // case accrochée ou retirée : changement de CONTENU (doc 05)
   return true;
 }
 

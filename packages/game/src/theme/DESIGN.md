@@ -23,6 +23,11 @@ colors:
   map-rule: "#c6bca6" # filet de la carte
   map-dash: "#c1b7a2" # pointillé du verrouillé
   map-count: "#8a806c" # chiffre secondaire
+  # Encres d'autres mains (multijoueur, § dérogation cadrée ci-dessous)
+  player-1: "#2f5a6b" # encre bleu pétrole
+  player-2: "#5b4a78" # encre violette
+  player-3: "#4f6b3a" # encre olive
+  player-4: "#7d5a2a" # encre ocre brûlée
 typography:
   display:
     fontFamily: Source Serif 4
@@ -87,7 +92,7 @@ typography:
     letterSpacing: 1.5px
 rounded:
   none: 0px # tout, sans exception discutable
-  full: 9999px # la seule pastille ronde de l'interface (signal « nouveau »)
+  full: 9999px # pastille « nouveau » et avatars joueur (dérogation multijoueur)
 spacing:
   xs: 4px
   sm: 8px
@@ -168,9 +173,10 @@ vermillon est la seule couleur, et il ne sert qu'à une chose : dire qu'un mot a
 été trouvé. Une interface qui ne récompense rien reste en noir et blanc.
 
 Le principe qui gouverne tout le reste : **rien n'est arrondi**. Pas un bouton,
-pas un panneau, pas une case. La seule exception de l'application est une
-pastille de 6px qui signale un mode nouvellement débloqué — elle est ronde
-précisément parce qu'aucune autre ne l'est.
+pas un panneau, pas une case. Les seules exceptions sont la pastille de 6px qui
+signale un mode nouvellement débloqué, et — en multijoueur — les avatars des
+joueurs (§ Colors, dérogation « encres d'autres mains ») : elles sont rondes
+précisément parce qu'aucune autre forme de l'interface ne l'est.
 
 Deuxième principe : **l'interface s'efface devant la grille**. Le jeu est rendu
 sur un canvas plein écran ; tout le chrome (en-tête, registre, boutons de zoom)
@@ -211,6 +217,35 @@ consommateurs, dans leurs formats respectifs :
 Changer une couleur = la changer dans `tokens.ts` et régénérer. Une seule couleur
 échappe aux tokens : le vert `#2e7d32` du panneau de debug — c'est volontaire, le
 debug n'est pas de l'interface produit.
+
+### Dérogation cadrée : « encres d'autres mains » (multijoueur)
+
+Ce système n'a qu'un accent, le vermillon, et cette règle n'est pas
+négociable — sauf que le multijoueur impose d'identifier jusqu'à 3 autres
+joueurs à l'écran, ce qu'aucune combinaison d'encre/papier ne permet. C'est la
+décision de design la plus lourde du portage Rune ; elle est documentée ici
+plutôt que traitée comme une exception sauvage.
+
+Principe : le joueur local garde EXACTEMENT la sémantique actuelle — repos en
+`card`, engagé en `ink`, acquis en `vermilion`. Il n'affiche jamais son propre
+slot de couleur : pour lui-même, il reste « l'encre » ; les autres joueurs
+deviennent des **encres colorées**, désaturées, de même valeur tonale que
+`ink` — des couleurs de stylo, pas d'interface. Le vermillon reste hors de
+cette palette, réservé à la récompense.
+
+`player-1..4` (4 slots — `colorSlots` du state Rune, attribution stable au
+premier slot libre, libérée au départ) ne sont utilisées QUE pour peindre ce
+que font les AUTRES joueurs : tracé en cours distant (trait plein, alpha
+~0.45), fond de case sous ce tracé (~12 %), tracé fantôme et liseré d'un mot
+qu'ils ont trouvé, numéro du registre. Jamais sur un élément non possédé
+(bouton, verrou, chrome) — la dérogation couvre l'appartenance, rien d'autre.
+
+Teinte seule ne suffit pas à identifier un joueur (daltonisme, mémorisation) :
+chaque élément qui appartient à un joueur porte AUSSI son avatar Rune
+(`Rune.getPlayerInfo`), cerclé de sa teinte. C'est le second volet de la
+dérogation `rounded` : les pastilles avatar sont rondes, au même titre que la
+pastille « mode nouvellement débloqué » — la seule autre forme ronde du
+système.
 
 ## Typography
 
@@ -405,7 +440,8 @@ correspondance qui traverse la frontière canvas/DOM, et elle doit tenir.
 
 **À ne pas faire**
 
-- Arrondir un angle. Jamais, sauf pastille de notification.
+- Arrondir un angle. Jamais, sauf pastille de notification ou avatar joueur
+  (§ Colors, dérogation « encres d'autres mains »).
 - Introduire une seconde couleur d'accent. Si un élément a besoin d'attirer
   l'œil, il doit d'abord justifier qu'il l'a mérité.
 - Mélanger ombre floue et ombre dure sur un même élément, ou donner une ombre à

@@ -35,6 +35,16 @@ export const COLORS = {
   "map-rule": "#c6bca6", // filet de la carte
   "map-dash": "#c1b7a2", // pointillé du verrouillé
   "map-count": "#8a806c", // chiffre secondaire
+
+  // Encres d'autres mains (doc 06 § dérogation cadrée, DESIGN.md § Colors) —
+  // 4 slots pour jusqu'à 4 joueurs, désaturées et de même valeur tonale que
+  // `ink` : des couleurs de stylo, pas d'interface. Ordinales (slot 0..3,
+  // `colorSlots` du state Rune), jamais liées à un joueur nommé. Le vermillon
+  // reste hors de cette palette : lui seul dit « acquis ».
+  "player-1": "#2f5a6b", // encre bleu pétrole
+  "player-2": "#5b4a78", // encre violette
+  "player-3": "#4f6b3a", // encre olive
+  "player-4": "#7d5a2a", // encre ocre brûlée
 } as const;
 
 export type ColorName = keyof typeof COLORS;

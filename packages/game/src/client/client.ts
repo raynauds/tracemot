@@ -23,9 +23,12 @@
 // notifyLobbyEvents décide des notifications transitoires (snackbar) à
 // partir des diffs purs de client/diff.ts — jamais à la reconstruction.
 //
-// Hors périmètre (doc 09 chantiers 4/5 — cf. client/diff.ts) : tracés
-// distants (`traces[p]`), rollback d'un `submitWord` optimiste perdu,
-// couleurs par joueur.
+// Présence temps réel et identité joueur (doc 05/06, chantier 4) :
+// `syncPresence` (identité + `colorSlots`) tourne à CHAQUE tick, avant tout le
+// reste ; `renderRemoteTraces` (scene.ts) peint les tracés distants et le
+// registre teinté après chaque `syncFromGame` en phase "playing" ;
+// `wordRaceLost` (client/diff.ts, s'appuyant sur `rollbacks` d'onChange)
+// détecte une course perdue sur le même mot.
 
 import {
   DEFAULT_MODE,
@@ -54,6 +57,7 @@ import {
   flashPath,
   initScene,
   rebuildGrid,
+  renderRemoteTraces,
   renderSceneGrid,
   renderUsedCells,
   shakeGrid,
@@ -74,7 +78,13 @@ import {
   showReject,
 } from "../render/render.ts";
 import { showSnackbar } from "../render/snackbar.ts";
-import { local, syncFromGame, wordCheckContext } from "./local-state.ts";
+import {
+  bindTracePublisher,
+  local,
+  syncFromGame,
+  syncPresence,
+  wordCheckContext,
+} from "./local-state.ts";
 import {
   isBackgroundTick,
   isRoundEnd,
@@ -82,7 +92,9 @@ import {
   justWon,
   proposalRaceLost,
   refusalJustHappened,
+  wordRaceLost,
 } from "./diff.ts";
+import { trackAction } from "./dev.ts";
 import type { GameStateWithPersisted } from "../logic/types.ts";
 
 type Game = GameStateWithPersisted;
@@ -179,7 +191,7 @@ function enterGameScreen(game: Game): void {
   renderNewGame(); // vide le registre, remet le compteur à zéro, cache la victoire
   renderSceneGrid(); // pose lettres/cases, distribue, cadre la caméra
   for (let i = 0; i < game.found.length; i++) {
-    fillListRow(i, game.found[i].word, false); // rejeu silencieux (pas de tampon)
+    fillListRow(i, game.found[i], false); // rejeu silencieux (pas de tampon)
   }
   renderCounter();
   renderLevelHeader();
@@ -194,13 +206,26 @@ function enterGameScreen(game: Game): void {
 // --- Mots trouvés / victoire (gameplay normal, hors reconstruction) ---------
 
 function handleFoundGrowth(game: Game, previousFoundLength: number): void {
+  // Conflit (doc 05 § Cases consommées) : un mot validé par un AUTRE joueur
+  // vient de consommer une case que mon tracé en cours traverse — logic
+  // refuserait de toute façon ma soumission (case déjà consommée), autant
+  // annuler le geste tout de suite plutôt que de laisser le doigt terminer un
+  // tracé condamné. Un seul appel suffit même si plusieurs mots tombent dans
+  // le même tick (cancelAllGestures est idempotent, mode déjà remis à null).
+  let myTraceInvalidated = false;
   for (let i = previousFoundLength; i < game.found.length; i++) {
     const entry = game.found[i];
-    fillListRow(i, entry.word, true);
+    const isMine = entry.by === yourPlayerId;
+    if (!isMine && !myTraceInvalidated && local.path.some((c) => entry.path.includes(c))) {
+      myTraceInvalidated = true;
+      cancelAllGestures();
+    }
+    fillListRow(i, entry, true);
     renderUsedCells();
     stampWord(entry.path);
-    playSound("word-stamp");
-    if (entry.by === yourPlayerId) buzz(); // haptique réservé à SA propre trouvaille
+    // Le mien plein volume, un mot distant atténué (doc 05 § Sons et haptique).
+    playSound("word-stamp", isMine ? undefined : { volume: 0.5 });
+    if (isMine) buzz(); // haptique réservé à SA propre trouvaille
   }
   renderCounter();
 }
@@ -222,23 +247,29 @@ function handleWon(game: Game): void {
 // revérifie de toute façon tout, de façon autoritaire.
 function commitWord(): void {
   if (local.path.length < 2) {
-    clearPath();
+    clearPath(); // < 2 lettres : efface aussitôt chez les autres (doc 05)
     return;
   }
   const word = local.path.map((i) => local.letters[i]).join("");
   const traced = local.path.slice();
-  clearPath();
-
   const code = wordRejectReason(word, wordCheckContext());
   if (code) {
+    clearPath(); // refusé : geste sans soumission, efface aussitôt (doc 05)
     flashPath(traced);
     shakeGrid();
     playSound("word-reject");
     showReject(word, rejectLabel(code));
     return;
   }
-  if (!yourPlayerId) return; // spectateur : jamais de submitWord
+  if (!yourPlayerId) {
+    clearPath();
+    return; // spectateur : jamais de submitWord
+  }
+  // Accepté : `submitWord` vide `traces[playerId]` côté logic, un effacement
+  // en plus n'apporterait rien (doc 05 § « pas d'action supplémentaire »).
+  clearPath(false);
   Rune.actions.submitWord({ path: traced });
+  trackAction("submitWord");
 }
 
 // --- Lancement / abandon / enchaînement -------------------------------------
@@ -246,11 +277,13 @@ function commitWord(): void {
 function proposeLevel(modeId: ModeId, id: LevelId): void {
   if (!yourPlayerId) return;
   Rune.actions.proposeLevel({ modeId, levelId: id });
+  trackAction("proposeLevel");
 }
 
 function proposeAbandon(): void {
   if (!yourPlayerId) return;
   Rune.actions.proposeAbandon({});
+  trackAction("proposeAbandon");
 }
 
 // --- Lobby : notifications éphémères (doc 04 § chantier 3) ------------------
@@ -300,13 +333,24 @@ async function boot(): Promise<void> {
   renderCounter();
   await initScene(); // Application Pixi + graphe de scène (assets prêts, doc 08)
   attachInputHandlers({ onCommit: commitWord });
+  // Publication throttlée du tracé (doc 05) : le throttle vit dans
+  // client/local-state.ts, mais seul ce fichier dispatche vers Rune.
+  bindTracePublisher((path) => {
+    if (!yourPlayerId) return;
+    Rune.actions.updateTrace({ path });
+    trackAction("updateTrace");
+  });
 
   bindMap(proposeLevel, {
     onModeSeen: (modeId) => {
-      if (yourPlayerId) Rune.actions.markModeSeen({ modeId });
+      if (!yourPlayerId) return;
+      Rune.actions.markModeSeen({ modeId });
+      trackAction("markModeSeen");
     },
     onModeChange: (modeId) => {
-      if (yourPlayerId) Rune.actions.setLastMode({ modeId });
+      if (!yourPlayerId) return;
+      Rune.actions.setLastMode({ modeId });
+      trackAction("setLastMode");
     },
   });
   bindMapReturn({
@@ -326,19 +370,24 @@ async function boot(): Promise<void> {
     onAccept: () => {
       if (!yourPlayerId) return;
       Rune.actions.answerProposal({ accept: true });
+      trackAction("answerProposal");
     },
     onRefuse: () => {
       if (!yourPlayerId) return;
       Rune.actions.answerProposal({ accept: false });
+      trackAction("answerProposal");
     },
     onCancel: () => {
       if (!yourPlayerId) return;
       Rune.actions.cancelProposal({});
+      trackAction("cancelProposal");
     },
   });
   bindHelp({
     onSeen: () => {
-      if (yourPlayerId) Rune.actions.setHelpSeen({});
+      if (!yourPlayerId) return;
+      Rune.actions.setHelpSeen({});
+      trackAction("setHelpSeen");
     },
   });
   // Enchaînement depuis l'écran de victoire : toujours dans le mode courant —
@@ -346,9 +395,14 @@ async function boot(): Promise<void> {
   bindWinNext((id) => proposeLevel(local.modeId, id));
 
   Rune.initClient({
-    onChange: ({ game, previousGame, yourPlayerId: player, event }) => {
+    onChange: ({ game, previousGame, yourPlayerId: player, event, rollbacks }) => {
       yourPlayerId = player;
       lastGame = game;
+      // Présence (doc 05/06) : identité + slots de couleur, à jour à CHAQUE
+      // tick, indépendamment de l'écran affiché — avant tout le reste, pour
+      // que le rendu de ce même tick (registre, grille, lobby) les voie déjà
+      // à jour.
+      syncPresence(yourPlayerId, game.colorSlots);
       // Peinture de l'overlay de vote (doc 04) : dérivée de `game.proposal`
       // seul, à CHAQUE onChange (y compris la reconstruction ci-dessous) —
       // contrairement aux notifications transitoires plus bas, elle n'a rien
@@ -383,7 +437,17 @@ async function boot(): Promise<void> {
       if (game.phase === "playing") {
         const foundGrew = game.found.length > previousGame.found.length;
         const wonNow = justWon(game, previousGame);
-        syncFromGame(game); // won/ready/found à jour même sans mot trouvé (ex. traces)
+        // Course sur le même mot (doc 05 § Conflits) : rollbacks de onChange
+        // en premier (mon submitWord a été invalidé), diff de found en filet
+        // (retrouver qui a gagné parmi les entrées fraîchement confirmées).
+        const race = wordRaceLost(game, previousGame, yourPlayerId, rollbacks);
+        syncFromGame(game); // won/ready/found/traces à jour, même sans mot trouvé
+        renderRemoteTraces(); // redessine tracés distants + fond des cases (doc 05)
+        if (race) {
+          showSnackbar(
+            `${Rune.getPlayerInfo(race.winner).displayName} a trouvé « ${race.word} » juste avant`,
+          );
+        }
         if (foundGrew) handleFoundGrowth(game, previousGame.found.length);
         if (wonNow) handleWon(game);
       } else if (local.screen === "map" && !isBackgroundTick(event?.name)) {

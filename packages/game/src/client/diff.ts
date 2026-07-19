@@ -9,10 +9,10 @@
 // qui EST un diff, ci-dessous : les notifications transitoires (snackbar),
 // qui elles ne doivent jamais rejouer sur un stateSync (doc 02 § onChange).
 //
-// Ce que ce module NE couvre PAS (hors périmètre du chantier 3, doc 09
-// chantiers 4/5) : les tracés distants (`traces[p]`), le rollback d'un
-// `submitWord` optimiste perdu (`rollbacks`). logic.ts gère déjà l'état ; leur
-// PRÉSENTATION reste à construire aux chantiers dédiés.
+// Chantier 4 (doc 05 § Conflits) : `wordRaceLost` détecte une course perdue
+// sur le même mot via `rollbacks` d'onChange (mon `submitWord` invalidé) —
+// même principe « par valeur », mais sur un tableau fourni par Rune plutôt
+// que sur `game`/`previousGame`.
 
 import type { PlayerId, RuneGameState } from "../logic/types.ts";
 
@@ -90,4 +90,37 @@ export function proposalRaceLost(
   if (previousGame.proposal?.proposedBy !== yourPlayerId) return false;
   if (!game.proposal) return false;
   return game.proposal.proposedBy !== yourPlayerId;
+}
+
+export interface WordRace {
+  winner: PlayerId;
+  word: string;
+}
+
+// Course sur le MÊME mot (doc 05 § Conflits point 1) : les deux clients
+// valident localement et soumettent, seul l'ordre serveur tranche. Signal
+// PRINCIPAL : `rollbacks` (doc api rune-sdk — les actions optimistes de CE
+// client invalidées à ce tick) porte un `submitWord` de ma part, donc ma
+// soumission a perdu la course. Diff de `found` en FILET pour retrouver
+// l'identité du gagnant : la première entrée fraîchement confirmée qui n'est
+// pas de moi, parmi celles apparues entre `previousGame` et `game` — une
+// hypothèse raisonnable tant qu'une seule course a lieu par tick, ce qui est
+// le cas courant (deux mots distincts validés au même tick ne se
+// « percutent » pas, ils s'ajoutent simplement tous les deux à `found`).
+export function wordRaceLost(
+  game: RuneGameState,
+  previousGame: RuneGameState,
+  yourPlayerId: PlayerId | undefined,
+  rollbacks: { name: string; playerId: PlayerId }[],
+): WordRace | null {
+  if (!yourPlayerId) return null;
+  const lostSubmit = rollbacks.some(
+    (r) => r.name === "submitWord" && r.playerId === yourPlayerId,
+  );
+  if (!lostSubmit) return null;
+  for (let i = previousGame.found.length; i < game.found.length; i++) {
+    const entry = game.found[i];
+    if (entry.by !== yourPlayerId) return { winner: entry.by, word: entry.word };
+  }
+  return null;
 }

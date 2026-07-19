@@ -4,7 +4,7 @@
 // cadrage) vit dans camera.ts. L'arbitrage des gestes vit dans input.ts, qui
 // s'appuie sur cellAtGlobal / getStage exposés ici.
 
-import { Application, Container, Graphics, Text } from "pixi.js";
+import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
 import type { PointData, TextStyle, Ticker } from "pixi.js";
 import { playSound } from "../audio/audio.ts";
 import { Camera } from "./camera.ts";
@@ -17,11 +17,13 @@ import {
   INK,
   LINE,
   PAPER,
+  PLAYER_COLORS,
   VERMILION,
   ZOOM_STEP,
 } from "../game/config.ts";
 import { SERIF_NAME } from "../theme/tokens.ts";
-import { local, usedCells } from "../client/local-state.ts";
+import { cellOwner, local, usedCells } from "../client/local-state.ts";
+import type { PlayerId } from "../logic/types.ts";
 import { cancelTweens, easeOutCubic, initTweens, tween } from "./tween.ts";
 import { maximizeIcon, minusIcon, plusIcon } from "./icons.ts";
 
@@ -40,6 +42,7 @@ const CELL_RADIUS = 0;
 const CELL_STROKE = 3;
 const FONT_SIZE = 42; // ≈ rapport lettre/case du DOM
 const TRACE_WIDTH = 10; // largeur du trait
+const AVATAR_SIZE = 26; // pastille avatar d'un tracé distant (doc 05/06)
 
 // Métriques de rendu = unités design × baseScale. baseScale (caméra) vaut le
 // nombre de px natifs par unité design au zoom max : la scène est donc gravée à
@@ -54,6 +57,7 @@ const metrics = {
   stroke: CELL_STROKE,
   trace: TRACE_WIDTH,
   font: FONT_SIZE,
+  avatar: AVATAR_SIZE,
 };
 
 /** @param base facteur px-natifs / unité design (baseScale caméra) */
@@ -65,6 +69,7 @@ function updateMetrics(base: number): void {
   metrics.stroke = CELL_STROKE * base;
   metrics.trace = TRACE_WIDTH * base;
   metrics.font = FONT_SIZE * base;
+  metrics.avatar = AVATAR_SIZE * base;
 }
 
 // --- Réglages d'animation (Pixi-natif : alpha/scale/tint/position) ---------
@@ -83,6 +88,12 @@ const SHAKE_AMP = 0.08; // amplitude de la secousse (fraction de la largeur d'un
 const SHAKE_MIN_PX = 6; // plancher écran (px) : garde la secousse perceptible très dézoomé
 const SHAKE_FREQ = 22; // pulsation de la secousse (rad/unité de temps normalisée)
 
+// --- Tracés distants (doc 05 § Rendu des tracés distants) ------------------
+const REMOTE_TRACE_ALPHA = 0.45; // trait « plus léger » qu'un tracé local
+const REMOTE_CELL_TINT = 0.12; // fond de case sous un tracé distant (~12 %)
+const REMOTE_MUTE_AFTER_MS = 5000; // sans MAJ de contenu depuis ~5 s : estompe
+const REMOTE_FADE_MS = 3000; // durée de l'estompe jusqu'à alpha ~0
+
 // prefers-reduced-motion : lu une fois à l'init de la scène (initScene). Coupe
 // la secousse de refus (déclencheur vestibulaire), rend le flash de refus
 // instantané (pas d'oscillation) et la distribution des cases sans vague ni
@@ -100,8 +111,25 @@ let traceLayer: Container;
 let lettersLayer: Container;
 /** Tracés fantômes des mots trouvés (sous le tracé actif). */
 let ghostTrace: Graphics;
+/** Tracés des autres joueurs, entre les fantômes et le mien (doc 05) : mon
+ *  geste garde toujours la priorité visuelle. */
+let remoteLayer: Container;
 /** Tracé en cours. */
 let activeTrace: Graphics;
+
+// Un marqueur (trait + pastille avatar cerclée) par joueur distant EN TRAIN
+// de tracer — créé/détruit au fil de local.remoteTraces (doc 05/06). L'avatar
+// (Sprite, une feuille : ne peut pas porter d'enfant) est masqué via un
+// Container englobant qui porte le masque en enfant, comme l'exige le
+// système de masques Pixi.
+interface RemoteMarker {
+  gfx: Graphics; // trait de son tracé
+  ring: Graphics; // fond + anneau de la pastille (teinte), non masqué
+  avatarBox: Container; // porte le masque (StencilMask) et l'avatar
+  mask: Graphics; // masque circulaire, enfant de avatarBox
+  sprite: Sprite; // avatar Rune, enfant de avatarBox
+}
+const remoteMarkers = new Map<PlayerId, RemoteMarker>();
 /** Fonds de cases, dans l'ordre des indices. */
 const cellBgs: Graphics[] = [];
 /** Lettres des cases, dans l'ordre des indices. */
@@ -136,16 +164,30 @@ export function setHoverCell(i: number | null): void {
   repaintCells();
 }
 
+// Teinte (doc 06) du joueur distant qui trace actuellement sur la case i, ou
+// null si aucun. Priorité au premier trouvé (croisement de tracés distants :
+// purement visuel, doc 05 § Conflits point 3 — aucun arbitrage nécessaire).
+function remoteColorAt(i: number): number | null {
+  for (const playerId in local.remoteTraces) {
+    if (!local.remoteTraces[playerId].path.includes(i)) continue;
+    const slot = local.colorSlots[playerId];
+    return slot !== undefined ? PLAYER_COLORS[slot] : null;
+  }
+  return null;
+}
+
 // État visuel d'une case : disabled (mot trouvé) > head (dernière du tracé) >
-// sel (dans le tracé) > hover (survolée, souris) > normal. Les cases
-// consommées sont inertes, jamais dans le tracé ni survolables.
+// sel (dans le tracé) > remote (sous un tracé distant, doc 05) > hover
+// (survolée, souris) > normal. Les cases consommées sont inertes, jamais
+// dans le tracé ni survolables ; ma sélection garde toujours le dessus.
 function cellState(
   i: number,
-): "disabled" | "head" | "sel" | "hover" | "normal" {
+): "disabled" | "head" | "sel" | "remote" | "hover" | "normal" {
   if (usedCells().has(i)) return "disabled";
   const path = local.path;
   if (path.length && i === path[path.length - 1]) return "head";
   if (path.includes(i)) return "sel";
+  if (remoteColorAt(i) !== null) return "remote";
   if (i === hoverCell) return "hover";
   return "normal";
 }
@@ -164,11 +206,27 @@ function paintCell(i: number): void {
       stroke = INK;
       textFill = PAPER;
       break;
-    case "disabled":
+    case "disabled": {
+      // Liseré léger dans la teinte du trouveur si ce n'est pas moi (doc
+      // 05/06 § mots validés teintés) ; mes propres mots gardent le filet
+      // neutre habituel.
+      const owner = cellOwner(i);
+      const slot = owner && owner !== local.yourPlayerId ? local.colorSlots[owner] : undefined;
       fill = PAPER;
-      stroke = LINE;
+      stroke = slot !== undefined ? PLAYER_COLORS[slot] : LINE;
       textFill = GHOST;
       break;
+    }
+    case "remote": {
+      // Fond de case teinté ~12 % (doc 05/06), l'encre/le vermillon de ma
+      // propre sélection ayant déjà priorité au-dessus (cases disabled/
+      // head/sel exclues par cellState).
+      const color = remoteColorAt(i) ?? INK;
+      fill = lerpColor(CARD, color, REMOTE_CELL_TINT);
+      stroke = INK;
+      textFill = INK;
+      break;
+    }
     case "hover":
       // Même surface que le repos, survolée (card-hover) : filet et lettre
       // inchangés, comme .map-cell:hover (map.css) — seul le fond bouge.
@@ -312,6 +370,15 @@ export function renderTrace(): void {
   strokePath(activeTrace, local.path, INK);
 }
 
+// Teinte du tracé fantôme d'un mot trouvé : GHOST pour les miens (sémantique
+// inchangée, doc 05/06 § Q18b), teinte du trouveur pour les autres — même
+// alpha fantôme que d'habitude, seule la couleur change.
+function ghostColorFor(playerId: PlayerId): number {
+  if (playerId === local.yourPlayerId) return GHOST;
+  const slot = local.colorSlots[playerId];
+  return slot !== undefined ? PLAYER_COLORS[slot] : GHOST;
+}
+
 // Dessine tous les tracés fantômes, le dernier avec un alpha donné (fondu du
 // mot qu'on vient de valider). lastAlpha = 1 → tous pleinement visibles.
 function drawFoundTraces(lastAlpha: number): void {
@@ -319,7 +386,7 @@ function drawFoundTraces(lastAlpha: number): void {
   const paths = local.foundPaths;
   for (let k = 0; k < paths.length; k++) {
     const a = k === paths.length - 1 ? lastAlpha : 1;
-    strokePath(ghostTrace, paths[k], GHOST, a);
+    strokePath(ghostTrace, paths[k], ghostColorFor(local.foundBy[k]), a);
   }
 }
 
@@ -327,6 +394,96 @@ function drawFoundTraces(lastAlpha: number): void {
 // tons des cases désactivées, pour relire les mots sur la grille.
 export function renderFoundTraces(): void {
   drawFoundTraces(1);
+}
+
+// --- Tracés distants (doc 05/06) --------------------------------------------
+
+// Construit (une seule fois par joueur) le marqueur d'un tracé distant :
+// trait + pastille avatar cerclée sur la case de tête. Le masque circulaire
+// est redessiné à chaque peinture (la taille suit metrics.avatar, qui varie
+// avec le zoom), pas seulement à la création.
+function ensureRemoteMarker(playerId: PlayerId): RemoteMarker {
+  const existing = remoteMarkers.get(playerId);
+  if (existing) return existing;
+  const gfx = new Graphics();
+  const ring = new Graphics();
+  const avatarBox = new Container();
+  const mask = new Graphics();
+  const sprite = Sprite.from(Rune.getPlayerInfo(playerId).avatarUrl);
+  sprite.anchor.set(0.5);
+  // Le masque doit être enfant du conteneur masqué (système de masques Pixi) —
+  // un Sprite ne peut pas porter d'enfant, d'où ce Container intermédiaire.
+  avatarBox.addChild(sprite, mask);
+  avatarBox.mask = mask;
+  remoteLayer.addChild(gfx, ring, avatarBox);
+  const marker: RemoteMarker = { gfx, ring, avatarBox, mask, sprite };
+  remoteMarkers.set(playerId, marker);
+  return marker;
+}
+
+function releaseRemoteMarker(playerId: PlayerId): void {
+  const marker = remoteMarkers.get(playerId);
+  if (!marker) return;
+  marker.gfx.destroy();
+  marker.ring.destroy();
+  marker.avatarBox.destroy({ children: true }); // détruit aussi mask + sprite
+  remoteMarkers.delete(playerId);
+}
+
+// Peint (ou retire) le marqueur de chaque joueur distant EN TRAIN de tracer,
+// avec son estompe courante (doc 05 § Tracé distant muet — ~5 s sans MAJ de
+// contenu, puis fondu sur ~3 s). Appelée à chaque frame (ticker) pour un
+// fondu lisse : ne touche jamais au fond des cases (cf. renderRemoteTraces).
+function paintRemoteMarkers(): void {
+  if (!remoteLayer) return;
+  const now = Date.now();
+  for (const playerId of [...remoteMarkers.keys()]) {
+    if (!(playerId in local.remoteTraces)) releaseRemoteMarker(playerId);
+  }
+  for (const playerId in local.remoteTraces) {
+    const info = local.remoteTraces[playerId];
+    const slot = local.colorSlots[playerId];
+    const color = slot !== undefined ? PLAYER_COLORS[slot] : INK;
+    const mutedSince = now - info.lastChangedAt - REMOTE_MUTE_AFTER_MS;
+    const fade = mutedSince <= 0 ? 1 : Math.max(0, 1 - mutedSince / REMOTE_FADE_MS);
+    if (fade <= 0) {
+      releaseRemoteMarker(playerId);
+      continue;
+    }
+    const marker = ensureRemoteMarker(playerId);
+    marker.gfx.clear();
+    strokePath(marker.gfx, info.path, color, REMOTE_TRACE_ALPHA * fade);
+
+    const head = info.path[info.path.length - 1];
+    const c = cellCenter(head);
+    const r = metrics.avatar / 2;
+
+    marker.ring.clear();
+    marker.ring
+      .circle(0, 0, r)
+      .fill(color)
+      .stroke({ width: metrics.stroke * 0.7, color: INK, alignment: 1 });
+    marker.ring.position.set(c.x, c.y);
+    marker.ring.alpha = fade;
+
+    // avatarBox porte la position monde ; sprite/mask restent à l'origine
+    // locale (0,0), seule leur TAILLE suit le zoom (r change avec metrics).
+    marker.avatarBox.position.set(c.x, c.y);
+    marker.avatarBox.alpha = fade;
+    marker.mask.clear().circle(0, 0, r * 0.86).fill(0xffffff);
+    marker.sprite.width = r * 1.72;
+    marker.sprite.height = r * 1.72;
+  }
+}
+
+// À appeler quand `local.remoteTraces` vient de changer POUR DE VRAI (doc 05 :
+// « redraw sur diff de traces[p] uniquement ») — repeint les marqueurs ET le
+// fond des cases (le 12 % de teinte, cellState « remote »), contrairement au
+// rafraîchissement par frame (paintRemoteMarkers seul, ticker) qui ne fait
+// vivre que l'estompe.
+export function renderRemoteTraces(): void {
+  paintRemoteMarkers();
+  repaintCells();
 }
 
 // Longueur du tracé à la dernière peinture : sert à détecter qu'une case
@@ -603,10 +760,13 @@ export async function initScene(): Promise<void> {
   world.addChild(traceLayer, cellsLayer, lettersLayer);
   app.stage.addChild(world);
 
-  // Fantômes sous le tracé actif, tous deux dans traceLayer.
+  // Fantômes, tracés distants puis tracé actif, dans cet ordre (doc 05) : mon
+  // geste garde toujours la priorité visuelle, les tracés distants passent
+  // sous lui mais au-dessus des mots déjà trouvés.
   ghostTrace = new Graphics();
+  remoteLayer = new Container();
   activeTrace = new Graphics();
-  traceLayer.addChild(ghostTrace, activeTrace);
+  traceLayer.addChild(ghostTrace, remoteLayer, activeTrace);
 
   // Le stage reçoit les events fédérés (tracé) sur tout l'écran.
   app.stage.eventMode = "static";
@@ -645,6 +805,12 @@ export async function initScene(): Promise<void> {
   // Secousse de refus : offset écran ajouté chaque frame après le clamp caméra.
   app.ticker.add(applyShake);
 
+  // Estompe des tracés distants muets (doc 05) : recalculée chaque frame pour
+  // un fondu lisse, sans jamais retoucher le fond des cases (repaintCells
+  // reste appelé seulement quand local.remoteTraces change réellement, cf.
+  // renderRemoteTraces exporté plus bas).
+  app.ticker.add(paintRemoteMarkers);
+
   // Zoom molette (vers le pointeur) + boutons flottants.
   app.canvas.addEventListener("wheel", onWheel, { passive: false });
   buildZoomControls();
@@ -666,6 +832,11 @@ export function rebuildGrid(): void {
   cellTexts.length = 0;
   ghostTrace.clear();
   activeTrace.clear();
+  // Tracés distants de l'ancienne grille : sans objet une fois la géométrie
+  // changée (un défi double le côté) — syncFromGame les aura de toute façon
+  // déjà vidés (traces={} à chaque nouvelle manche, doc 03/05), ceci n'est
+  // qu'un filet visuel pour ne jamais laisser un marqueur mal positionné.
+  for (const playerId of [...remoteMarkers.keys()]) releaseRemoteMarker(playerId);
   adoptGeometry();
   camera.setGrid({ rows, cols }); // bornes + cadrage « tout voir »
   updateMetrics(camera.baseScale); // baseScale inchangé, par principe

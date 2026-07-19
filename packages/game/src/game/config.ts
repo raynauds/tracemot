@@ -57,3 +57,14 @@ export const VERMILION = hex("vermilion");
 export const MUTED = hex("muted");
 export const LINE = hex("line");
 export const GHOST = hex("ghost");
+
+// Encres d'autres mains (doc 06) : indexées par ColorSlot (0..3, logic/types.ts
+// `colorSlots`) — jamais liées à un joueur nommé, seulement à son slot. Le
+// joueur local n'y pioche jamais pour lui-même (il reste ink/vermillon) : ce
+// tableau ne sert qu'à peindre CE QUE FONT LES AUTRES.
+export const PLAYER_COLORS: readonly number[] = [
+  hex("player-1"),
+  hex("player-2"),
+  hex("player-3"),
+  hex("player-4"),
+];

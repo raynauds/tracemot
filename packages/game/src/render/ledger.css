@@ -128,6 +128,38 @@
   color: var(--ghost);
 }
 
+/* Mot trouvé par un AUTRE joueur (doc 05/06 § encres d'autres mains) : le
+   numéro prend sa teinte au lieu du vermillon — mes propres mots n'ont
+   jamais l'une de ces classes (fillListRow, render.ts). */
+.word-row.owner-0 .word-num {
+  color: var(--player-1);
+}
+.word-row.owner-1 .word-num {
+  color: var(--player-2);
+}
+.word-row.owner-2 .word-num {
+  color: var(--player-3);
+}
+.word-row.owner-3 .word-num {
+  color: var(--player-4);
+}
+
+/* Pastille avatar : exception `border-radius` du DESIGN.md, étendue aux
+   avatars joueur (doc 06) — même traitement que .lobby-avatar. */
+.word-avatar {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-left: auto;
+  border-radius: 9999px;
+  border: 1.5px solid var(--ink);
+  object-fit: cover;
+}
+
+/* Le motif de refus occupe déjà la marge droite : l'avatar ne peut jamais
+   apparaître sur une ligne rejetée (fillListRow n'est appelé que sur un mot
+   VALIDÉ), donc pas de conflit de layout à prévoir ici. */
+
 .word-text {
   font-size: 26px;
   font-weight: 600;
