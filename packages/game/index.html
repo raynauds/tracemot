@@ -9,7 +9,7 @@
     <title>Tracemot</title>
     <!-- Fontes servies par le jeu (public/fonts) : les @font-face vivent dans
          src/theme/fonts.css. On précharge les seules faces du PREMIER écran, la
-         carte — son titre (serif 700), ses accroches (serif 400 et son
+         carte - son titre (serif 700), ses accroches (serif 400 et son
          italique) et ses chiffres (mono 600). Sans ce preload, le navigateur ne
          les découvrirait qu'après avoir lu le CSS, et le boot attend les fontes
          (body.booting). Les autres faces se chargent au lancement d'une partie. -->
@@ -36,7 +36,7 @@
     />
     <link rel="stylesheet" href="style.css" />
   </head>
-  <!-- .booting : au chargement, l'écran ne montre que le papier de la carte —
+  <!-- .booting : au chargement, l'écran ne montre que le papier de la carte -
        rien n'est peint tant que l'app n'est pas prête (style.css). src/main.ts
        retire la classe une fois la carte en place. -->
   <body class="booting">
@@ -47,8 +47,390 @@
          (pointer-events: none) ; seuls les contrôles interactifs les
          réactivent (pointer-events: auto). -->
 
-    <!-- Carte de progression : écran d'accueil, plein écran, au-dessus de tout
-         le reste. Son contenu est entièrement généré par src/render/map.ts ;
+    <!-- Accueil : le premier écran, plein écran, au-dessus de la carte. Le seul
+         endroit où le jeu se nomme - la carte et la partie restent sans marque
+         (src/theme/DESIGN.md). Écrit et lié par src/render/home.ts ; quand il
+         est affiché, le corps porte .home-open.
+
+         Le titre est composé lettre par lettre : chacune porte son rang (--i),
+         d'où le CSS tire le décalage de sa révélation (src/render/home.css). Les
+         spans sont aria-hidden et le titre porte son aria-label : à la lecture
+         d'écran, c'est un mot, pas huit lettres. -->
+    <div class="home" id="home" hidden>
+      <div class="home-col">
+        <h1 class="home-title" id="home-title" aria-label="Tracemot">
+          <span aria-hidden="true" style="--i: 0">T</span
+          ><span aria-hidden="true" style="--i: 1">r</span
+          ><span aria-hidden="true" style="--i: 2">a</span
+          ><span aria-hidden="true" style="--i: 3">c</span
+          ><span aria-hidden="true" style="--i: 4">e</span
+          ><span aria-hidden="true" style="--i: 5">m</span
+          ><span aria-hidden="true" style="--i: 6">o</span
+          ><span aria-hidden="true" style="--i: 7">t</span
+          ><span class="dot" aria-hidden="true" style="--i: 8">.</span>
+        </h1>
+        <!-- Pré-remplie avec l'état du premier lancement (anti-shift, comme
+             #rule-spec) ; src/render/home.ts y écrit le point de reprise. -->
+        <p class="home-state" id="home-state">
+          Reliez des lettres voisines pour tracer les mots
+        </p>
+        <div class="home-actions">
+          <button type="button" class="home-primary" id="home-start">
+            COMMENCER
+          </button>
+          <button type="button" class="home-levels" id="home-levels">
+            CHOISIR UN NIVEAU
+          </button>
+          <!-- Les aides, sous le choix du niveau : le panneau des volumes et
+               l'écran des règles — mêmes boutons que « choisir un niveau »,
+               ce sont des consultations de même poids. -->
+          <!-- Panneau des volumes : il s'ancre à son bouton. Structure statique
+               UNIQUE — le bouton son du header de partie ouvre LE MÊME panneau,
+               src/render/sound.ts le déplace sous le déclencheur actif (deux
+               copies obligeraient à tenir leurs curseurs synchrones). Les crans
+               (.sound-scale) et les icônes sont posés par le même module. -->
+          <div class="home-sound" id="home-sound-anchor">
+            <button
+              type="button"
+              class="home-levels"
+              id="home-sound"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+            >
+              AUDIO
+            </button>
+            <div class="diff-overlay" id="sound-overlay" hidden></div>
+            <div
+              class="diff-panel sound-panel"
+              id="sound-panel"
+              role="dialog"
+              aria-label="Réglages sonores"
+              hidden
+            >
+              <div class="diff-panel-head">
+                <span class="diff-panel-title">AUDIO</span>
+                <button
+                  type="button"
+                  class="diff-close"
+                  id="sound-close"
+                  aria-label="Fermer"
+                ></button>
+              </div>
+              <div class="sound-row">
+                <div class="sound-row-head">
+                  <label class="sound-label" for="sound-ui">INTERFACE</label>
+                  <span class="sound-value" id="sound-ui-value"></span>
+                </div>
+                <input
+                  type="range"
+                  class="sound-slider"
+                  id="sound-ui"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value="10"
+                />
+                <div
+                  class="sound-scale"
+                  id="sound-ui-scale"
+                  aria-hidden="true"
+                ></div>
+              </div>
+              <div class="sound-row">
+                <div class="sound-row-head">
+                  <label class="sound-label" for="sound-music">MUSIQUE</label>
+                  <span class="sound-value" id="sound-music-value"></span>
+                </div>
+                <input
+                  type="range"
+                  class="sound-slider"
+                  id="sound-music"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value="10"
+                />
+                <div
+                  class="sound-scale"
+                  id="sound-music-scale"
+                  aria-hidden="true"
+                ></div>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="home-levels" id="home-help">
+            COMMENT JOUER
+          </button>
+        </div>
+      </div>
+      <!-- L'ours de la page : le lien des crédits, seul au bas du cadre —
+           une marge de page, pas un élément de la colonne. -->
+      <button type="button" class="home-credits" id="home-credits">
+        CRÉDITS
+      </button>
+    </div>
+
+    <!-- Comment jouer : l'écran des règles, plein écran au-dessus de l'accueil
+         (z-index 46). Ouvert par le bouton COMMENT JOUER de l'accueil, et de
+         lui-même à la toute première partie - par-dessus la grille prête, que sa fermeture
+         révèle. Structure statique, liée par src/render/help.ts (qui y pose la
+         flèche, les coches et l'étoile des figures). Le panneau « i » du header
+         de partie garde son rôle à lui : rappeler le format du niveau en cours. -->
+    <div class="screen help" id="help" hidden>
+      <header class="screen-head">
+        <button
+          type="button"
+          class="screen-back"
+          id="help-back"
+          aria-label="Fermer les règles"
+          title="Fermer"
+        ></button>
+      </header>
+      <div class="screen-body">
+        <h2 class="screen-title">Comment jouer</h2>
+        <ol class="help-steps">
+          <li class="help-step">
+            <!-- Chaque règle se montre avant de se dire : la figure rejoue la
+                 grille (mêmes filets, même vermillon du tracé). Les mots des
+                 figures - MOT, RAS, CLE - partitionnent la grille 3×3 en
+                 chemins orthogonaux : rien d'impossible n'y est dessiné. -->
+            <figure class="help-fig" aria-hidden="true">
+              <svg class="help-grid" viewBox="0 0 128 128">
+                <rect class="cell" x="0" y="0" width="40" height="40" />
+                <rect class="cell" x="44" y="0" width="40" height="40" />
+                <rect class="cell" x="88" y="0" width="40" height="40" />
+                <rect class="cell" x="0" y="44" width="40" height="40" />
+                <rect class="cell" x="44" y="44" width="40" height="40" />
+                <rect class="cell" x="88" y="44" width="40" height="40" />
+                <rect class="cell" x="0" y="88" width="40" height="40" />
+                <rect class="cell" x="44" y="88" width="40" height="40" />
+                <rect class="cell" x="88" y="88" width="40" height="40" />
+                <polyline class="trace" points="20,20 64,20 64,64" />
+                <text class="is-traced" x="20" y="27">M</text>
+                <text class="is-traced" x="64" y="27">O</text>
+                <text x="108" y="27">R</text>
+                <text x="20" y="71">C</text>
+                <text class="is-traced" x="64" y="71">T</text>
+                <text x="108" y="71">A</text>
+                <text x="20" y="115">L</text>
+                <text x="64" y="115">E</text>
+                <text x="108" y="115">S</text>
+              </svg>
+            </figure>
+            <div class="help-text">
+              <span class="help-num">01</span>
+              <h3 class="help-heading">Tracer</h3>
+              <p class="help-line">
+                Reliez des lettres voisines, sur une même ligne ou une même
+                colonne, puis relâchez : le mot se soumet tout seul.
+              </p>
+            </div>
+          </li>
+          <li class="help-step">
+            <figure class="help-fig" aria-hidden="true">
+              <svg class="help-grid" viewBox="0 0 128 128">
+                <rect class="cell is-used" x="0" y="0" width="40" height="40" />
+                <rect
+                  class="cell is-used"
+                  x="44"
+                  y="0"
+                  width="40"
+                  height="40"
+                />
+                <rect class="cell" x="88" y="0" width="40" height="40" />
+                <rect class="cell" x="0" y="44" width="40" height="40" />
+                <rect
+                  class="cell is-used"
+                  x="44"
+                  y="44"
+                  width="40"
+                  height="40"
+                />
+                <rect class="cell" x="88" y="44" width="40" height="40" />
+                <rect class="cell" x="0" y="88" width="40" height="40" />
+                <rect class="cell" x="44" y="88" width="40" height="40" />
+                <rect class="cell" x="88" y="88" width="40" height="40" />
+                <polyline class="trace" points="108,20 108,64 108,108" />
+                <text class="is-used" x="20" y="27">M</text>
+                <text class="is-used" x="64" y="27">O</text>
+                <text class="is-traced" x="108" y="27">R</text>
+                <text x="20" y="71">C</text>
+                <text class="is-used" x="64" y="71">T</text>
+                <text class="is-traced" x="108" y="71">A</text>
+                <text x="20" y="115">L</text>
+                <text x="64" y="115">E</text>
+                <text class="is-traced" x="108" y="115">S</text>
+              </svg>
+            </figure>
+            <div class="help-text">
+              <span class="help-num">02</span>
+              <h3 class="help-heading">Une lettre, une fois</h3>
+              <p class="help-line">
+                Chaque lettre ne sert qu'à un seul mot : les cases d'un mot
+                validé sortent du jeu.
+              </p>
+            </div>
+          </li>
+          <li class="help-step">
+            <figure class="help-fig" aria-hidden="true">
+              <div class="help-ledger">
+                <div class="help-ledger-row">
+                  <span class="help-ledger-num">01</span>
+                  <span class="help-ledger-word">MOT</span>
+                  <span class="help-ledger-check"></span>
+                </div>
+                <div class="help-ledger-row">
+                  <span class="help-ledger-num">02</span>
+                  <span class="help-ledger-word">RAS</span>
+                  <span class="help-ledger-check"></span>
+                </div>
+                <div class="help-ledger-row">
+                  <span class="help-ledger-num">03</span>
+                  <span class="help-ledger-word">CLE</span>
+                  <span class="help-ledger-check"></span>
+                </div>
+                <span class="help-ledger-count">3 / 3</span>
+              </div>
+            </figure>
+            <div class="help-text">
+              <span class="help-num">03</span>
+              <h3 class="help-heading">Finir la grille</h3>
+              <p class="help-line">
+                La grille est finie quand tous ses mots sont trouvés : le
+                registre les compte pour vous.
+              </p>
+            </div>
+          </li>
+          <li class="help-step">
+            <figure class="help-fig" aria-hidden="true">
+              <div class="help-map">
+                <span class="help-map-cell is-validated"
+                  >1<span class="help-map-check"></span
+                ></span>
+                <span class="help-map-cell is-validated"
+                  >2<span class="help-map-check"></span
+                ></span>
+                <span class="help-map-cell">3</span>
+                <span class="help-map-defi"
+                  ><span class="help-map-star"></span>DÉFI</span
+                >
+              </div>
+            </figure>
+            <div class="help-text">
+              <span class="help-num">04</span>
+              <h3 class="help-heading">Gagner des étoiles</h3>
+              <p class="help-line">
+                Chaque défi validé rapporte une étoile. Elles ouvrent les
+                difficultés suivantes, et le mode au-dessus - des grilles plus
+                grandes, des mots plus longs.
+              </p>
+            </div>
+          </li>
+        </ol>
+        <!-- Visible seulement quand l'écran s'ouvre de lui-même à la première
+             partie : la grille attend juste dessous, le bouton y plonge. -->
+        <button type="button" class="help-start" id="help-start" hidden>
+          C'EST PARTI
+        </button>
+      </div>
+    </div>
+
+    <!-- Crédits : la page des attributions - ce qui vient d'ailleurs, et de
+         qui. Une seule entrée : le lien CRÉDITS de l'accueil. Les attributions
+         JDSherbert et Nathan Gibson sont REQUISES par leurs licences (cf. les
+         readme/licences dans public/sounds/) : cette page est contractuelle,
+         pas décorative. Liée par src/render/credits.ts. -->
+    <div class="screen credits" id="credits" hidden>
+      <header class="screen-head">
+        <button
+          type="button"
+          class="screen-back"
+          id="credits-back"
+          aria-label="Fermer les crédits"
+          title="Fermer"
+        ></button>
+      </header>
+      <div class="screen-body">
+        <h2 class="screen-title">Crédits</h2>
+        <dl class="credits-list">
+          <div class="credits-entry">
+            <dt class="credits-role">BRUITAGES D'INTERFACE</dt>
+            <dd class="credits-what">
+              « Ultimate UI SFX Pack » de
+              <a
+                href="https://jdsherbert.itch.io/"
+                target="_blank"
+                rel="noopener"
+                >JDSherbert</a
+              >
+            </dd>
+            <dd class="credits-license">© 2023 JDSherbert</dd>
+          </div>
+          <div class="credits-entry">
+            <dt class="credits-role">TAMPON DES MOTS TROUVÉS</dt>
+            <dd class="credits-what">
+              « Universal UI Soundpack » de
+              <a
+                href="https://nathangibson.myportfolio.com"
+                target="_blank"
+                rel="noopener"
+                >Nathan Gibson</a
+              >
+            </dd>
+            <dd class="credits-license">
+              Licence
+              <a
+                href="https://creativecommons.org/licenses/by/4.0/"
+                target="_blank"
+                rel="noopener"
+                >CC BY 4.0</a
+              >
+            </dd>
+          </div>
+          <div class="credits-entry">
+            <dt class="credits-role">SON DE VICTOIRE</dt>
+            <dd class="credits-what">
+              « Game Assets All-in-1 » de
+              <a href="https://kenney.nl" target="_blank" rel="noopener"
+                >Kenney</a
+              >
+            </dd>
+            <dd class="credits-license">
+              Licence
+              <a
+                href="https://creativecommons.org/publicdomain/zero/1.0/"
+                target="_blank"
+                rel="noopener"
+                >CC0</a
+              >
+            </dd>
+          </div>
+          <div class="credits-entry">
+            <dt class="credits-role">MUSIQUE</dt>
+            <dd class="credits-what">
+              Boucle « Jazzy Lofi Calm » de
+              <a
+                href="https://pixabay.com/users/sonican-38947841/"
+                target="_blank"
+                rel="noopener"
+                >Dvir Silverstone</a
+              >, via Pixabay
+            </dd>
+            <dd class="credits-license">Licence de contenu Pixabay</dd>
+          </div>
+          <div class="credits-entry">
+            <dt class="credits-role">CARACTÈRES</dt>
+            <dd class="credits-what">
+              Source Serif 4 (Adobe) · IBM Plex Mono (IBM)
+            </dd>
+            <dd class="credits-license">SIL Open Font License</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Carte de progression : choix du niveau, plein écran, au-dessus du chrome
+         de partie. Son contenu est entièrement généré par src/render/map.ts ;
          quand elle est affichée, le corps porte .map-open et le chrome de
          partie ci-dessous est masqué (style.css). -->
     <div class="map" id="map" hidden></div>
@@ -68,48 +450,72 @@
         <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
         <span class="level-id" id="level-id"></span>
       </div>
-      <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
-           Seule au bord droit du header : la flèche dit d'où l'on sort, le
-           niveau dit où l'on est — deux faces d'une même chose, qui restent
-           groupées à gauche. Le « i », lui, n'appartient pas à cette paire.
+      <!-- Bord droit du header : les aides, qui n'appartiennent pas à la paire
+           de navigation groupée à gauche (la flèche dit d'où l'on sort, le
+           niveau dit où l'on est). Le son d'abord, la règle au bord - même
+           ordre que sur l'accueil, où le son est aussi le plus loin du coin. -->
+      <div class="header-right">
+        <!-- Réglages sonores : ouvre LE panneau des volumes, celui de
+             l'accueil - structure statique unique que src/render/sound.ts
+             déplace sous le déclencheur actif. La musique joue pendant la
+             partie : c'est ici qu'on veut la régler. -->
+        <div class="sound" id="header-sound-anchor">
+          <button
+            type="button"
+            class="sound-chip"
+            id="sound-chip"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-label="Réglages sonores"
+            title="Réglages sonores"
+          ></button>
+        </div>
+        <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
            Elle ouvre le composant voile + panneau (popover desktop, feuille
-           mobile) hérité du sélecteur de difficulté disparu — les classes
+           mobile) hérité du sélecteur de difficulté disparu - les classes
            .diff-overlay / .diff-panel lui survivent et restent partagées. -->
-      <div class="rule" id="rule">
-        <button
-          type="button"
-          class="rule-chip"
-          id="rule-chip"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-label="Règle du jeu"
-          title="Règle du jeu"
-        ></button>
-        <div class="diff-overlay" id="rule-overlay" hidden></div>
-        <div
-          class="diff-panel rule-panel"
-          id="rule-panel"
-          role="dialog"
-          aria-label="Règle du jeu"
-          hidden
-        >
-          <div class="diff-panel-head">
-            <span class="diff-panel-title">RÈGLE</span>
-            <!-- La croix est une icône SVG posée par src/render/render.ts. -->
-            <button
-              type="button"
-              class="diff-close"
-              id="rule-close"
-              aria-label="Fermer"
-            ></button>
+        <div class="rule" id="rule">
+          <button
+            type="button"
+            class="rule-chip"
+            id="rule-chip"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-label="Règle du jeu"
+            title="Règle du jeu"
+          ></button>
+          <div class="diff-overlay" id="rule-overlay" hidden></div>
+          <div
+            class="diff-panel rule-panel"
+            id="rule-panel"
+            role="dialog"
+            aria-label="Règle du jeu"
+            hidden
+          >
+            <div class="diff-panel-head">
+              <span class="diff-panel-title">RÈGLE</span>
+              <!-- La croix est une icône SVG posée par src/render/render.ts. -->
+              <button
+                type="button"
+                class="diff-close"
+                id="rule-close"
+                aria-label="Fermer"
+              ></button>
+            </div>
+            <p class="panel-line">
+              Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
+              sert qu'une fois.
+            </p>
+            <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
+                 src/render/render.ts réécrit selon le niveau lancé. -->
+            <p class="panel-spec" id="rule-spec">5 mots · 5 lettres</p>
+            <!-- Ce résumé n'est qu'un rappel : le tutoriel complet
+                 (src/render/help.ts) reste à un clic, sans sortir deux fois
+                 de l'écran pour le retrouver. -->
+            <button type="button" class="panel-link" id="rule-help-link">
+              COMMENT JOUER
+            </button>
           </div>
-          <p class="panel-line">
-            Reliez des lettres voisines pour tracer les mots. Chaque lettre ne
-            sert qu'une fois.
-          </p>
-          <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
-               src/render/render.ts réécrit selon le niveau lancé. -->
-          <p class="panel-spec" id="rule-spec">5 mots · 5 lettres</p>
         </div>
       </div>
     </header>

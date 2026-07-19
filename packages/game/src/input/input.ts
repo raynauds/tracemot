@@ -3,8 +3,8 @@
 //
 // Modes exclusifs :
 //   - "trace" : 1er pointeur, bouton principal, parti d'une case libre
-//               (comportement d'origine : adjacence orthogonale, backtrack,
-//               cases inertes, filets de sécurité).
+//               (extension en ligne droite avec rattrapage des cases sautées,
+//               backtrack, cases inertes, filets de sécurité).
 //   - "pan"   : pointeur parti hors case, ou bouton du milieu → translation
 //               caméra par delta écran.
 //   - "pinch" : 2e pointeur posé → abandonne un tracé en cours, puis
@@ -14,6 +14,7 @@
 // Flèches et ZQSD/WASD → pan clavier via une boucle app.ticker.
 // Pendant un tracé, la caméra ne bouge pas : la vue reste figée sous le geste.
 
+import { playSound } from "../audio/audio.ts";
 import { KEY_PAN_SPEED } from "../game/config.ts";
 import { state } from "../game/state.ts";
 import { buzz, renderPendingWord } from "../render/render.ts";
@@ -22,7 +23,9 @@ import {
   getApp,
   getCamera,
   getStage,
+  popCell,
   renderTrace,
+  setHoverCell,
   updateSelection,
 } from "../render/scene.ts";
 import type { FederatedPointerEvent, Ticker } from "pixi.js";
@@ -49,7 +52,24 @@ let pinchMid0 = { x: 0, y: 0 };
 let pinchScale0 = 1;
 let pinchCam0 = { x: 0, y: 0 };
 
+// Garde-fou pinch pendant un tracé actif : un 2e doigt posé (paume, doigt qui
+// tient le téléphone) n'escalade en pinch qu'après un mouvement franc des
+// DEUX doigts depuis leur position de pose — sinon le tracé continue et ce
+// doigt superflu est simplement ignoré (voir checkPinchEscalation).
+const PINCH_ESCALATE_PX = 12;
+let pinchPending = false;
+let pinchStart: Map<number, Vec2> | null = null;
+
 // --- Tracé (repris de l'ancien input.ts) -----------------------------------
+
+// Tick sonore de la case en tête du tracé : la hauteur suit sa position dans
+// le mot (un demi-ton par lettre, plafonnée à la 10e sélection). Le backtrack
+// rejoue la hauteur de la case sur laquelle on retombe — la même que lors de
+// son ajout — donc la descente est le miroir exact de la montée.
+function traceTick() {
+  const step = Math.min(state.path.length - 1, 9);
+  playSound("trace-letter", { rate: 2 ** (step / 12) });
+}
 
 export function clearPath() {
   state.path = [];
@@ -58,9 +78,23 @@ export function clearPath() {
   renderPendingWord();
 }
 
-// Adjacence orthogonale : voisins précalculés de la géométrie du mode.
-function isOrthAdjacent(a: number, b: number) {
-  return state.geometry.neighbors[a].includes(b);
+// Cases traversées en ligne droite de `from` (exclu) vers `to` (inclus), ou
+// null si les deux cases ne partagent ni ligne ni colonne. Deux cases
+// adjacentes donnent un segment d'une seule case : le cas courant est juste le
+// plus court des sauts.
+function straightSegment(from: number, to: number): number[] | null {
+  const { cols } = state.geometry;
+  let step: number;
+  if (Math.floor(from / cols) === Math.floor(to / cols))
+    step = to > from ? 1 : -1;
+  else if (from % cols === to % cols) step = to > from ? cols : -cols;
+  else return null; // diagonale ou quelconque : pas de chemin évident
+  const out: number[] = [];
+  for (let i = from + step; ; i += step) {
+    out.push(i);
+    if (i === to) break;
+  }
+  return out;
 }
 
 // Démarre un tracé sur la case idx avec le pointeur courant.
@@ -69,25 +103,47 @@ function beginTrace(e: FederatedPointerEvent, idx: number) {
   state.pointerId = e.pointerId;
   state.path = [idx];
   buzz();
+  traceTick();
   updateSelection();
   renderTrace();
   renderPendingWord();
 }
 
-// Étend le tracé vers la case idx selon les règles (adjacence orthogonale,
-// backtrack, cases consommées inertes). Retourne true si le tracé a changé.
+// Étend le tracé vers la case idx. Si idx est aligné avec la dernière case du
+// tracé (même ligne ou même colonne), tout le segment qui les sépare est
+// parcouru dans l'ordre — un doigt qui rate une case au passage la récupère au
+// lieu de bloquer le tracé. Tout ou rien : une seule case du segment inerte ou
+// déjà tracée annule le saut entier. Le segment qui retrace la fin du tracé à
+// l'envers déroule un backtrack, d'une case ou de dix.
+// Retourne true si le tracé a changé.
 function extendTraceTo(idx: number | null) {
   if (idx === null) return false;
-  if (state.usedCells.has(idx)) return false; // case consommée par un mot trouvé
   const last = state.path[state.path.length - 1];
   if (idx === last) return false;
 
-  // Retour sur l'avant-dernière case : backtrack.
-  if (state.path.length >= 2 && idx === state.path[state.path.length - 2]) {
-    state.path.pop();
-  } else if (!state.path.includes(idx) && isOrthAdjacent(last, idx)) {
-    state.path.push(idx);
+  const seg = straightSegment(last, idx);
+  if (!seg) return false;
+
+  const isBacktrack =
+    state.path.length > seg.length &&
+    seg.every((c, k) => c === state.path[state.path.length - 2 - k]);
+  if (isBacktrack) {
+    // Miroir de l'avancée (buzz + petite animation de case) : seule la case
+    // qui quitte réellement le tracé (l'ancienne tête) est animée, comme
+    // l'avancée n'anime que la case qui le rejoint (updateSelection).
+    const releasedHead = state.path[state.path.length - 1];
+    state.path.length -= seg.length;
     buzz();
+    traceTick();
+    popCell(releasedHead);
+  } else if (
+    seg.every((c) => !state.usedCells.has(c) && !state.path.includes(c))
+  ) {
+    for (const c of seg) {
+      state.path.push(c);
+      buzz();
+      traceTick();
+    }
   } else {
     return false;
   }
@@ -153,6 +209,23 @@ function beginPinch() {
   mode = "pinch";
 }
 
+// Pinch en attente (2e doigt posé pendant un tracé actif) : bascule
+// effectivement en pinch une fois que les DEUX doigts ont chacun parcouru
+// PINCH_ESCALATE_PX depuis leur position de pose. Tant que ce n'est pas le
+// cas, rien ne change : le tracé continue au premier doigt (traceMove ignore
+// déjà tout pointeur qui n'est pas state.pointerId).
+function checkPinchEscalation() {
+  if (!pinchPending || !pinchStart) return;
+  for (const [id, start] of pinchStart) {
+    const cur = pointers.get(id);
+    const dist = cur ? Math.hypot(cur.x - start.x, cur.y - start.y) : 0;
+    if (dist < PINCH_ESCALATE_PX) return; // au moins un doigt n'a pas assez bougé
+  }
+  pinchPending = false;
+  pinchStart = null;
+  beginPinch();
+}
+
 // scale *= dist/dist0 autour du milieu des doigts, + pan par delta du milieu.
 // Recalculé depuis l'état de départ (sans dérive) : le point monde sous le
 // milieu initial est ramené sous le milieu courant à la nouvelle échelle.
@@ -183,7 +256,10 @@ export function cancelAllGestures() {
   panPointerId = null;
   pinchA = null;
   pinchB = null;
+  pinchPending = false;
+  pinchStart = null;
   pointers.clear();
+  setHoverCell(null);
 }
 
 // Termine proprement le mode courant sans toucher au tracé (utilitaire pan).
@@ -202,8 +278,15 @@ function onPointerDown(e: FederatedPointerEvent) {
   const pos = { x: e.global.x, y: e.global.y };
   pointers.set(e.pointerId, pos);
 
-  // 2e pointeur posé → pinch (prioritaire sur tout tracé/pan en cours).
+  // 2e pointeur posé pendant un tracé actif : pinch seulement PRESSENTI, tant
+  // que les deux doigts n'ont pas franchi le seuil (checkPinchEscalation) —
+  // sinon prioritaire sur pan comme avant.
   if (pointers.size === 2) {
+    if (mode === "trace") {
+      pinchPending = true;
+      pinchStart = new Map(pointers);
+      return;
+    }
     beginPinch();
     return;
   }
@@ -221,10 +304,19 @@ function onPointerDown(e: FederatedPointerEvent) {
 }
 
 function onPointerMove(e: FederatedPointerEvent) {
-  // Pointeur non suivi (survol souris sans bouton, 3e doigt) : ignoré.
-  if (!pointers.has(e.pointerId)) return;
+  // Pointeur non suivi : survol souris sans bouton (avant tout tracé, état
+  // visuel discret) si aucun geste n'est armé ; 3e doigt sinon, ignoré.
+  if (!pointers.has(e.pointerId)) {
+    const canHover =
+      e.pointerType === "mouse" && mode === null && state.ready && !state.won;
+    if (canHover) setHoverCell(cellAtGlobal(e.global));
+    return;
+  }
+  setHoverCell(null); // un geste est actif : pas de survol simultané
   const pos = { x: e.global.x, y: e.global.y };
   pointers.set(e.pointerId, pos);
+
+  if (pinchPending) checkPinchEscalation();
 
   if (mode === "trace") traceMove(e);
   else if (mode === "pan") panMove(e, pos);
@@ -235,6 +327,13 @@ function onPointerMove(e: FederatedPointerEvent) {
 function onPointerEnd(e: FederatedPointerEvent, commit: boolean) {
   const wasTrace = mode === "trace" && e.pointerId === state.pointerId;
   pointers.delete(e.pointerId);
+
+  if (pinchPending && pointers.size < 2) {
+    // Le doigt traceur ou le doigt surnuméraire s'est levé avant le seuil :
+    // le pinch pressenti n'a plus lieu d'être.
+    pinchPending = false;
+    pinchStart = null;
+  }
 
   if (mode === "pinch") {
     // Un doigt levé : le doigt restant reprend la main en pan ; sinon fin.
@@ -353,6 +452,9 @@ export function attachInputHandlers(handlers: { onCommit: () => void }) {
   const canvas = app.canvas;
   canvas.addEventListener("contextmenu", (e: Event) => e.preventDefault());
   canvas.addEventListener("dragstart", (e: Event) => e.preventDefault());
+  // La souris quitte le canvas : plus de survol à afficher (aucun
+  // globalpointermove ne suivra pour l'effacer de lui-même).
+  canvas.addEventListener("pointerleave", () => setHoverCell(null));
 
   // Pan clavier.
   window.addEventListener("keydown", onKeyDown);

@@ -10,7 +10,7 @@
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: rgba(38, 34, 28, 0.18);
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
 }
 
 /* Desktop : popover ancré sous la chip */
@@ -21,8 +21,8 @@
   left: 0;
   width: 440px;
   background: var(--paper);
-  border: 2px solid var(--ink);
-  box-shadow: 0 20px 44px rgba(38, 34, 28, 0.35);
+  border: var(--rule-heavy);
+  box-shadow: 0 20px 44px color-mix(in srgb, var(--ink) 35%, transparent);
   padding: 16px 16px 18px;
 }
 
@@ -35,6 +35,7 @@
 .diff-panel-title {
   font-family: var(--mono);
   font-size: 12px;
+  font-weight: var(--label-caps-weight);
   letter-spacing: 2.5px;
 }
 
@@ -87,12 +88,44 @@
 .panel-spec {
   margin: 13px 0 0;
   padding-top: 11px;
-  border-top: 1px solid var(--line);
+  border-top: var(--rule-hairline);
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* Lien d'un panneau vers un écran entier : le panneau règle en pose un vers
+   « Comment jouer » (src/render/render.ts), pour revoir le tutoriel sans
+   ressortir deux fois de l'écran. Secondaire mais tokenisé — surface carte,
+   filet standard, mono capitale (label-caps), inversion au survol — dans le même
+   idiome que .home-levels / .status-retry, sans apparence native. */
+.panel-link {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 11px;
+  background: var(--card);
+  border: var(--rule-standard);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: var(--label-caps-weight);
+  letter-spacing: 1.5px;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .panel-link:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+}
+
+.panel-link:active {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 /* La grille, le tracé et leurs feedbacks (deal, pop, flash, shake, stamp)
@@ -105,7 +138,7 @@
 @media (max-width: 860px) {
   /* Feuille en bas d'écran à la place du popover, voile plus dense */
   .diff-overlay {
-    background: rgba(38, 34, 28, 0.45);
+    background: color-mix(in srgb, var(--ink) 45%, transparent);
   }
   .diff-panel {
     position: fixed;
@@ -115,7 +148,7 @@
     bottom: 0;
     width: auto;
     border: none;
-    border-top: 2px solid var(--ink);
+    border-top: var(--rule-heavy);
     box-shadow: none;
     padding: 18px 16px max(24px, env(safe-area-inset-bottom));
     animation: sheet-up 0.22s ease;

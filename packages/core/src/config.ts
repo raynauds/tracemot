@@ -61,11 +61,10 @@ for (const id of MODE_ORDER) {
 export const DEFAULT_MODE: ModeId = "5x5";
 
 export type Tier = "enfant" | "ado" | "adulte" | "inconnu";
-export type Difficulty = 1 | 2 | 3 | 4 | 5;
+export type Difficulty = 1 | 2 | 3 | 4;
 
-// Une section d'un mode = une difficulté (section s ⇒ difficulté s). Les
-// quatre sections couvrent donc 1..4 ; « Brûlant » (5) reste défini mais
-// n'est plus employé par la progression.
+// Une section d'un mode = une difficulté (section s ⇒ difficulté s) : les
+// quatre sections couvrent l'ensemble des difficultés.
 export type Section = 1 | 2 | 3 | 4;
 
 // Difficultés (nombre d'étoiles). Chaque niveau fixe la composition des
@@ -87,7 +86,6 @@ export const DIFFICULTY_QUOTAS: Record<
   2: { ado: [0.2, 0.4], adulte: [0, 0], inconnu: [0, 0] },
   3: { ado: [0.6, 1], adulte: [0, 0], inconnu: [0, 0] },
   4: { ado: [0.2, 0.4], adulte: [0.2, 0.4], inconnu: [0, 0] },
-  5: { ado: [0, 1], adulte: [0.2, 0.4], inconnu: [0.2, 0.4] },
 };
 
 // Nom et description de chaque difficulté : titre du jalon de section sur la
@@ -100,7 +98,6 @@ export const DIFFICULTY_LABELS: Record<
   2: { name: "Équilibré", desc: "Un ou deux mots moins courants" },
   3: { name: "Relevé", desc: "Une bonne pincée de mots moins courants" },
   4: { name: "Corsé", desc: "Quelques mots recherchés dans le lot" },
-  5: { name: "Brûlant", desc: "Une ou deux perles rares dans le lot" },
 };
 
 // Tentatives complètes (choix des mots + placement + réparations +

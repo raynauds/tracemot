@@ -7,11 +7,19 @@
 // carte, il n'y a donc plus ici ni sélecteur de mode ni sélecteur de
 // difficulté (la difficulté est une propriété de la section).
 
-import { REJECT_DISPLAY_MS } from "../game/config.ts";
+import { playSound } from "../audio/audio.ts";
+import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
 import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
 import { MAX_STARS, type NextChoice } from "../game/progress.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
+import { showHelp } from "./help.ts";
+import {
+  bindOverlayCloser,
+  currentOverlay,
+  popOverlay,
+  pushOverlay,
+} from "./history.ts";
 import {
   arrowLeftIcon,
   chevronIcon,
@@ -74,10 +82,29 @@ export function renderLevelHeader() {
 }
 
 // Retour à la carte : même action depuis le header et depuis l'écran de
-// victoire (où elle est l'action principale).
+// victoire (où elle est l'action principale). Sonorisée en fermeture dans les
+// deux cas : c'est une sortie d'écran, pas un engagement — même sur l'écran de
+// victoire, où ses voisins SUIVANT/DÉFI portent le son principal.
 export function bindMapReturn(onReturn: () => void) {
-  backMapEl.addEventListener("click", onReturn);
-  winMapEl.addEventListener("click", onReturn);
+  const leave = () => {
+    playSound("ui-close");
+    onReturn();
+  };
+  backMapEl.addEventListener("click", leave);
+  winMapEl.addEventListener("click", leave);
+  // Écran de victoire : seul overlay sans handler clavier (aide, crédits,
+  // carte, panneau règle en ont tous un) — Échap fait ce que fait le bouton
+  // « retour à la carte ». La garde porte sur l'overlay réellement au premier
+  // plan (currentOverlay), et non sur winEl.hidden : le retour à la carte ne
+  // remet pas ce drapeau à true (seul startLevel le fait, cf. renderNewGame),
+  // si bien qu'Échap sur la carte ou l'accueil rejouerait sinon ce retour.
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && currentOverlay() === "win") leave();
+  });
+  // Retour navigateur depuis l'écran de victoire : même sortie que le bouton
+  // « retour à la carte » — c'est l'enchaînement victoire → carte
+  // (src/render/history.ts), pas un simple masquage.
+  bindOverlayCloser("win", leave);
 }
 
 // --- Registre repliable ----------------------------------------------------
@@ -95,24 +122,26 @@ function setLedgerCollapsed(collapsed: boolean) {
   ledgerToggleEl.setAttribute("aria-expanded", String(!collapsed));
 }
 
-ledgerToggleEl.addEventListener("click", () =>
-  setLedgerCollapsed(!ledgerEl.classList.contains("collapsed")),
-);
+ledgerToggleEl.addEventListener("click", () => {
+  playSound("ui-secondary");
+  setLedgerCollapsed(!ledgerEl.classList.contains("collapsed"));
+});
 // État initial : replié sur mobile (pastille), déplié sur desktop.
 setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
 
 // --- Règle du jeu (bouton « info » du header) ------------------------------
 
-// La règle vit dans un panneau ouvert par le bouton « info ». Comme la mécanique
-// n'est pas devinable, on l'ouvre d'office au tout premier niveau lancé (et
-// seulement celui-là) : le drapeau « vu » est mémorisé en localStorage.
-const RULE_SEEN_KEY = "tracemot.rule-seen";
+// La règle vit dans un panneau ouvert par le bouton « info » — sur demande
+// seulement : l'accueil du tout premier niveau appartient désormais à l'écran
+// « Comment jouer » (src/render/help.ts), qui a hérité de l'ouverture d'office
+// et de son drapeau localStorage.
 const ruleChipEl = byId("rule-chip");
 ruleChipEl.appendChild(infoIcon());
 const rulePanelEl = byId("rule-panel");
 const ruleOverlayEl = byId("rule-overlay");
 const ruleCloseEl = byId("rule-close");
 ruleCloseEl.appendChild(closeIcon());
+const ruleHelpLinkEl = byId("rule-help-link");
 
 function setRulePanelOpen(open: boolean) {
   rulePanelEl.hidden = !open;
@@ -123,32 +152,32 @@ function setRulePanelOpen(open: boolean) {
 
 // hidden est typé string | boolean (« until-found ») mais on n'y écrit que
 // des booléens.
-ruleChipEl.addEventListener("click", () =>
-  setRulePanelOpen(rulePanelEl.hidden as boolean),
-);
-ruleCloseEl.addEventListener("click", () => setRulePanelOpen(false));
-ruleOverlayEl.addEventListener("click", () => setRulePanelOpen(false));
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !rulePanelEl.hidden) setRulePanelOpen(false);
+ruleChipEl.addEventListener("click", () => {
+  playSound(rulePanelEl.hidden ? "ui-secondary" : "ui-close");
+  setRulePanelOpen(rulePanelEl.hidden as boolean);
 });
-
-// Appelée au premier niveau lancé (main.ts) : avant, la carte couvrirait le
-// panneau.
-export function showRuleOnFirstVisit() {
-  let seen = null;
-  try {
-    seen = localStorage.getItem(RULE_SEEN_KEY);
-  } catch (_) {
-    /* stockage indisponible */
+ruleCloseEl.addEventListener("click", () => {
+  playSound("ui-close");
+  setRulePanelOpen(false);
+});
+ruleOverlayEl.addEventListener("click", () => {
+  playSound("ui-close");
+  setRulePanelOpen(false);
+});
+// Le panneau ne montre qu'un résumé (rule-spec) ; ce lien mène au tutoriel
+// entier sans repasser par l'accueil — sinon le revoir en partie coûte deux
+// sorties d'écran (retour carte, puis retour accueil).
+ruleHelpLinkEl.addEventListener("click", () => {
+  playSound("ui-secondary");
+  setRulePanelOpen(false);
+  showHelp();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !rulePanelEl.hidden) {
+    playSound("ui-close");
+    setRulePanelOpen(false);
   }
-  if (seen) return;
-  setRulePanelOpen(true);
-  try {
-    localStorage.setItem(RULE_SEEN_KEY, "1");
-  } catch (_) {
-    /* stockage indisponible : la règle se rouvrira au prochain chargement */
-  }
-}
+});
 
 // --- Registre : adoption des lignes pré-rendues ----------------------------
 
@@ -245,12 +274,24 @@ export function showReject(word: string, reason: string) {
   }, REJECT_DISPLAY_MS);
 }
 
+// `stamp` marque l'instant où le mot est trouvé, pas l'état de la ligne : on la
+// retire une fois l'animation passée. Laissée en place, elle rejouerait le
+// tampon à chaque fois que la ligne réapparaît — le registre replié met sa
+// liste en display:none, et la rouvrir recrée la boîte, ce qui relance toute
+// animation encore attachée.
+//
+// Timer plutôt qu'`animationend` : si le registre est replié au moment de la
+// validation, l'animation ne se joue jamais et l'événement ne part pas — la
+// classe survivrait justement dans le cas qu'on veut couvrir.
 export function fillListRow(index: number, word: string, animate: boolean) {
   const row = listRows[index];
   row.className = "word-row";
   const content = row.children[1];
   content.className = animate ? "word-text stamp" : "word-text";
   content.textContent = word;
+  if (animate) {
+    setTimeout(() => content.classList.remove("stamp"), WORD_STAMP_MS);
+  }
   keepRowVisible(row);
 }
 
@@ -311,7 +352,10 @@ export function bindWinNext(onPlay: (id: LevelId) => void) {
   [winNextEl, winDefiEl].forEach((el, slot) => {
     el.addEventListener("click", () => {
       const id = winTargets[slot];
-      if (id && onPlayLevel) onPlayLevel(id);
+      if (id && onPlayLevel) {
+        playSound("ui-primary");
+        onPlayLevel(id);
+      }
     });
   });
 }
@@ -333,10 +377,12 @@ function renderWinActions(choices: NextChoice[]) {
 // pour la première fois. Le rejeu d'un défi et les niveaux normaux laissent
 // l'écran de victoire inchangé, sans quoi l'étoile ne voudrait plus rien dire.
 // choices : ce que la victoire vient d'ouvrir (0 à 2 niveaux).
-export function renderWin(opts: {
-  star?: { count: number; unlocked: string | null };
-  choices?: NextChoice[];
-} = {}) {
+export function renderWin(
+  opts: {
+    star?: { count: number; unlocked: string | null };
+    choices?: NextChoice[];
+  } = {},
+) {
   const { star, choices = [] } = opts;
   counterEl.classList.add("full");
   const { wordCount } = state.mode;
@@ -352,26 +398,66 @@ export function renderWin(opts: {
     // que pour la complétion du mode, on n'annonce donc que le gain.
     winStarUnlockEl.hidden = star.unlocked === null;
     winStarUnlockEl.textContent = star.unlocked
-      ? `Débloque : ${star.unlocked}`
+      ? `Accès à : ${star.unlocked}`
       : "";
   }
   renderWinActions(choices);
   winEl.hidden = false;
+  // Une entrée d'historique par ouverture : le geste retour mobile referme
+  // l'écran au lieu de quitter l'application (src/render/history.ts).
+  pushOverlay("win");
 }
 
 // Le retour à la carte et l'enchaînement quittent tous deux l'écran de victoire.
 export function hideWin() {
   winEl.hidden = true;
+  popOverlay("win");
 }
 
 // Échec de chargement d'un niveau. L'overlay est opaque et couvre la carte
 // (z-index 50) : sans quoi le retour à la carte, qui suit immédiatement, le
-// masquerait. Il est donc refermable d'un clic — sinon le joueur y resterait
-// enfermé, alors que l'échec est rattrapable (autre niveau, autre mode).
-export function renderLoadError(message: string) {
+// masquerait. Il reste refermable d'un clic ailleurs que sur RÉESSAYER —
+// sinon le joueur y resterait enfermé, alors que l'échec est rattrapable
+// (autre niveau, autre mode).
+//
+// Le message ne dit jamais LA cause (réseau, JSON absent, quota…) : le joueur
+// n'a rien à en faire, seul « ça n'a pas marché, voici comment réessayer »
+// compte. `retry` reprend le chargement qui a échoué (même niveau, même mode)
+// plutôt que de recharger toute la page.
+export function renderLoadError(retry: () => void) {
   statusEl.classList.add("error");
-  statusEl.textContent = message;
+  statusEl.textContent = "";
+
+  const message = document.createElement("p");
+  message.className = "status-message";
+  message.textContent = "Impossible de charger ce niveau.";
+  statusEl.appendChild(message);
+
+  const retryEl = document.createElement("button");
+  retryEl.type = "button";
+  retryEl.className = "status-retry";
+  retryEl.textContent = "RÉESSAYER";
+  retryEl.addEventListener("click", (e) => {
+    // Ne pas laisser l'événement remonter jusqu'au clic-pour-fermer posé plus
+    // bas : la nouvelle tentative masquera elle-même ce statut si elle aboutit.
+    e.stopPropagation();
+    hideStatus();
+    retry();
+  });
+  statusEl.appendChild(retryEl);
+
+  const hint = document.createElement("p");
+  hint.className = "status-hint";
+  hint.textContent = "Ou cliquez ailleurs pour revenir à la carte.";
+  statusEl.appendChild(hint);
+
   statusEl.hidden = false;
+  // Clic-pour-fermer posé une seule fois : renderLoadError se rappelle à chaque
+  // tentative ratée (retry → startLevel → renderLoadError). Sans le retrait
+  // préalable, les écouteurs {once} d'échecs successifs s'empileraient (ils ne
+  // partent qu'au déclenchement) — hideStatus est idempotent mais autant ne pas
+  // les accumuler.
+  statusEl.removeEventListener("click", hideStatus);
   statusEl.addEventListener("click", hideStatus, { once: true });
 }
 

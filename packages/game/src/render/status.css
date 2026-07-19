@@ -23,10 +23,50 @@
 }
 
 .status.error {
+  flex-direction: column;
   color: var(--vermilion);
   letter-spacing: 0.5px;
   line-height: 1.6;
-  white-space: pre-line; /* le message est écrit en textContent, sauts compris */
   cursor: pointer; /* le message se referme d'un clic (voir renderLoadError) */
+}
+
+.status-message {
+  margin: 0;
+}
+
+/* Action standard : surface carte, filet encre, mono, inversion au survol —
+   même idiome que .home-levels (src/render/home.css). Le seul élément de
+   l'overlay qui n'obéit pas au clic-pour-fermer : renderLoadError() coupe sa
+   propagation pour ne pas masquer le statut avant que la reprise n'aboutisse. */
+.status-retry {
+  margin-top: 20px;
+  padding: 10px 22px;
+  background: var(--card);
+  border: var(--rule-standard);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .status-retry:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+}
+
+.status-retry:active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.status-hint {
+  margin: 14px 0 0;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
 }
 

@@ -23,11 +23,15 @@
      accroche au lieu de la deviner ; ce calc et le padding du header doivent
      bouger ensemble. */
   --header-h: calc(var(--edge) + 24px + 20px);
+  /* Graisse commune du profil « label-caps » (DESIGN.md § Typography) : tout
+     libellé mono capitalé — registre, panneaux, crédits, réglages sonores —
+     partage cette valeur au lieu de la retaper (ou de l'oublier). */
+  --label-caps-weight: 600;
 }
 
 @media (max-width: 860px) {
   :root {
-    --edge: 14px;
+    --edge: 16px;
     --header-h: calc(var(--edge) + 22px + 18px);
   }
 }
@@ -55,7 +59,6 @@ body {
   overflow: hidden;
 }
 
-
 /* Icônes (src/render/icons.ts) : les fichiers SVG de src/assets/icons, inlinés
    dans le DOM. Ils portent déjà leur tracé (stroke: currentColor, fill: none) ;
    ces deux règles ne disent que ce que le CSS doit imposer par-dessus — et le
@@ -69,12 +72,17 @@ body {
   flex: none;
 }
 
+/* Désactiver le double-tap zoom natif sur les éléments DOM (iOS Safari).
+   touch-action: none est réservé au canvas (Pixi). */
+button {
+  touch-action: manipulation;
+}
+
 /* Étoile gagnée : pleine. Restant à gagner, elle garde le seul contour du
    fichier. */
 .icon-star.is-filled {
   fill: currentColor;
 }
-
 
 /* Au chargement, l'écran ne montre QUE le papier du body : le HTML peint sinon
    le chrome de partie (header, registre) que showMap() escamote aussitôt
@@ -89,4 +97,3 @@ body {
 body.booting > * {
   visibility: hidden;
 }
-

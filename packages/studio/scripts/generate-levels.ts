@@ -108,9 +108,8 @@ if (ONLY_MODE && !MODE_ORDER.includes(ONLY_MODE)) {
   console.error(`Mode inconnu : ${ONLY_MODE}`);
   process.exit(1);
 }
-// Même piège que --only : une section hors 1..4 (la difficulté « Brûlant » = 5
-// existe encore dans DIFFICULTY_QUOTAS, la faute de frappe est naturelle) ne
-// générerait RIEN, et le script rendrait « (rien à générer) » sans un mot.
+// Même piège que --only : une section hors 1..4 ne générerait RIEN, et le
+// script rendrait « (rien à générer) » sans un mot.
 if (ONLY_SECTION !== null && !SECTIONS.includes(ONLY_SECTION)) {
   console.error(
     `Section inconnue : ${RAW_SECTION} — attendu 1, 2, 3 ou 4.`,

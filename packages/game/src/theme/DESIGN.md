@@ -12,7 +12,8 @@ colors:
   # Encre
   ink: "#26221c" # texte, filets, ombres portées
   muted: "#6e6656" # texte secondaire, libellés
-  ghost: "#b9af9c" # texte inerte : verrouillé, désactivé
+  ghost: "#b9af9c" # texte inerte sur fond SOMBRE : verrouillé, désactivé
+  ghost-strong: "#746b57" # texte inerte lisible sur paper/card (≥4.5:1 AA)
   # Accent (unique)
   vermilion: "#b3402a" # l'accent, et lui seul : victoire, étoile, compteur
   # Filets
@@ -33,10 +34,18 @@ typography:
     fontSize: 30px
     fontWeight: 700
     letterSpacing: 0.5px
-  brand:
+  brand: # le nom du jeu, sur l'accueil et lui seul — fluide, cf. § Marque
     fontFamily: Source Serif 4
-    fontSize: 26px
+    fontSize: clamp(40px, 12vw, 72px)
     fontWeight: 700
+    letterSpacing: 0.12em
+  hero: # grand titre plein écran hors accueil — "Gagné." de la victoire.
+    # Même corps que le plafond de `brand` (72px) sans en consommer le
+    # token : `brand` reste exclusif à l'accueil (cf. § Marque).
+    fontFamily: Source Serif 4
+    fontSize: 72px
+    fontWeight: 700
+    letterSpacing: 1px
   numeral:
     fontFamily: IBM Plex Mono
     fontSize: 26px
@@ -69,9 +78,11 @@ typography:
     fontSize: 13px
     fontWeight: 600
     letterSpacing: 2.5px
-  meta:
+  meta: # légende mono : légendes de carte, numéros d'aide, ours des crédits…
     fontFamily: IBM Plex Mono
-    fontSize: 11px
+    fontSize: 11px # variante compactée à 9.5px : légendes de la carte/du défi,
+    # trop à l'étroit (largeur fixe, bandeau mobile) pour le corps plein —
+    # seule exception tolérée, aucune troisième taille.
     fontWeight: 400
     letterSpacing: 1.5px
 rounded:
@@ -175,6 +186,13 @@ exactement l'état : lisible, secondaire, inerte. Le **vermillon** est unique et
 non négociable — il marque le mot trouvé, l'étoile gagnée, le compteur, la
 victoire. Si un élément est vermillon, c'est qu'il est gagné.
 
+`ghost` ne tient son rôle « inerte » que sur fond sombre (`ink`, ~7,3:1) ou
+pour un état réellement désactivé (exempté AA). Sur `paper`/`card`, il tombe
+à ~1,9:1 — sous tout seuil lisible. `ghost-strong` (≥4,5:1 sur ces deux
+surfaces) est la variante à utiliser dès qu'un texte sur fond clair doit
+rester lu, sans pour autant porter le poids d'un texte secondaire
+(`muted`) : le mot en cours de tracé, un lien discret.
+
 Un quatrième groupe, `map-*`, existe pour la carte de progression seule. Son
 papier est délibérément plus sourd que celui du jeu : l'accueil et la partie ne
 doivent jamais se confondre à l'œil.
@@ -185,7 +203,9 @@ consommateurs, dans leurs formats respectifs :
 
 - `src/theme/tokens.css`, custom properties (`--paper`, `--ink`…) pour le DOM :
   **fichier généré**, jamais édité à la main (`npm run generate:tokens`, contrôlé
-  par `npm run check:tokens`).
+  par `npm run check:tokens`). Le même fichier porte aussi les filets
+  (`--rule-*`) et les ombres dures (`--shadow-hard-*`) — voir § Elevation &
+  Depth et § Shapes.
 - `src/game/config.ts`, hexadécimal numérique (`PAPER = hex("paper")`) pour Pixi.
 
 Changer une couleur = la changer dans `tokens.ts` et régénérer. Une seule couleur
@@ -208,6 +228,16 @@ libellé de 11px encore lisible et le distingue d'un titre.
 Corollaire : **un chiffre n'est jamais en serif, un mot n'est jamais en mono.**
 Si vous hésitez sur la famille, demandez-vous si l'élément se lit ou se compte.
 
+Le profil `label-caps` (mono, 600, capitales espacées) est partagé par tout
+libellé de ce type — registre, panneaux, crédits, réglages sonores — via la
+custom property `--label-caps-weight` (`src/theme/base.css`) : un seul
+600 à changer, pas quatre déclarations à retrouver.
+
+`brand` (accueil) et `hero` (victoire) partagent le même corps — 72px, le
+plafond du clamp de `brand` — sans partager le token : `brand` reste réservé
+à l'accueil (cf. § Marque), `hero` porte l'italique et le corps plus resserré
+de l'écran de victoire.
+
 ## Layout
 
 **Il n'y a pas de grille d'espacement, et c'est assumé.** L'interface actuelle
@@ -226,29 +256,52 @@ valeurs déjà dominantes dans le code — 8px (gouttière entre éléments frè
 Structure d'écran : le corps est en `overflow: hidden`, sans flux et sans scroll
 de page. Le canvas occupe tout ; le chrome est en `position: fixed`. Les
 z-index sont attribués à la main, par étages — registre 16, en-tête 25 (il
-englobe ses modales), victoire 30, carte 40 (c'est un écran, pas un panneau),
-chargement au-dessus de tout.
+englobe ses modales), victoire 30, carte 40 et accueil 45 (ce sont des écrans,
+pas des panneaux), règles et crédits 46 (ils se posent sur l'accueil comme sur
+une partie), chargement au-dessus de tout.
+
+Trois écrans, dans cet ordre : **accueil → carte → partie**. Chacun se retire
+par une flèche nue en haut à gauche, toujours la même — un seul dessin pour un
+seul sens, « remonter d'un écran ». Deux écrans de consultation s'y ajoutent,
+hors de ce fil : « Comment jouer » (le bouton COMMENT JOUER de l'accueil, et
+d'office à la toute première partie) et les crédits (le lien CRÉDITS de
+l'accueil) — même squelette, même flèche de sortie (`screen.css`).
 
 ## Elevation & Depth
 
 Deux familles d'ombre, qui ne veulent pas dire la même chose. Ne les mélangez
 jamais sur un même élément.
 
-**L'ombre floue** (encre à 20-35 %, décalage vertical, flou large) dit
-« ce panneau flotte au-dessus de la page » : le registre (`0 14px 34px`), les
-modales (`0 20px 44px`). Elle est réservée aux surfaces qui recouvrent
-temporairement l'interface.
+**L'ombre floue** (encre diluée via `color-mix`, décalage vertical, flou large)
+dit « ce panneau flotte au-dessus de la page » : le registre (`0 14px 34px`),
+les modales (`0 20px 44px`). Elle est réservée aux surfaces qui recouvrent
+temporairement l'interface. Chaque teinte diluée (voile, ombre floue) s'écrit
+`color-mix(in srgb, var(--ink) X%, transparent)` — jamais en `rgba()` littéral,
+qui redirait la même couleur en hexadécimal ailleurs qu'à sa source.
 
 **L'ombre dure** (encre pleine, décalage diagonal, flou nul) dit « ce papier est
-découpé et posé » : les cases de la carte (`2.5px 2.5px 0`), le défi qui clôt une
-ligne (`4px 4px 0`, plus haut parce qu'il compte plus), les petits éléments
-(`1.5px 1.5px 0`, `1px` en mobile). Elle est réservée aux éléments cliquables de
-la carte, et elle **s'anime** : à l'appui, l'élément se translate exactement de
-la valeur de son ombre et l'ombre disparaît. La case rejoint physiquement son
+découpé et posé » : les cases de la carte (`--shadow-hard-md`, `2.5px 2.5px 0`),
+le défi qui clôt une ligne (`--shadow-hard-lg`, `4px 4px 0`, plus haut parce
+qu'il compte plus), les petits éléments (`--shadow-hard-sm`, `1.5px 1.5px 0` ;
+`--shadow-hard-xs`, `1px` en mobile). Elle est réservée aux éléments cliquables
+de la carte, et elle **s'anime** : à l'appui, l'élément se translate exactement
+de la valeur de son ombre et l'ombre disparaît. La case rejoint physiquement son
 relief. C'est le seul retour tactile de l'interface — ne le remplacez pas par une
 opacité.
 
+Un cinquième palier, **mini** (`--shadow-hard-mini`, `2px 2px 0` ;
+`--shadow-hard-mini-lg`, `3px 3px 0`), sert aux miniatures qui rejouent une
+case ou un défi à une échelle bien plus petite que la carte réelle (les
+figures de l'écran d'aide à 34px, le pouce du curseur de volume à 16px) :
+l'échelle principale, posée pour des cases de 64px, les écraserait. Le
+rapport `mini-lg` / `mini` (1,5×) reprend celui de `lg` / `md` en réel — le
+défi reste plus lourd que la case, à toute échelle.
+
 Un élément inerte (verrouillé, désactivé) n'a **pas d'ombre du tout**. À plat.
+
+Les quatre paliers principaux, plus le palier mini, vivent comme custom
+properties `--shadow-hard-*` dans `src/theme/tokens.css` — générées depuis
+`SHADOWS_HARD` (`src/theme/tokens.ts`), au même titre que les couleurs.
 
 ## Shapes
 
@@ -256,17 +309,41 @@ Un élément inerte (verrouillé, désactivé) n'a **pas d'ombre du tout**. À p
 contourner.
 
 Le relief se fait donc entièrement au filet, et le filet a quatre niveaux qui
-forment un langage :
+forment un langage. Chacun vit comme custom property `--rule-*` dans
+`src/theme/tokens.css` (générée depuis `RULES`, `src/theme/tokens.ts`) : un
+raccourci `border` complet (épaisseur, style, couleur), posé tel quel
+(`border: var(--rule-standard)`) au lieu d'être retapé littéralement à chaque
+usage :
 
-- **`2px solid ink`** — structurant. La bordure d'une modale, le filet qui sépare
-  l'en-tête de la carte du reste. Rare.
-- **`1.5px solid ink`** — le filet standard. Tout ce qui est actionnable et tout
-  ce qui est un conteneur autonome (bouton, registre, case jouable).
-- **`1px solid line`** — subordonné. Sépare deux éléments à l'intérieur d'un même
-  conteneur (lignes du registre, filet sous un en-tête).
-- **`1.5px dashed map-rule`** — inerte. Le pointillé est le signal universel de
-  « visible mais pas encore atteignable » : mode verrouillé, niveau pas encore
-  ouvert. Un pointillé n'est jamais cliquable.
+- **`--rule-heavy` (`2px solid ink`)** — structurant. La bordure d'une modale,
+  le filet qui sépare l'en-tête de la carte du reste. Rare.
+- **`--rule-standard` (`1.5px solid ink`)** — le filet standard. Tout ce qui
+  est actionnable et tout ce qui est un conteneur autonome (bouton, registre,
+  case jouable).
+- **`--rule-hairline` (`1px solid line`)** — subordonné. Sépare deux éléments
+  à l'intérieur d'un même conteneur (lignes du registre, filet sous un
+  en-tête).
+- **`--rule-dashed` (`1.5px dashed map-rule`)** — inerte. Le pointillé est le
+  signal universel de « visible mais pas encore atteignable » : mode
+  verrouillé, niveau pas encore ouvert. Un pointillé n'est jamais cliquable.
+
+## Marque
+
+Le jeu se nomme **une fois, sur l'accueil, et nulle part ailleurs**. La carte et
+la partie n'ont pas à porter son nom : le joueur qui y est sait où il est, et
+une marque redite est du chrome qui n'informe plus.
+
+L'accueil est donc le seul consommateur du token `brand`, et il est composé
+comme une page de titre : une colonne unique fer à gauche, le nom au-dessus d'un
+filet de la largeur de la colonne, la ligne d'état et les deux actions alignées
+dessous — même largeur pour tout, c'est cet alignement qui porte l'écran.
+
+Le nom est écrit lettre par lettre à l'ouverture, chacune décalée de 30 ms, le
+point vermillon en dernier. **C'est le seul mouvement de l'écran**, et il ne
+rejoue pas : revenir à l'accueil retrouve un titre déjà écrit. Le point reprend
+l'idiome de « Gagné. » — le vermillon y signe au lieu de récompenser, seule
+entorse tolérée à la règle « vermillon = mérité », et elle tient parce que la
+marque n'est pas une information de jeu.
 
 ## Components
 
@@ -297,8 +374,8 @@ La hiérarchie est portée par le remplissage, pas par la taille.
 
 `panel` est un composant partagé (voile plein écran + surface ancrée). En
 desktop il s'ancre en popover sous son déclencheur ; en mobile il devient une
-feuille en bas d'écran. Le voile est `rgba(38, 34, 28, 0.18)` — de l'encre
-diluée, jamais du noir pur.
+feuille en bas d'écran. Le voile est `color-mix(in srgb, var(--ink) 18%,
+transparent)` — de l'encre diluée, jamais du noir pur.
 
 ### Cases
 
@@ -317,6 +394,12 @@ correspondance qui traverse la frontière canvas/DOM, et elle doit tenir.
 - Répercuter tout changement de couleur dans `style.css` **et**
   `src/game/config.ts`.
 - Poser les nouveaux composants sur l'échelle `spacing`.
+- Poser un filet ou une ombre dure avec `var(--rule-*)` / `var(--shadow-hard-*)`
+  (§ Elevation & Depth, § Shapes), jamais en littéral retapé.
+- Diluer l'encre ou le papier avec `color-mix(in srgb, var(--ink|paper) X%,
+  transparent)`, jamais en `rgba()` littéral — le même principe qu'une couleur
+  pleine : une seule source, écrite une fois.
+- Utiliser `ghost-strong` (pas `ghost`) pour du texte inerte lu sur `paper`/`card`.
 
 **À ne pas faire**
 
@@ -330,3 +413,5 @@ correspondance qui traverse la frontière canvas/DOM, et elle doit tenir.
 - Remplacer l'enfoncement (translation sur l'ombre) par une baisse d'opacité.
 - Faire porter une information au chrome quand la grille peut la porter : le
   canvas est le sujet, le reste est en marge.
+- Ignorer `prefers-reduced-motion` sur une animation en boucle infinie
+  (confettis, secousses) : figer l'élément à un état statique présentable.

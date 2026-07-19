@@ -1,0 +1,90 @@
+/* Écran secondaire (règles, crédits) : plein écran opaque au-dessus de
+   l'accueil, sur le modèle de la carte — il porte son propre scroll, le body ne
+   défile jamais. Le squelette (fond, tête, flèche, titre, colonne) est partagé ;
+   chaque écran (help.css, credits.css) n'ajoute que son contenu. */
+
+/* Au-dessus de l'accueil (45), sous le statut d'erreur (50) : ces écrans
+   s'ouvrent depuis l'accueil OU par-dessus une partie (règles de première
+   visite, crédits du panneau sons) et doivent couvrir les deux. */
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+}
+
+/* La tête ne porte que la flèche de sortie, sur le cadre de l'application
+   (--edge) — exactement le retrait du header de la carte. */
+.screen-head {
+  padding: max(var(--edge), env(safe-area-inset-top))
+    max(var(--edge), env(safe-area-inset-right)) 0
+    max(var(--edge), env(safe-area-inset-left));
+}
+
+/* Sortie d'écran : la flèche nue de la carte et du header de partie — un seul
+   dessin pour un seul sens, « remonter d'un écran ». Le padding n'est là que
+   pour la cible du doigt ; la marge négative le reprend pour que la flèche
+   s'aligne quand même sur le cadre. */
+.screen-back {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 24px; /* règle l'icône : .icon tient 1em de côté */
+  cursor: pointer;
+}
+
+/* Vermillon au pointeur, comme toutes les icônes nues. Survol réservé à la
+   souris : au doigt, le navigateur simule un :hover au tap et le laisse collé. */
+@media (hover: hover) {
+  .screen-back:hover {
+    color: var(--vermilion);
+  }
+}
+
+.screen-back:active {
+  color: var(--vermilion);
+}
+
+/* La colonne de lecture : étroite et centrée — ces écrans se lisent, ils ne se
+   parcourent pas comme la carte. */
+.screen-body {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 6px max(var(--edge), env(safe-area-inset-right)) 48px
+    max(var(--edge), env(safe-area-inset-left));
+}
+
+/* Titre d'écran : serif, filet standard dessous — le même « bloc autonome » que
+   la ligne d'état de l'accueil, à l'échelle d'une page. */
+.screen-title {
+  margin: 8px 0 0;
+  padding-bottom: 14px;
+  border-bottom: var(--rule-standard);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  .screen-back {
+    font-size: 22px;
+  }
+  .screen-title {
+    font-size: 27px;
+  }
+  .screen-body {
+    padding-bottom: max(36px, env(safe-area-inset-bottom));
+  }
+}

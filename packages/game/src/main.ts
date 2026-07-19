@@ -8,6 +8,8 @@
 import type { ModeId } from "@tracemot/core";
 import { isDefi } from "@tracemot/core";
 import type { LevelId } from "@tracemot/core";
+import { initAudio, playSound } from "./audio/audio.ts";
+import { WIN_DELAY_MS } from "./game/config.ts";
 import { loadModeLevels } from "./game/level-loader.ts";
 import {
   loadProgress,
@@ -24,7 +26,16 @@ import {
   cancelAllGestures,
   clearPath,
 } from "./input/input.ts";
-import { bindMap, hideMap, showMap } from "./render/map.ts";
+import { bindCredits, showCredits } from "./render/credits.ts";
+import { bindHelp, showHelp, showHelpOnFirstPlay } from "./render/help.ts";
+import {
+  bindHome,
+  hideHome,
+  revealHome,
+  showHome,
+} from "./render/home.ts";
+import { bindMap, bindMapHome, hideMap, showMap } from "./render/map.ts";
+import { bindSound } from "./render/sound.ts";
 import {
   flashPath,
   initScene,
@@ -38,6 +49,7 @@ import {
   bindMapReturn,
   bindWinNext,
   buildBoard,
+  buzz,
   fillListRow,
   hideStatus,
   renderCounter,
@@ -46,7 +58,6 @@ import {
   renderNewGame,
   renderWin,
   showReject,
-  showRuleOnFirstVisit,
 } from "./render/render.ts";
 
 // Demande de niveau en vol. Le chargement du mode est asynchrone et la carte
@@ -70,13 +81,14 @@ async function startLevel(modeId: ModeId, id: LevelId) {
   } catch (err) {
     if (token !== selection) return; // demande périmée : elle n'a plus la parole
     console.error("Tracemot : échec du chargement du niveau", err);
-    renderLoadError(
-      "Impossible de charger le niveau. Servez le jeu via HTTP " +
-        "(ex. « npm run dev ») - l’ouverture directe en file:// ne fonctionne pas." +
-        "\n\nCliquez pour revenir à la carte.",
-    );
-    // L'échec laisse le joueur sur la carte : aucune partie n'est en place.
+    // Retry ciblé : reprend le chargement de CE niveau (même modeId, même
+    // id), pas un rechargement de toute la page.
+    renderLoadError(() => startLevel(modeId, id));
+    // L'échec laisse le joueur sur la carte : aucune partie n'est en place. Il
+    // a pu partir de l'accueil (bouton « reprendre ») sans passer par elle : on
+    // le range donc explicitement.
     state.ready = false;
+    hideHome();
     showMap(); // la carte est re-rendue dessous : le clic sur le message la révèle
     return;
   }
@@ -96,12 +108,15 @@ async function startLevel(modeId: ModeId, id: LevelId) {
 
   renderNewGame();
   renderSceneGrid(); // rendu Pixi de la grille (lettres + fonds)
+  // Une partie se lance depuis l'un OU l'autre des deux écrans : on les ferme
+  // tous les deux plutôt que de deviner d'où l'on vient.
+  hideHome();
   hideMap();
   renderLevelHeader();
   state.ready = true;
-  // Première visite : on présente la règle d'emblée (la carte est masquée,
-  // le panneau est donc visible).
-  showRuleOnFirstVisit();
+  // Toute première partie : l'écran « Comment jouer » se présente d'emblée,
+  // par-dessus la grille prête — sa fermeture la révèle.
+  showHelpOnFirstPlay();
 }
 
 // Le niveau est acquis : la carte en tiendra compte au prochain affichage
@@ -115,26 +130,42 @@ async function startLevel(modeId: ModeId, id: LevelId) {
 //
 // Les suites proposées, elles, se lisent APRÈS : ce sont les cases que cette
 // victoire vient d'ouvrir, elles n'existent donc pas dans la progression d'avant.
+//
+// L'affichage de renderWin() est retardé de WIN_DELAY_MS : appelé aussitôt,
+// l'overlay .win recouvre dans la même passe le tampon du dernier mot (220ms)
+// et le fondu de son tracé fantôme (300ms) — la validation la plus importante
+// serait la moins visible. La sauvegarde de progression, elle, reste
+// immédiate (rejouer vite ne doit pas perdre la victoire).
 function triggerWin() {
   state.won = true;
   const id = state.levelId;
-  if (!id) {
-    renderWin();
-    return;
+  // Jeton anti-course de startLevel : si une autre partie a pris la main
+  // pendant le délai, cette victoire est périmée et ne doit plus s'afficher.
+  const token = selection;
+  let opts: Parameters<typeof renderWin>[0] = {};
+  if (id) {
+    const { modeId } = state;
+    const wasValidated = loadProgress(modeId).validated.has(id);
+    saveValidated(modeId, id);
+    const after = loadProgress(modeId);
+    const choices = nextChoices(after, id);
+    if (!isDefi(id) || wasValidated) {
+      opts = { choices };
+    } else {
+      // Le défi vient d'être gagné : son rang d'étoile est le compte du mode
+      // une fois la sauvegarde faite (la n-ième étoile est celle qu'on vient
+      // de poser).
+      const count = starCount(after);
+      opts = { star: { count, unlocked: starRewardAt(modeId, count) }, choices };
+    }
   }
-  const { modeId } = state;
-  const wasValidated = loadProgress(modeId).validated.has(id);
-  saveValidated(modeId, id);
-  const after = loadProgress(modeId);
-  const choices = nextChoices(after, id);
-  if (!isDefi(id) || wasValidated) {
-    renderWin({ choices });
-    return;
-  }
-  // Le défi vient d'être gagné : son rang d'étoile est le compte du mode une
-  // fois la sauvegarde faite (la n-ième étoile est celle qu'on vient de poser).
-  const count = starCount(after);
-  renderWin({ star: { count, unlocked: starRewardAt(modeId, count) }, choices });
+  setTimeout(() => {
+    // Victoire périmée : une autre partie a pris la main, ou le joueur est
+    // reparti vers la carte (backToMap coupe ready sans toucher selection).
+    if (token !== selection || !state.ready) return;
+    playSound("level-win");
+    renderWin(opts);
+  }, WIN_DELAY_MS);
 }
 
 // Retour à la carte : la partie en cours est abandonnée telle quelle (aucune
@@ -160,9 +191,10 @@ function commitPath() {
 
   const reason = wordRejectReason(word);
   if (reason) {
-    // Refus : flash vermillon des cases + secousse écran (Pixi-natif).
+    // Refus : flash vermillon des cases + secousse écran (Pixi-natif) + son.
     flashPath(traced);
     shakeGrid();
+    playSound("word-reject");
     showReject(word, reason);
     return;
   }
@@ -175,12 +207,15 @@ function commitPath() {
   state.foundPaths.push(traced);
   renderUsedCells(); // repeint les cases en disabled
   stampWord(traced); // tampon : tassement des cases + fondu du tracé fantôme
+  buzz(); // validation d'un mot : répondant haptique (chaque lettre en avait déjà un)
+  playSound("word-stamp");
   renderCounter();
   if (state.found.length >= state.mode.wordCount) triggerWin();
 }
 
 async function init() {
   migrateStorage(); // vestiges du jeu libre + progressions d'un schéma périmé
+  initAudio(); // précharge les bruitages ; le 1er geste du joueur les débloque
   buildBoard();
   renderCounter();
   await initScene(); // Application Pixi + graphe de scène (canvas de fond)
@@ -190,17 +225,44 @@ async function init() {
   attachInputHandlers({ onCommit: commitPath });
   bindMap(startLevel);
   bindMapReturn(backToMap);
+  // Les aides et leurs écrans : le panneau des volumes (deux déclencheurs, un
+  // panneau), les règles, les crédits.
+  bindSound();
+  bindHelp();
+  bindCredits();
+  // Accueil ↔ carte : deux écrans, deux sens. L'accueil reprend là où on s'est
+  // arrêté ou renvoie au choix du niveau ; la carte remonte à l'accueil. Les
+  // règles et les crédits, eux, se posent PAR-DESSUS l'accueil : rien à masquer.
+  bindHome({
+    onStart: startLevel,
+    onLevels: () => {
+      hideHome();
+      showMap();
+    },
+    onHelp: () => showHelp(),
+    onCredits: showCredits,
+  });
+  bindMapHome(() => {
+    hideMap();
+    showHome();
+  });
   // Enchaînement depuis l'écran de victoire : toujours dans le mode courant —
   // une étoile peut ouvrir le mode suivant, mais on ne l'y téléporte pas.
   bindWinNext((id) => startLevel(state.modeId, id));
 
   hideStatus();
-  showMap(); // la carte est l'écran d'accueil : aucune partie tant qu'on n'a
-  // pas choisi de niveau.
+  showHome(); // l'accueil est le premier écran : aucune partie, et pas même de
+  // carte, tant qu'on n'a rien demandé.
 }
 
 // Rien n'est affiché tant que .booting est là (style.css) : on la retire une
-// fois la carte en place, donc après initScene — qui attend déjà les polices.
+// fois l'accueil en place, donc après initScene — qui attend déjà les polices.
 // finally : un échec d'init ne doit pas laisser le joueur devant un écran vide
 // à jamais ; mieux vaut révéler un chrome incomplet qu'un mur de papier.
-init().finally(() => document.body.classList.remove("booting"));
+//
+// La séquence d'écriture du titre vient APRÈS le retrait de .booting, et pas
+// avant : jouée sous un corps invisible, elle serait déjà finie à la révélation.
+init().finally(() => {
+  document.body.classList.remove("booting");
+  revealHome();
+});

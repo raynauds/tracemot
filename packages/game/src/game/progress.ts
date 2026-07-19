@@ -57,7 +57,12 @@ export const MAX_STARS = 12;
 // coûte 4 étoiles — soit une de plus que le mode suivant (3), qui s'intercale
 // donc volontairement AVANT elle : on préfère offrir une grille plus grande
 // qu'une difficulté plus rude.
-export const STARS_FOR_SECTION: Record<Section, number> = { 1: 0, 2: 1, 3: 2, 4: 4 };
+export const STARS_FOR_SECTION: Record<Section, number> = {
+  1: 0,
+  2: 1,
+  3: 2,
+  4: 4,
+};
 export const STARS_FOR_NEXT_MODE = 3;
 
 const PROGRESS_KEY = (modeId: ModeId) => `tracemot.progress.${modeId}`;
@@ -176,6 +181,13 @@ export interface NextChoice {
   kind: NextKind;
 }
 
+// Le point de reprise d'un mode : la première case jouable dans l'ordre
+// canonique. C'est ce que l'accueil propose de « reprendre », et le repli de
+// l'écran de victoire quand une victoire n'ouvre rien. null = mode complété.
+export function firstPlayableLevel(p: ModeProgress): LevelId | null {
+  return allLevelIds().find((x) => cellState(p, x) === "active") ?? null;
+}
+
 // Cases dont `id` est le prédécesseur — l'exact miroir de predecessorOf(). Un
 // dernier de ligne (5, 10, 15) en a DEUX : le normal suivant et le défi de sa
 // ligne. Le 15 n'a que le défi (la section s'arrête là). Un défi n'ouvre aucune
@@ -203,7 +215,7 @@ export function nextChoices(p: ModeProgress, id: LevelId): NextChoice[] {
   if (opened.length > 0) {
     return opened.map((x) => ({ id: x, kind: isDefi(x) ? "defi" : "next" }));
   }
-  const resume = allLevelIds().find((x) => cellState(p, x) === "active");
+  const resume = firstPlayableLevel(p);
   // Aucun niveau jouable nulle part (mode complété) : seul le retour carte reste.
   return resume ? [{ id: resume, kind: "continue" }] : [];
 }
@@ -341,20 +353,32 @@ export function nextLockedMode(): ModeId | null {
   return MODE_ORDER.find((m) => !isModeUnlocked(m)) ?? null;
 }
 
-// Même règle que pour une section verrouillée (cf. sectionTeased) : l'onglet du
-// mode suivant n'apparaît que lorsqu'il est À UN DÉFI PRÈS. Le verrou d'un mode
-// est tenu par le mode PRÉCÉDENT — c'est donc sa progression à lui qu'on
-// interroge, pas celle du mode qu'on regarde.
-export function isModeTeased(modeId: ModeId): boolean {
+// Le verrou d'un mode est tenu par le mode PRÉCÉDENT : c'est sa progression à
+// lui qu'on interroge, jamais celle du mode qu'on regarde. Le premier mode n'a
+// pas de gardien — il est ouvert d'emblée.
+export function gateModeOf(modeId: ModeId): ModeId | null {
   const index = MODE_ORDER.indexOf(modeId);
-  if (index <= 0 || isModeUnlocked(modeId)) return false;
-  const gate = MODE_ORDER[index - 1];
+  return index > 0 ? MODE_ORDER[index - 1] : null;
+}
+
+// Étoiles qui manquent AU GARDIEN pour ouvrir `modeId`. Pendant de
+// starsMissingForSection : ce que l'interface annonce, et la condition
+// d'affichage du verrou (isModeTeased), sortent du même calcul.
+export function starsMissingForMode(modeId: ModeId): number {
+  const gate = gateModeOf(modeId);
+  if (!gate || isModeUnlocked(modeId)) return 0;
+  return Math.max(0, STARS_FOR_NEXT_MODE - modeStars(gate));
+}
+
+// Même règle que pour une section verrouillée (cf. sectionTeased) : l'onglet du
+// mode suivant n'apparaît que lorsqu'il est À UN DÉFI PRÈS.
+export function isModeTeased(modeId: ModeId): boolean {
+  const gate = gateModeOf(modeId);
+  if (!gate || isModeUnlocked(modeId)) return false;
   // Le gardien doit lui-même être ouvert : sinon le verrou n'est pas le prochain
   // de la chaîne, et rien ne doit paraître.
   if (!isModeUnlocked(gate)) return false;
-  const p = loadProgress(gate);
-  const missing = STARS_FOR_NEXT_MODE - starCount(p);
-  return missing === 1 && hasActiveDefi(p);
+  return starsMissingForMode(modeId) === 1 && hasActiveDefi(loadProgress(gate));
 }
 
 export function visibleModes(): ModeId[] {
@@ -389,6 +413,31 @@ export function saveLastMode(modeId: ModeId): void {
   } catch (_) {
     /* stockage indisponible : l'onglet rouvert sera celui par défaut */
   }
+}
+
+// Où reprendre, tous modes confondus : le premier niveau jouable du dernier mode
+// consulté, et à défaut celui du premier mode débloqué qui en a un. On commence
+// par le dernier mode consulté parce que c'est là que le joueur s'est arrêté —
+// un mode complété ne doit pas pour autant renvoyer à la carte.
+//
+// null : plus rien à jouer nulle part (tout est validé). L'accueil retombe alors
+// sur le choix du niveau, seul geste qui ait encore un sens.
+export interface ResumePoint {
+  modeId: ModeId;
+  id: LevelId;
+}
+
+export function resumePoint(): ResumePoint | null {
+  const last = loadLastMode(); // déjà garanti débloqué
+  const order = [
+    last,
+    ...MODE_ORDER.filter((m) => m !== last && isModeUnlocked(m)),
+  ];
+  for (const modeId of order) {
+    const id = firstPlayableLevel(loadProgress(modeId));
+    if (id) return { modeId, id };
+  }
+  return null;
 }
 
 // « Vu » n'est pas dérivable de la progression : un mode peut être débloqué et

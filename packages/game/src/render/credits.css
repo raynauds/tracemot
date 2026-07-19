@@ -1,0 +1,73 @@
+/* Crédits : la page des attributions (squelette dans screen.css). Une liste de
+   provenances, composée comme l'ours d'un livre — le rôle en mono capitalé,
+   l'œuvre et l'auteur en serif, la licence en petite ligne subordonnée. */
+
+.credits-list {
+  margin: 26px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Chaque entrée ouvre sous un filet inerte : des blocs feuilletés, pas des
+   encadrés — la page reste continue. */
+.credits-entry {
+  border-top: var(--rule-hairline);
+  padding-top: 15px;
+}
+
+/* La première entrée suit déjà le filet fort du titre — pas besoin d'un
+   second filet, plus clair, collé dessous. */
+.credits-entry:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.credits-role {
+  font-family: var(--mono);
+  font-size: 11px; /* token meta (DESIGN.md) — était 10.5px, écart sans raison */
+  font-weight: var(--label-caps-weight);
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+.credits-what {
+  margin: 8px 0 0;
+  font-size: 16.5px;
+  line-height: 1.45;
+}
+
+.credits-license {
+  margin: 4px 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+/* dd hérite d'un retrait navigateur qui casserait le fer à gauche. */
+.credits-list dd {
+  margin-left: 0;
+}
+
+/* Les liens sortent du jeu : soulignés — c'est le seul endroit de l'interface
+   où l'on quitte la page, ça se voit. Vermillon au pointeur, comme tout ce qui
+   répond. */
+.credits a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--ghost);
+  text-underline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .credits a:hover {
+    color: var(--vermilion);
+    text-decoration-color: var(--vermilion);
+  }
+}
+
+.credits a:active {
+  color: var(--vermilion);
+}

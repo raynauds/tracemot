@@ -2,13 +2,18 @@
    src/render/map.ts. Porte son propre seuil mobile (@media 640px, en bas) : la
    carte se resserre plus tard que le chrome de partie. */
 
-
 /* Overlay plein écran au-dessus de TOUT le chrome de partie (statut et
    victoire compris, z-index 30) : la carte est un écran, pas un panneau. Elle
    capte les events, ce qui suffit à neutraliser les gestes Pixi dessous —
    aucun détachement d'écouteur nécessaire. Elle porte son propre scroll : le
    body reste `overflow: hidden` (le canvas ne doit jamais défiler). */
 .map {
+  /* Le module de la carte : côté d'une case et écart entre cases. La ligne de 5
+     cases en dérive (largeur plafond du contenu sur mobile), et la carte de défi
+     s'aligne dessus en desktop — d'où des variables plutôt que trois `64px`
+     recopiés qu'il faudrait garder d'accord à la main. */
+  --map-cell: 64px;
+  --map-cell-gap: 8px;
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -52,7 +57,47 @@ body.map-open .win {
   flex: 1;
 }
 
+/* Flèche + onglets : une même phrase (« retour, depuis ici »), donc serrés au
+   même écart que dans le header de partie — l'écart de 28px du header est celui
+   qui les sépare du compteur, pas celui qui les lie. */
+.map-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Sortie d'écran, comme .back-map en partie (src/render/header.css) : même
+   flèche nue, même encre pleine, même cible de doigt reprise par une marge
+   négative pour que l'icône s'aligne quand même sur le cadre. */
+.map-home {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 24px; /* règle l'icône : .icon tient 1em de côté */
+  cursor: pointer;
+}
+
+/* Survol réservé à la souris : au doigt, le navigateur simule un :hover au tap
+   et le laisse collé jusqu'au tap suivant. */
+@media (hover: hover) {
+  .map-home:hover {
+    color: var(--vermilion);
+  }
+}
+
+.map-home:active {
+  color: var(--vermilion);
+}
+
+/* Ancre du panneau du mode verrouillé : il ne peut pas vivre dans son onglet
+   (un <button> ne contient pas de dialogue), il se pose en fin de barre. Celle-ci
+   commence au bord gauche de l'écran, le popover n'a donc rien à déborder. */
 .map-tabs {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -64,7 +109,7 @@ body.map-open .win {
   gap: 8px;
   padding: 7px 16px;
   background: var(--card);
-  border: 1.5px solid var(--ink);
+  border: var(--rule-standard);
   color: var(--ink);
   font-family: var(--mono);
   font-size: 13px;
@@ -81,12 +126,14 @@ body.map-open .win {
   color: var(--paper);
 }
 
-/* Prochain mode verrouillé : montré (on sait ce qui vient) mais inerte. */
+/* Prochain mode verrouillé : montré (on sait ce qui vient), et interrogeable —
+   il n'emmène nulle part, il dit ce qu'il faut pour l'ouvrir. D'où le pointeur :
+   le dessin dit le verrou, il ne doit pas dire « rien à faire ici ». */
 .map-tab.is-locked {
   background: transparent;
   border: 1.5px dashed var(--map-dash);
   color: var(--ghost);
-  cursor: default;
+  cursor: pointer;
 }
 
 .map-tab.is-locked:hover {
@@ -149,36 +196,54 @@ body.map-open .win {
 /* Le compteur est au bord droit du header : le popover s'aligne à droite, sans
    quoi il déborderait de l'écran. Sur mobile, il redevient la feuille du bas
    (src/render/panel.css). */
-.map-stars-panel {
+.map-panel-stars {
   left: auto;
   right: 0;
   width: 340px;
 }
 
-/* Sous 860px, le composant partagé passe en feuille pleine largeur : on lui
-   rend le `left` et la largeur que l'ancrage desktop ci-dessus lui prend (cette
-   feuille est chargée après src/render/panel.css, donc elle gagne la cascade).
-   Le seuil est celui du panneau, pas celui de la carte (640px). */
+/* Le jalon, lui, est centré dans sa ligne : son popover se centre sur lui, et se
+   borne à la largeur utile pour ne déborder d'aucun des deux côtés. */
+.map-milestone-anchor .diff-panel {
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(380px, calc(100vw - 2 * var(--edge)));
+}
+
+/* L'étoile écrite AU MILIEU d'une phrase (ce qu'un verrou coûte encore) : le
+   vermillon de la monnaie, comme partout ailleurs, et redescendue sur la ligne
+   de base — un SVG inline de 1em la survole sinon. */
+.map .panel-line .icon-star {
+  vertical-align: -0.14em;
+  color: var(--vermilion);
+}
+
+/* Sous 860px, le composant partagé passe en feuille pleine largeur : on lui rend
+   le `left`, la largeur ET le `transform` que les ancrages desktop ci-dessus lui
+   prennent (cette feuille est chargée après src/render/panel.css, donc elle
+   gagne la cascade). Sans le `transform: none`, la feuille — désormais `fixed` —
+   partirait d'une demi-largeur d'écran vers la gauche. Le seuil est celui du
+   panneau, pas celui de la carte (640px). */
 @media (max-width: 860px) {
-  .map-stars-panel {
+  .map-panel-stars,
+  .map-milestone-anchor .diff-panel {
     left: 0;
     width: auto;
+    transform: none;
   }
 }
 
-/* --- Corps : sections, brouillard --- */
+/* --- Corps : sections --- */
 
 /* Aucune marge haute : le padding du header tient seul l'écart avec la première
-   section, qui n'a donc pas à s'en occuper.
-
-   `position: relative` : le brouillard est un absolu ancré sur ce bloc. */
+   section, qui n'a donc pas à s'en occuper. Le retrait bas, lui, sépare la
+   dernière ligne de la légende. */
 .map-body {
-  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 max(var(--edge), env(safe-area-inset-right)) 0
+  padding: 0 max(var(--edge), env(safe-area-inset-right)) 40px
     max(var(--edge), env(safe-area-inset-left));
 }
 
@@ -210,10 +275,27 @@ body.map-open .win {
   background: var(--map-rule);
 }
 
+/* Ancre du popover du jalon. Elle ne s'étire pas : les deux filets se partagent
+   le reste, le libellé garde sa largeur de texte. */
+.map-milestone-anchor {
+  position: relative;
+}
+
+/* Le libellé est un bouton — le nom d'une difficulté ne dit pas ce qu'elle
+   change, on peut le lui demander. Bouton nu : seuls les filets qui l'encadrent
+   dessinent le jalon, le cadre par défaut du navigateur n'a rien à y ajouter.
+   La cible est le texte seul, pas la largeur de la ligne. */
 .map-milestone-label {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .map-milestone-name {
@@ -263,6 +345,19 @@ body.map-open .win {
   color: var(--ghost);
 }
 
+/* Retour au pointeur, comme toutes les cibles nues de la carte. Posé APRÈS la
+   règle du jalon verrouillé pour la battre : verrouillé ou non, le libellé
+   répond quand on le touche — c'est justement là qu'on a une question. */
+@media (hover: hover) {
+  .map-milestone-label:hover .map-milestone-name {
+    color: var(--vermilion);
+  }
+}
+
+.map-milestone-label:active .map-milestone-name {
+  color: var(--vermilion);
+}
+
 /* Le coût restant (« ★ Encore 1 étoile ») porte l'étoile : c'est la cible de la
    monnaie, on la garde lisible là où le nom s'efface. */
 /* Le prix se lit du même gris que le nom : un jalon verrouillé est UN bloc en
@@ -292,9 +387,9 @@ body.map-open .win {
 
 .map-grid {
   display: grid;
-  grid-template-columns: repeat(5, 64px);
-  grid-auto-rows: 64px;
-  gap: 8px;
+  grid-template-columns: repeat(5, var(--map-cell));
+  grid-auto-rows: var(--map-cell);
+  gap: var(--map-cell-gap);
 }
 
 /* --- Cases --- */
@@ -314,7 +409,7 @@ body.map-open .win {
 .map-cell.is-validated,
 .map-cell.is-active {
   border-color: var(--ink);
-  box-shadow: 2.5px 2.5px 0 var(--ink);
+  box-shadow: var(--shadow-hard-md);
   cursor: pointer;
 }
 
@@ -340,7 +435,7 @@ body.map-open .win {
 
 /* Visible mais pas encore atteignable : pointillé, pas d'ombre, pas de relief. */
 .map-cell.is-disabled {
-  border: 1.5px dashed var(--map-rule);
+  border: var(--rule-dashed);
 }
 
 .map-cell-num {
@@ -394,10 +489,10 @@ body.map-open .win {
    seule mise en page qui garde le sous-titre du format lisible en 64px. */
 .map-defi--card {
   /* Largeur calée sur la plus longue mention de format (« 16×16 · 32 MOTS DE
-     8 LETTRES ») : elle doit tenir sur une ligne, sinon la carte déborde des
-     64px de hauteur de la ligne. */
+     8 LETTRES ») : elle doit tenir sur une ligne, sinon la carte déborde de la
+     hauteur de la ligne. */
   width: 240px;
-  height: 64px;
+  height: var(--map-cell);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
@@ -438,7 +533,7 @@ body.map-open .win {
 .map-defi.is-validated,
 .map-defi.is-active {
   border-color: var(--ink);
-  box-shadow: 2.5px 2.5px 0 var(--ink);
+  box-shadow: var(--shadow-hard-md);
   cursor: pointer;
 }
 
@@ -451,7 +546,7 @@ body.map-open .win {
 .map-defi.is-active {
   background: var(--card);
   border-width: 2px;
-  box-shadow: 4px 4px 0 var(--ink);
+  box-shadow: var(--shadow-hard-lg);
 }
 
 .map-defi.is-validated:hover,
@@ -467,7 +562,7 @@ body.map-open .win {
 }
 
 .map-defi.is-disabled {
-  border: 1.5px dashed var(--map-rule);
+  border: var(--rule-dashed);
 }
 
 .map-defi-mark {
@@ -522,37 +617,20 @@ body.map-open .win {
   color: var(--map-count);
 }
 
+/* Teaser de progression : la colonne du défi encore caché porte le compte des
+   victoires de la ligne (« N/5 avant le défi »). Même empreinte que la carte du
+   défi — largeur et hauteur héritées de .map-defi--card — pour garder
+   l'alignement des lignes, mais sans relief (la bordure transparente et
+   l'absence d'ombre de .map-defi valent déjà) : ce n'est pas encore une cible. */
+.map-defi--card.is-teaser {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Une seule légende subsiste, celle du défi verrouillé : ce qu'il lui manque. */
 .map-defi.is-disabled .map-defi-caption {
   color: var(--ghost);
-}
-
-/* --- Frange de brouillard --- */
-
-/* Le spacer réserve la hauteur que le dégradé va noyer : la dernière ligne
-   rendue ne doit jamais passer sous le brouillard. */
-.map-spacer {
-  height: 150px;
-  flex: 0 0 auto;
-}
-
-/* Décor pur : le dégradé est un absolu qui, le spacer ne consommant pas le gap
-   de .map-body, mord de quelques pixels sur le bas de la dernière ligne rendue.
-   Sans pointer-events: none, il avalerait les clics de cases pourtant jouables
-   (le closest("[data-level]") du délégué remonterait sur le brouillard). */
-.map-fog {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 190px;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgba(246, 241, 231, 0) 0%,
-    rgba(246, 241, 231, 0.9) 55%,
-    var(--paper) 100%
-  );
 }
 
 /* --- Légende --- */
@@ -565,12 +643,12 @@ body.map-open .win {
   gap: 10px 26px;
   /* Le pied de la carte : gauche, bas et droite au même retrait que la tête —
      c'est lui qui tient la barre home à distance. Son retrait haut est nul, le
-     brouillard occupe déjà l'espace au-dessus. */
+     retrait bas de .map-body occupe déjà l'espace au-dessus. */
   padding: 0 max(var(--edge), env(safe-area-inset-right))
     max(var(--edge), env(safe-area-inset-bottom))
     max(var(--edge), env(safe-area-inset-left));
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 9.5px; /* légende compacte (DESIGN.md § Typography) — était 10.5px */
   letter-spacing: 1px;
   color: var(--map-count);
 }
@@ -593,18 +671,18 @@ body.map-open .win {
 
 .map-legend-swatch.is-validated {
   background: var(--map-validated);
-  border: 1.5px solid var(--ink);
-  box-shadow: 1.5px 1.5px 0 var(--ink);
+  border: var(--rule-standard);
+  box-shadow: var(--shadow-hard-sm);
 }
 
 .map-legend-swatch.is-active {
   background: var(--card);
-  border: 1.5px solid var(--ink);
-  box-shadow: 1.5px 1.5px 0 var(--ink);
+  border: var(--rule-standard);
+  box-shadow: var(--shadow-hard-sm);
 }
 
 .map-legend-swatch.is-disabled {
-  border: 1.5px dashed var(--map-rule);
+  border: var(--rule-dashed);
 }
 
 /* --- Carte : mobile --- */
@@ -628,6 +706,12 @@ body.map-open .win {
   .map-stars-icon {
     font-size: 12px;
   }
+  .map-header-left {
+    gap: 10px;
+  }
+  .map-home {
+    font-size: 22px;
+  }
   .map-tabs {
     gap: 8px;
   }
@@ -642,11 +726,19 @@ body.map-open .win {
   }
 
   .map-body {
-    align-items: stretch;
+    padding-bottom: 28px;
   }
 
+  /* Les cases s'étirent avec l'écran (`1fr`, plus bas) mais ne s'aplatissent
+     jamais : la largeur d'une case est bornée à sa hauteur. Plutôt que de
+     plafonner chaque colonne — ce qui laisserait le bandeau de défi déborder des
+     5 cases —, on plafonne le bloc entier à la largeur d'une ligne. Jalons,
+     lignes et bandeaux se calent d'office les uns sur les autres, et `.map-body`
+     centre le tout dès que l'écran est plus large. */
   .map-sections {
     gap: 18px;
+    width: 100%;
+    max-width: calc(5 * var(--map-cell) + 4 * var(--map-cell-gap));
   }
   .map-milestone {
     gap: 11px;
@@ -656,7 +748,7 @@ body.map-open .win {
     font-size: 16px;
   }
   .map-milestone-count {
-    font-size: 10px;
+    font-size: 9.5px; /* légende compacte (DESIGN.md § Typography) — était 10px */
     letter-spacing: 0.5px;
   }
   .map-milestone-stars {
@@ -668,7 +760,7 @@ body.map-open .win {
      il reste attaché à SA ligne, pas à la section. */
   .map-row {
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
   .map-rows {
     gap: 14px; /* la respiration entre lignes doit primer sur le gap interne */
@@ -723,17 +815,14 @@ body.map-open .win {
     line-height: 1.2;
   }
   .map-defi--band .map-defi-caption {
-    font-size: 9px;
+    font-size: 9.5px; /* légende compacte (DESIGN.md § Typography) — était 9px */
     letter-spacing: 0.5px;
     line-height: 1;
     white-space: nowrap;
   }
-
-  .map-spacer {
-    height: 120px;
-  }
-  .map-fog {
-    height: 150px;
+  /* Teaser de progression : bandeau pleine largeur sans relief, compte centré. */
+  .map-defi--band.is-teaser {
+    justify-content: center;
   }
 
   .map-legend {
@@ -751,6 +840,6 @@ body.map-open .win {
   }
   .map-legend-swatch.is-validated,
   .map-legend-swatch.is-active {
-    box-shadow: 1px 1px 0 var(--ink);
+    box-shadow: var(--shadow-hard-xs);
   }
 }

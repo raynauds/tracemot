@@ -1,0 +1,256 @@
+/* Comment jouer : l'écran des règles (squelette dans screen.css). Quatre
+   étapes, chacune montrée avant d'être dite — la figure rejoue la grille, le
+   registre ou la carte avec leurs propres signes (filets encre, vermillon du
+   tracé, coche du validé, étoile du défi). */
+
+.help-steps {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Une étape : la figure à gauche, le texte à droite — la colonne des figures
+   est constante pour que les quatre textes prennent le même fer. */
+.help-step {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  column-gap: 24px;
+  align-items: center;
+}
+
+.help-fig {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Le numéro d'étape : l'idiome du registre (« 01 », mono, estompé) — le même
+   compteur que celui que la figure 3 met en scène. */
+.help-num {
+  font-family: var(--mono);
+  font-size: 11px; /* token meta (DESIGN.md) — était 10.5px, écart sans raison */
+  letter-spacing: 2px;
+  color: var(--ghost);
+}
+
+.help-heading {
+  margin: 3px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.help-line {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* --- Figures : la grille (SVG) --- */
+
+.help-grid {
+  width: 116px;
+  height: 116px;
+}
+
+.help-grid .cell {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+/* Case consommée : le pointillé inerte de la carte — plus rien à y prendre. */
+.help-grid .cell.is-used {
+  fill: transparent;
+  stroke: var(--map-rule);
+  stroke-dasharray: 3 3;
+}
+
+.help-grid text {
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 700;
+  fill: var(--ink);
+  text-anchor: middle;
+}
+
+.help-grid text.is-used {
+  font-weight: 400;
+  fill: var(--ghost);
+}
+
+.help-grid text.is-traced {
+  fill: var(--vermilion);
+}
+
+/* Le tracé du joueur : le seul vermillon « en action » de l'interface — ici il
+   est chez lui. En transparence pour laisser lire les lettres dessous. */
+.help-grid .trace {
+  fill: none;
+  stroke: var(--vermilion);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.3;
+}
+
+/* --- Figures : le registre --- */
+
+.help-ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 116px;
+}
+
+.help-ledger-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 5px;
+  border-bottom: var(--rule-hairline);
+}
+
+.help-ledger-num {
+  font-family: var(--mono);
+  font-size: 11px; /* token meta (DESIGN.md) — était 10px, écart sans raison */
+  color: var(--ghost);
+}
+
+.help-ledger-word {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.help-ledger-check {
+  font-size: 11px;
+  color: var(--vermilion);
+}
+
+/* Le compteur plein : vermillon, comme celui du header à la victoire — c'est
+   un état mérité, pas un décor. */
+.help-ledger-count {
+  align-self: flex-end;
+  font-family: var(--mono);
+  font-size: 11px; /* token meta (DESIGN.md) — était 10.5px, écart sans raison */
+  letter-spacing: 1px;
+  color: var(--vermilion);
+}
+
+/* --- Figures : la carte --- */
+
+.help-map {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Cases et défi : les reliefs de la carte en miniature — filet encre, ombre
+   dure, coche au coin, étoile au défi. */
+.help-map-cell {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: var(--rule-standard);
+  /* --shadow-hard-mini (2px), pas --shadow-hard-md (2.5px, l'échelle des
+     vraies cases) : à 34px, une miniature garde le filet standard mais une
+     ombre plus légère — l'ombre flexe avec la taille (DESIGN.md). */
+  box-shadow: var(--shadow-hard-mini);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.help-map-cell.is-validated {
+  background: var(--map-validated);
+}
+
+.help-map-check {
+  position: absolute;
+  right: 1px;
+  bottom: 0;
+  display: inline-flex;
+  font-size: 9px;
+  color: var(--vermilion);
+}
+
+.help-map-defi {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 9px;
+  background: var(--card);
+  border: var(--rule-heavy);
+  /* --shadow-hard-mini-lg (3px) : plus lourde que la case miniature voisine
+     (mini, 2px), comme le vrai défi actif l'est face à une case (lg vs md). */
+  box-shadow: var(--shadow-hard-mini-lg);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.help-map-star {
+  display: inline-flex;
+  font-size: 15px;
+  color: var(--vermilion);
+}
+
+/* --- Première partie --- */
+
+/* Le bouton n'apparaît que quand l'écran s'est ouvert de lui-même, la grille
+   prête dessous : même poids que le primaire de l'accueil — c'est le même
+   engagement. */
+.help-start {
+  width: 100%;
+  height: 56px;
+  margin-top: 34px;
+  background: var(--vermilion);
+  color: var(--paper);
+  border: none;
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+
+.help-start:hover {
+  filter: brightness(1.08);
+}
+
+.help-start:active {
+  filter: brightness(0.94);
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 640px) {
+  .help-steps {
+    gap: 26px;
+  }
+  /* L'étape s'empile : le texte d'abord (la règle), la figure dessous (sa
+     preuve) — une colonne étroite lit mieux dans cet ordre. */
+  .help-step {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .help-fig {
+    order: 2;
+    justify-content: flex-start;
+    padding-left: 2px;
+  }
+}

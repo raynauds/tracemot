@@ -32,9 +32,12 @@ import {
   defiOfRow,
   levelId,
 } from "@tracemot/core";
-import { checkIcon, closeIcon, starIcon } from "./icons.ts";
+import { playSound } from "../audio/audio.ts";
+import { bindOverlayCloser, popOverlay, pushOverlay } from "./history.ts";
+import { arrowLeftIcon, checkIcon, closeIcon, starIcon } from "./icons.ts";
 import {
   cellState,
+  gateModeOf,
   isModeSeen,
   isModeUnlocked,
   loadLastMode,
@@ -44,6 +47,8 @@ import {
   sectionStats,
   sectionTeased,
   starCount,
+  starsMissingForMode,
+  starsMissingForSection,
   visibleModes,
   type CellState,
   type ModeProgress,
@@ -53,12 +58,12 @@ const SECTIONS: Section[] = [1, 2, 3, 4];
 // Étoiles d'une section : trois défis, donc trois icônes, pleines ou creuses.
 const SECTION_STARS = 3;
 
-
 // Onglet affiché. Initialisé au dernier mode consulté, puis piloté par les
 // clics ; c'est le seul état que la carte porte.
 let currentMode: ModeId = loadLastMode();
 
 let onSelect: ((modeId: ModeId, id: LevelId) => void) | null = null;
+let onHome: (() => void) | null = null;
 
 const mapEl = document.getElementById("map") as HTMLElement;
 
@@ -107,16 +112,27 @@ function lockIcon(): SVGSVGElement {
 function buildTabs(): HTMLElement {
   const nav = el("nav", "map-tabs");
   nav.setAttribute("aria-label", "Mode de jeu");
+  // Il y a au plus un onglet verrouillé (cf. visibleModes) : son panneau se pose
+  // en fin de barre, qui l'ancre. Le mettre dans l'onglet est impossible — un
+  // panneau ne peut pas vivre dans un <button>.
+  let lockedTab: ModeId | null = null;
   for (const modeId of visibleModes()) {
     const unlocked = isModeUnlocked(modeId);
     const tab = el("button", "map-tab");
     tab.type = "button";
     if (!unlocked) {
-      // Onglet verrouillé : montré (on sait ce qui vient), mais inerte.
+      // Onglet verrouillé : montré (on sait ce qui vient) et interrogeable — il
+      // n'emmène nulle part, il dit ce qu'il faut pour l'ouvrir. Pas de
+      // `disabled` donc : un bouton désactivé n'émet aucun clic. Le verrou reste
+      // dit par le dessin (pointillé, gris, cadenas) et par l'aria-label.
       tab.classList.add("is-locked");
-      tab.disabled = true;
-      tab.setAttribute("aria-label", `Mode ${modeLabel(modeId)}, verrouillé`);
+      asPanelTrigger(tab, `mode-${modeId}`);
+      tab.setAttribute(
+        "aria-label",
+        `Mode ${modeLabel(modeId)}, verrouillé — ce qu'il faut pour l'ouvrir`,
+      );
       tab.appendChild(lockIcon());
+      lockedTab = modeId;
     } else {
       tab.dataset.mode = modeId;
       if (modeId === currentMode) {
@@ -133,7 +149,32 @@ function buildTabs(): HTMLElement {
     }
     nav.appendChild(tab);
   }
+  if (lockedTab) nav.appendChild(buildLockedModePanel(lockedTab));
   return nav;
+}
+
+// Ce que dit un mode verrouillé : d'abord ce qu'il faut pour l'ouvrir, ensuite
+// ce qu'on y trouvera. Le mode qui tient le verrou est NOMMÉ — c'est le
+// précédent, pas forcément celui qu'on regarde (cf. gateModeOf).
+function buildLockedModePanel(modeId: ModeId): DocumentFragment {
+  const gate = gateModeOf(modeId);
+  const missing = starsMissingForMode(modeId);
+  const lines: (string | HTMLElement)[] = [];
+  // Même phrase que pour une difficulté verrouillée — un seul verrou, une seule
+  // formulation —, au mode gardien près : c'est le PRÉCÉDENT qui tient la porte,
+  // pas forcément celui qu'on regarde, il faut donc le nommer.
+  if (gate) {
+    lines.push(missingStarsLine(missing, `ce mode (en ${modeLabel(gate)})`));
+  }
+  const m = GAME_MODES[modeId];
+  lines.push(
+    el(
+      "p",
+      "panel-spec",
+      `${m.wordCount} mots de ${m.wordLength} lettres · ${m.rows}×${m.cols}`,
+    ),
+  );
+  return buildInfoPanel(`mode-${modeId}`, `MODE ${modeLabel(modeId)}`, lines);
 }
 
 // Ce que le panneau des étoiles explique : comment on les gagne, et ce qu'elles
@@ -146,37 +187,62 @@ const STARS_LINES = [
     "grilles plus grandes, des mots plus longs.",
 ];
 
-// Voile + panneau du compteur : le composant partagé du header de partie
-// (src/render/panel.css), réemployé tel quel. Il naît DANS la chip pour que le
-// popover s'ancre dessus, et repart caché à chaque rendu (cf. bindMap).
-function buildStarsPanel(): DocumentFragment {
+// Voile + panneau : le composant partagé du header de partie
+// (src/render/panel.css), réemployé tel quel. La carte en pose trois — le
+// compteur d'étoiles, chaque jalon de difficulté, le mode verrouillé —, d'où
+// une fabrique : un élément qui nomme un palier s'explique quand on le touche,
+// et toujours de la même façon.
+//
+// Le fragment est ajouté À CÔTÉ du déclencheur, dans un parent `position:
+// relative` : c'est lui qui ancre le popover desktop (sous 860px, le composant
+// bascule en feuille du bas et l'ancrage ne joue plus).
+//
+// `key` relie le déclencheur (`data-panel`) à ses trois nœuds ; `body` accepte
+// des chaînes (autant de .panel-line) et des nœuds déjà formés (un .panel-spec,
+// par exemple). Tout repart caché à chaque rendu — cf. setPanelOpen.
+function buildInfoPanel(
+  key: string,
+  title: string,
+  body: (string | HTMLElement)[],
+): DocumentFragment {
   const frag = document.createDocumentFragment();
 
   const overlay = el("div", "diff-overlay");
-  overlay.id = "map-stars-overlay";
+  overlay.id = `map-overlay-${key}`;
   overlay.hidden = true;
   frag.appendChild(overlay);
 
-  const panel = el("div", "diff-panel map-stars-panel");
-  panel.id = "map-stars-panel";
+  const panel = el("div", `diff-panel map-panel-${key}`);
+  panel.id = `map-panel-${key}`;
   panel.setAttribute("role", "dialog");
-  panel.setAttribute("aria-label", "Étoiles");
+  panel.setAttribute("aria-label", title);
   panel.hidden = true;
 
   const head = el("div", "diff-panel-head");
-  head.appendChild(el("span", "diff-panel-title", "ÉTOILES"));
+  head.appendChild(el("span", "diff-panel-title", title));
   const close = el("button", "diff-close");
   close.type = "button";
-  close.id = "map-stars-close";
   close.setAttribute("aria-label", "Fermer");
   close.appendChild(closeIcon());
   head.appendChild(close);
   panel.appendChild(head);
 
-  for (const line of STARS_LINES)
-    panel.appendChild(el("p", "panel-line", line));
+  for (const entry of body) {
+    panel.appendChild(
+      typeof entry === "string" ? el("p", "panel-line", entry) : entry,
+    );
+  }
   frag.appendChild(panel);
   return frag;
+}
+
+// Marque un élément comme déclencheur du panneau `key`. Le clic est capté par la
+// délégation de bindMap : aucun écouteur propre, le DOM est reconstruit à chaque
+// rendu.
+function asPanelTrigger(node: HTMLElement, key: string): void {
+  node.dataset.panel = key;
+  node.setAttribute("aria-haspopup", "dialog");
+  node.setAttribute("aria-expanded", "false");
 }
 
 // Compteur d'étoiles du mode AFFICHÉ (et non de la progression globale) : la
@@ -190,9 +256,7 @@ function buildStars(p: ModeProgress): HTMLElement | null {
 
   const chip = el("button", "map-stars-chip");
   chip.type = "button";
-  chip.id = "map-stars-chip";
-  chip.setAttribute("aria-haspopup", "dialog");
-  chip.setAttribute("aria-expanded", "false");
+  asPanelTrigger(chip, "stars");
   chip.setAttribute(
     "aria-label",
     `${stars} ${stars > 1 ? "étoiles" : "étoile"} — ce qu'elles ouvrent`,
@@ -203,15 +267,32 @@ function buildStars(p: ModeProgress): HTMLElement | null {
   chip.appendChild(icon);
   box.appendChild(chip);
 
-  box.appendChild(buildStarsPanel());
+  box.appendChild(buildInfoPanel("stars", "ÉTOILES", STARS_LINES));
   return box;
 }
 
-// Sans marque : le jeu n'a pas à se nommer sur son propre écran. Les onglets
-// ouvrent donc le header, le compteur d'étoiles le ferme.
+// Retour à l'accueil : une flèche nue, exactement celle qui sort d'une partie
+// (src/render/header.css). Un seul dessin pour un seul sens — « remonter d'un
+// écran » —, qu'on remonte de la grille à la carte ou de la carte à l'accueil.
+function buildHomeButton(): HTMLElement {
+  const button = el("button", "map-home");
+  button.type = "button";
+  button.id = "map-home";
+  button.setAttribute("aria-label", "Retour à l'accueil");
+  button.title = "Retour à l'accueil";
+  button.appendChild(arrowLeftIcon());
+  return button;
+}
+
+// Sans marque : le jeu ne se nomme que sur l'accueil (src/render/home.ts), pas
+// sur la carte. La flèche et les onglets ouvrent donc le header — d'où l'on
+// sort, ce qu'on regarde —, le compteur d'étoiles le ferme.
 function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
-  head.appendChild(buildTabs());
+  const left = el("div", "map-header-left");
+  left.appendChild(buildHomeButton());
+  left.appendChild(buildTabs());
+  head.appendChild(left);
   head.appendChild(el("div", "map-spring"));
   const stars = buildStars(p);
   if (stars) head.appendChild(stars);
@@ -268,14 +349,23 @@ function defiSub(modeId: ModeId, locked: boolean): string {
   return locked ? `${sub} DE ${m.wordLength} LETTRES` : sub;
 }
 
-// Seul le défi verrouillé a une légende — elle dit ce qui lui manque. Ouvert ou
+// Seul le défi verrouillé (« disabled », donc à 4/5) a une légende. Ouvert ou
 // gagné, il n'en a pas : le relief du bouton dit déjà qu'on peut le lancer, et
 // l'étoile pleine qu'il est gagné. Le répéter en toutes lettres n'ajoute rien.
-const DEFI_CAPTION: Record<Exclude<CellState, "hidden">, string | null> = {
-  validated: null,
-  active: null,
-  disabled: "TERMINEZ LA LIGNE",
-};
+//
+// Verrouillé, elle ne dit plus une injonction générique (« terminez la
+// ligne ») mais la progression déjà faite dans la ligne. Elle n'en porte que la
+// DERNIÈRE marche (4/5) : la case défi n'ayant l'état « disabled » qu'au moment
+// où le dernier normal devient jouable, ses quatre prédécesseurs sont déjà
+// validés ici. Les marches précédentes (0→3/5) reviennent au teaser
+// (buildDefiProgress), tant que le défi n'existe pas encore comme case.
+function defiCaption(
+  state: Exclude<CellState, "hidden">,
+  doneInRow: number,
+): string | null {
+  if (state !== "disabled") return null;
+  return `${doneInRow}/${ROW_LENGTH} avant le défi`;
+}
 
 // Le défi porte l'étoile qu'il met en jeu, et son remplissage EST le score :
 // creuse tant qu'elle reste à prendre, pleine une fois gagnée. Même signe que
@@ -292,6 +382,7 @@ function buildDefi(
   row: Row,
   state: Exclude<CellState, "hidden">,
   variant: "card" | "band",
+  doneInRow: number,
 ): HTMLElement {
   const key = defiOfRow(row);
   const id = defiId(s, key);
@@ -307,7 +398,7 @@ function buildDefi(
   texts.appendChild(
     el("span", "map-defi-sub", defiSub(modeId, state === "disabled")),
   );
-  const caption = DEFI_CAPTION[state];
+  const caption = defiCaption(state, doneInRow);
   if (caption) texts.appendChild(el("span", "map-defi-caption", caption));
   defi.appendChild(texts);
 
@@ -338,13 +429,25 @@ function buildDefi(
   return defi;
 }
 
-// Placeholder desktop : garde la colonne du défi occupée quand celui-ci est
-// encore caché, sinon les grilles des lignes ne seraient pas alignées entre
-// elles (une ligne sans défi serait centrée sur toute la largeur).
-function defiPlaceholder(): HTMLElement {
-  const ghost = el("div", "map-defi map-defi--card is-hidden");
-  ghost.setAttribute("aria-hidden", "true");
-  return ghost;
+// Peint À LA PLACE du défi tant qu'il reste caché (doneInRow 0→3) : la case défi
+// n'a d'état « disabled » — le seul qui porte une légende (cf. defiCaption) —
+// qu'à 4/5, quand le dernier normal de la ligne devient jouable. Sans ce teaser,
+// aucune des quatre premières victoires de la ligne ne se lirait sur la carte.
+//
+// Il garde aussi la colonne du défi occupée (même empreinte que .map-defi--card)
+// pour que les lignes restent alignées, et se décline en carte (desktop) et
+// bandeau (mobile) comme le défi. Muet pour le lecteur d'écran : les cases
+// disent déjà leur état une à une, ceci n'est qu'un rappel visuel.
+function buildDefiProgress(
+  doneInRow: number,
+  variant: "card" | "band",
+): HTMLElement {
+  const node = el("div", `map-defi map-defi--${variant} is-teaser`);
+  node.setAttribute("aria-hidden", "true");
+  node.appendChild(
+    el("span", "map-defi-caption", `${doneInRow}/${ROW_LENGTH} avant le défi`),
+  );
+  return node;
 }
 
 // Une ligne = ses 5 normaux PUIS son défi (carte desktop + bandeau mobile).
@@ -358,19 +461,24 @@ function buildRow(
 ): HTMLElement {
   const node = el("div", "map-row");
   const grid = el("div", "map-grid");
+  let doneInRow = 0;
   for (let i = 1; i <= ROW_LENGTH; i++) {
     const n = (row - 1) * ROW_LENGTH + i;
     const id = levelId(s, n);
+    if (p.validated.has(id)) doneInRow++;
     grid.appendChild(buildCell(id, n, cellState(p, id)));
   }
   node.appendChild(grid);
 
   const state = cellState(p, defiId(s, defiOfRow(row)));
   if (state === "hidden") {
-    node.appendChild(defiPlaceholder());
+    // Défi encore caché : la colonne porte le compte des victoires de la ligne,
+    // dans les deux enveloppes comme le défi lui-même (cf. buildDefiProgress).
+    node.appendChild(buildDefiProgress(doneInRow, "card"));
+    node.appendChild(buildDefiProgress(doneInRow, "band"));
   } else {
-    node.appendChild(buildDefi(modeId, s, row, state, "card"));
-    node.appendChild(buildDefi(modeId, s, row, state, "band"));
+    node.appendChild(buildDefi(modeId, s, row, state, "card", doneInRow));
+    node.appendChild(buildDefi(modeId, s, row, state, "band", doneInRow));
   }
   return node;
 }
@@ -383,17 +491,45 @@ function buildStarRow(stars: number): HTMLElement {
   return row;
 }
 
+// Ce qu'il reste à payer, l'étoile écrite avec son dessin plutôt qu'avec le mot :
+// c'est la monnaie du jeu, elle se reconnaît partout au même tracé (compteur du
+// header, jalons, cases). L'icône parle ici — ailleurs elle est aria-hidden,
+// mais au milieu d'une phrase son retrait laisserait un trou (« Il vous manque
+// encore 1 pour… »).
+function missingStarsLine(missing: number, what: string): HTMLElement {
+  const line = el("p", "panel-line");
+  line.appendChild(
+    document.createTextNode(`Il vous manque encore ${missing} `),
+  );
+  const icon = starIcon();
+  icon.removeAttribute("aria-hidden");
+  icon.setAttribute("role", "img");
+  icon.setAttribute("aria-label", missing > 1 ? "étoiles" : "étoile");
+  line.appendChild(icon);
+  line.appendChild(document.createTextNode(` pour débloquer ${what}.`));
+  return line;
+}
+
 function buildMilestone(
   s: Section,
   count: HTMLElement | null,
   stars: number | null,
+  missing: number,
 ): HTMLElement {
-  const milestone = el(
-    "div",
-    `map-milestone${stars === null ? " is-locked" : ""}`,
-  );
+  const locked = stars === null;
+  const milestone = el("div", `map-milestone${locked ? " is-locked" : ""}`);
   milestone.appendChild(el("span", "map-milestone-rule"));
-  const label = el("span", "map-milestone-label");
+
+  // Le nom d'une difficulté ne dit pas ce qu'elle change : le jalon s'interroge.
+  // Seul le libellé est cliquable, pas toute la largeur de la ligne — les filets
+  // restent du décor. L'ancre porte le popover (position: relative).
+  const label = el("button", "map-milestone-label");
+  label.type = "button";
+  asPanelTrigger(label, `section-${s}`);
+  label.setAttribute(
+    "aria-label",
+    `${DIFFICULTY_LABELS[s].name}${locked ? ", verrouillé" : ""} — ce que c'est`,
+  );
   label.appendChild(
     el("span", "map-milestone-name", DIFFICULTY_LABELS[s].name),
   );
@@ -403,8 +539,27 @@ function buildMilestone(
   if (count) label.appendChild(count);
   // Section verrouillée : pas d'étoiles à montrer (aucune n'y a été gagnée) —
   // le compteur porte déjà le prix à payer.
-  if (stars !== null) label.appendChild(buildStarRow(stars));
-  milestone.appendChild(label);
+  if (!locked) label.appendChild(buildStarRow(stars));
+
+  const anchor = el("div", "map-milestone-anchor");
+  anchor.appendChild(label);
+  // Verrouillée, la section dit ce qu'elle coûte encore. Le jalon porte déjà le
+  // prix, mais en raccourci (« ★ Encore 1 étoile ») : le panneau est l'endroit
+  // où la phrase est entière.
+  anchor.appendChild(
+    buildInfoPanel(
+      `section-${s}`,
+      DIFFICULTY_LABELS[s].name.toUpperCase(),
+      locked
+        ? [
+            DIFFICULTY_LABELS[s].desc,
+            missingStarsLine(missing, "cette difficulté"),
+          ]
+        : [DIFFICULTY_LABELS[s].desc],
+    ),
+  );
+  milestone.appendChild(anchor);
+
   milestone.appendChild(el("span", "map-milestone-rule"));
   return milestone;
 }
@@ -413,13 +568,15 @@ function buildMilestone(
 // paraît QUE si la section est teasée (cf. sectionTeased) — donc uniquement
 // quand un défi jouable peut, à lui seul, la déverrouiller. Le prix est donc
 // toujours d'une étoile : le libellé n'a pas de pluriel à porter.
-function buildLockedSection(s: Section): HTMLElement {
+function buildLockedSection(p: ModeProgress, s: Section): HTMLElement {
   const price = el("span", "map-milestone-count");
   price.appendChild(starIcon());
   price.appendChild(el("span", undefined, "Encore 1 étoile"));
 
   const section = el("section", "map-section");
-  section.appendChild(buildMilestone(s, price, null));
+  section.appendChild(
+    buildMilestone(s, price, null, starsMissingForSection(p, s)),
+  );
   return section;
 }
 
@@ -440,7 +597,7 @@ function buildSection(
   }
 
   const section = el("section", "map-section");
-  section.appendChild(buildMilestone(s, count, stats.stars));
+  section.appendChild(buildMilestone(s, count, stats.stars, 0));
 
   // Croissance additive : aucune ligne au-delà de la dernière visible — la
   // carte grandit vers le bas, elle ne réserve pas de vide.
@@ -458,6 +615,8 @@ export function renderMap(modeId: ModeId): void {
   currentMode = modeId;
   const p = loadProgress(modeId);
 
+  // Le DOM part avec ses panneaux : plus rien n'est ouvert.
+  openPanel = null;
   mapEl.textContent = "";
   mapEl.appendChild(buildHeader(p));
 
@@ -468,23 +627,17 @@ export function renderMap(modeId: ModeId): void {
   const sections = el("div", "map-sections");
   // Les seuils d'étoiles étant croissants, les sections débloquées forment un
   // préfixe : la première verrouillée rencontrée clôt la carte. On ne l'annonce
-  // que si elle est à un défi près ; sinon la carte s'arrête sur le brouillard,
-  // qui suffit à dire « il y a une suite » sans en promettre le prix.
+  // que si elle est à un défi près ; sinon la carte s'arrête net, sans rien
+  // promettre de ce qui vient.
   for (const s of SECTIONS) {
     if (!sectionStats(p, s).unlocked) {
-      if (sectionTeased(p, s)) sections.appendChild(buildLockedSection(s));
+      if (sectionTeased(p, s)) sections.appendChild(buildLockedSection(p, s));
       break;
     }
     const node = buildSection(modeId, p, s);
     if (node) sections.appendChild(node);
   }
   body.appendChild(sections);
-  // Le brouillard n'est pas décoratif : c'est lui qui dit « il y a une suite ».
-  // Le spacer garantit qu'il ne recouvre jamais la dernière ligne rendue.
-  body.appendChild(el("div", "map-spacer"));
-  const fog = el("div", "map-fog");
-  fog.setAttribute("aria-hidden", "true");
-  body.appendChild(fog);
   mapEl.appendChild(body);
 
   mapEl.appendChild(buildLegend());
@@ -520,29 +673,39 @@ export function showMap(): void {
   // Le chrome de partie (header, registre, zoom) est masqué par le CSS via
   // cette classe : la carte n'a pas à connaître ses éléments un par un.
   document.body.classList.add("map-open");
+  // Une entrée d'historique par ouverture : le geste retour mobile referme
+  // l'écran au lieu de quitter l'application (src/render/history.ts).
+  pushOverlay("map");
 }
 
 export function hideMap(): void {
   mapEl.hidden = true;
   document.body.classList.remove("map-open");
+  popOverlay("map");
 }
 
-// Panneau des étoiles : ouvert/fermé sans état persistant — un rendu le
-// reconstruit fermé, et c'est sans conséquence puisque le voile couvre onglets
-// et cases (aucun rendu ne peut donc survenir panneau ouvert). Les nœuds sont
-// relus à chaque appel : ceux du rendu précédent n'existent plus.
-function setStarsPanelOpen(open: boolean): void {
-  const chip = document.getElementById("map-stars-chip");
-  const panel = document.getElementById(
-    "map-stars-panel",
-  ) as HTMLElement | null;
-  const overlay = document.getElementById(
-    "map-stars-overlay",
-  ) as HTMLElement | null;
-  if (!chip || !panel || !overlay) return;
-  panel.hidden = !open;
-  overlay.hidden = !open;
-  chip.setAttribute("aria-expanded", String(open));
+// Panneau ouvert, ou null. Un rendu reconstruit tout fermé et remet cette clé à
+// null (cf. renderMap) : c'est sans conséquence puisque le voile couvre onglets
+// et cases, donc aucun rendu ne peut survenir panneau ouvert.
+let openPanel: string | null = null;
+
+// Un seul panneau à la fois : ouvrir ferme le précédent. Les nœuds sont relus à
+// chaque appel — ceux du rendu précédent n'existent plus — et une clé sans nœuds
+// est ignorée en silence (le compteur d'étoiles disparaît à zéro étoile).
+function setPanelOpen(key: string | null): void {
+  for (const k of [openPanel, key]) {
+    if (!k) continue;
+    const open = k === key;
+    const panel = document.getElementById(`map-panel-${k}`);
+    const overlay = document.getElementById(`map-overlay-${k}`);
+    if (!panel || !overlay) continue;
+    panel.hidden = !open;
+    overlay.hidden = !open;
+    mapEl
+      .querySelector(`[data-panel="${k}"]`)
+      ?.setAttribute("aria-expanded", String(open));
+  }
+  openPanel = key;
 }
 
 // Délégation unique sur #map : le contenu étant reconstruit à chaque rendu,
@@ -555,25 +718,39 @@ export function bindMap(
     const target = e.target as HTMLElement | null;
     if (!target) return;
 
-    // Le panneau des étoiles passe avant le reste : sa chip vit dans le header,
-    // et son voile intercepte de toute façon tout clic ailleurs.
-    if (target.closest("#map-stars-chip")) {
-      const panel = document.getElementById("map-stars-panel") as HTMLElement;
-      setStarsPanelOpen(panel.hidden as boolean);
+    // Les panneaux passent avant le reste : leurs déclencheurs vivent dans le
+    // header et dans les jalons, et leur voile intercepte de toute façon tout
+    // clic ailleurs.
+    //
+    // Tout ce qui consulte ou navigue sonne en secondaire ; ce qui ferme ou
+    // sort de l'écran sonne en fermeture ; seul le choix d'un niveau — le
+    // geste qui engage une partie — sonne en principal. Les éléments inertes
+    // (cases verrouillées, défis grisés) ne passent par aucune branche : ils
+    // restent muets, comme ils sont muets à l'écran.
+    const trigger = target.closest<HTMLElement>("[data-panel]");
+    if (trigger) {
+      const key = trigger.dataset.panel as string;
+      playSound(openPanel === key ? "ui-close" : "ui-secondary");
+      setPanelOpen(openPanel === key ? null : key);
       return;
     }
-    if (
-      target.closest("#map-stars-close") ||
-      target.closest("#map-stars-overlay")
-    ) {
-      setStarsPanelOpen(false);
+    if (target.closest(".diff-close") || target.closest(".diff-overlay")) {
+      playSound("ui-close");
+      setPanelOpen(null);
+      return;
+    }
+
+    if (target.closest("#map-home")) {
+      playSound("ui-close");
+      if (onHome) onHome();
       return;
     }
 
     const tab = target.closest<HTMLElement>("[data-mode]");
     if (tab) {
       const modeId = tab.dataset.mode as ModeId;
-      if (modeId === currentMode) return;
+      if (modeId === currentMode) return; // onglet déjà actif : rien, pas même un son
+      playSound("ui-secondary");
       saveLastMode(modeId);
       markModeSeen(modeId); // éteint la pastille « nouveau »
       renderMap(modeId);
@@ -582,17 +759,31 @@ export function bindMap(
     }
 
     const cell = target.closest<HTMLElement>("[data-level]");
-    if (cell && onSelect) onSelect(currentMode, cell.dataset.level as LevelId);
+    if (cell && onSelect) {
+      playSound("ui-primary");
+      onSelect(currentMode, cell.dataset.level as LevelId);
+    }
   });
-  // Échap ferme le panneau des étoiles, comme celui de la règle du jeu.
+  // Échap ferme le panneau ouvert, comme celui de la règle du jeu.
   document.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape") return;
-    const panel = document.getElementById(
-      "map-stars-panel",
-    ) as HTMLElement | null;
-    if (panel && !panel.hidden) setStarsPanelOpen(false);
+    if (e.key === "Escape" && openPanel) {
+      playSound("ui-close");
+      setPanelOpen(null);
+    }
   });
   // Le mode ouvert d'emblée compte comme vu (sinon sa pastille survivrait à sa
   // première visite).
   markModeSeen(currentMode);
+}
+
+// Retour à l'accueil. Séparé de bindMap comme bindMapReturn l'est du reste du
+// header de partie : c'est une sortie d'écran, pas un choix de niveau. Le clic
+// lui-même passe par la délégation ci-dessus — le header est reconstruit à
+// chaque rendu, la flèche n'a donc pas d'écouteur propre.
+export function bindMapHome(onReturn: () => void): void {
+  onHome = onReturn;
+  // Retour navigateur pendant que la carte est ouverte : même sortie que la
+  // flèche « retour à l'accueil » — la carte n'a qu'un seul sens de sortie,
+  // quel que soit le chemin par lequel on y est entré.
+  bindOverlayCloser("map", onReturn);
 }

@@ -6,9 +6,11 @@
 
 import { Application, Container, Graphics, Text } from "pixi.js";
 import type { PointData, TextStyle, Ticker } from "pixi.js";
+import { playSound } from "../audio/audio.ts";
 import { Camera } from "./camera.ts";
 import {
   CARD,
+  CARD_HOVER,
   CELL_GAP,
   CELL_SIZE,
   GHOST,
@@ -81,6 +83,13 @@ const SHAKE_AMP = 0.08; // amplitude de la secousse (fraction de la largeur d'un
 const SHAKE_MIN_PX = 6; // plancher écran (px) : garde la secousse perceptible très dézoomé
 const SHAKE_FREQ = 22; // pulsation de la secousse (rad/unité de temps normalisée)
 
+// prefers-reduced-motion : lu une fois à l'init de la scène (initScene). Coupe
+// la secousse de refus (déclencheur vestibulaire), rend le flash de refus
+// instantané (pas d'oscillation) et la distribution des cases sans vague ni
+// tassement animé. Le reste (pop, tampon, fondu fantôme) n'est pas concerné —
+// les confettis de victoire, eux, sont traités côté CSS (autre lot).
+let reducedMotion = false;
+
 let app: Application;
 /** Repère monde (transform caméra). */
 let world: Container;
@@ -115,14 +124,29 @@ function cellCenter(i: number): { x: number; y: number } {
   return { x: o.x + metrics.cell / 2, y: o.y + metrics.cell / 2 };
 }
 
+// Case survolée à la souris (desktop), avant tout tracé — état visuel
+// discret. Posée par input.ts (setHoverCell) sur globalpointermove quand
+// aucun geste n'est actif ; sans effet si la case est déjà disabled/head/sel
+// (cellState les fait passer avant).
+let hoverCell: number | null = null;
+
+export function setHoverCell(i: number | null): void {
+  if (hoverCell === i) return;
+  hoverCell = i;
+  repaintCells();
+}
+
 // État visuel d'une case : disabled (mot trouvé) > head (dernière du tracé) >
-// sel (dans le tracé) > normal. Les cases consommées sont inertes, jamais
-// dans le tracé.
-function cellState(i: number): "disabled" | "head" | "sel" | "normal" {
+// sel (dans le tracé) > hover (survolée, souris) > normal. Les cases
+// consommées sont inertes, jamais dans le tracé ni survolables.
+function cellState(
+  i: number,
+): "disabled" | "head" | "sel" | "hover" | "normal" {
   if (state.usedCells.has(i)) return "disabled";
   const path = state.path;
   if (path.length && i === path[path.length - 1]) return "head";
   if (path.includes(i)) return "sel";
+  if (i === hoverCell) return "hover";
   return "normal";
 }
 
@@ -144,6 +168,13 @@ function paintCell(i: number): void {
       fill = PAPER;
       stroke = LINE;
       textFill = GHOST;
+      break;
+    case "hover":
+      // Même surface que le repos, survolée (card-hover) : filet et lettre
+      // inchangés, comme .map-cell:hover (map.css) — seul le fond bouge.
+      fill = CARD_HOVER;
+      stroke = INK;
+      textFill = INK;
       break;
     default:
       fill = CARD;
@@ -313,8 +344,10 @@ export function updateSelection(): void {
 
 // --- Animations ------------------------------------------------------------
 
-// « Pop » : la case qui rejoint la tête du tracé rebondit brièvement.
-function popCell(i: number): void {
+// « Pop » : la case qui rejoint la tête du tracé rebondit brièvement. Exportée
+// pour être rejouée en miroir sur la case qui QUITTE le tracé (backtrack,
+// input.ts) — rejoindre et quitter se lisent par le même geste.
+export function popCell(i: number): void {
   tween({
     id: `cell-${i}`,
     duration: POP_MS,
@@ -329,6 +362,14 @@ function popCell(i: number): void {
 // euclidienne, plus un micro-jitter déterministe qui casse le lockstep.
 function dealCells(): void {
   prevPathLen = 0;
+  if (reducedMotion) {
+    // Distribution instantanée : pas de vague, pas de tassement animé.
+    for (let i = 0; i < cellCount; i++) {
+      cellBgs[i].tint = 0xffffff; // efface un éventuel flash en cours
+      setCellTransform(i, 1, 1);
+    }
+    return;
+  }
   const norm = Math.hypot(rows - 1, cols - 1) || 1;
   for (let i = 0; i < cellCount; i++) {
     cellBgs[i].tint = 0xffffff; // efface un éventuel flash en cours
@@ -350,6 +391,14 @@ function dealCells(): void {
 // « Flash » de refus : les cases du tracé virent au vermillon puis reviennent
 // (tint multiplicatif : les fonds clairs prennent la teinte, le noir résiste).
 export function flashPath(indices: number[]): void {
+  if (reducedMotion) {
+    // Teinte instantanée, sans oscillation animée : un aller-retour net.
+    for (const i of indices) cellBgs[i].tint = VERMILION;
+    setTimeout(() => {
+      for (const i of indices) cellBgs[i].tint = 0xffffff;
+    }, FLASH_MS);
+    return;
+  }
   for (const i of indices) {
     tween({
       id: `flash-${i}`,
@@ -394,6 +443,7 @@ let shakeElapsed = 0;
 let shaking = false;
 
 export function shakeGrid(): void {
+  if (reducedMotion) return; // secousse désactivée (déclencheur vestibulaire)
   shakeElapsed = 0;
   shaking = true;
 }
@@ -422,8 +472,11 @@ export function renderUsedCells(): void {
 // --- Hit-test / accès stage (pour input.ts) --------------------------------
 
 // Case sous un point écran (Point global d'un event fédéré), ou null.
-// Conversion écran→monde via world.toLocal, puis tolérance rayon cell/2
-// autour du centre de la case la plus proche (reprise de la logique DOM).
+// Conversion écran→monde via world.toLocal, puis tolérance carrée pitch/2
+// autour du centre de la case la plus proche : un test au rayon cell/2 (le
+// disque inscrit dans la case) laisse ~21,5 % de zone morte aux quatre coins.
+// Le carré pitch/2 couvre les coins ET la moitié du gap inter-cases de chaque
+// côté — la moitié restante revient symétriquement à la case voisine.
 export function cellAtGlobal(global: PointData): number | null {
   if (!world) return null;
   const p = world.toLocal(global);
@@ -432,7 +485,11 @@ export function cellAtGlobal(global: PointData): number | null {
   if (col < 0 || col >= cols || row < 0 || row >= rows) return null;
   const cx = col * metrics.pitch + metrics.cell / 2;
   const cy = row * metrics.pitch + metrics.cell / 2;
-  if (Math.hypot(p.x - cx, p.y - cy) > metrics.cell / 2) return null;
+  if (
+    Math.abs(p.x - cx) > metrics.pitch / 2 ||
+    Math.abs(p.y - cy) > metrics.pitch / 2
+  )
+    return null;
   return row * cols + col;
 }
 
@@ -484,7 +541,10 @@ function buildZoomControls(): void {
     btn.appendChild(icon);
     btn.title = title;
     btn.setAttribute("aria-label", title);
-    btn.addEventListener("click", onClick);
+    btn.addEventListener("click", () => {
+      playSound("ui-secondary");
+      onClick();
+    });
     bar.appendChild(btn);
   };
 
@@ -510,6 +570,7 @@ function buildZoomControls(): void {
  * toute partie. Attend les polices pour éviter des lettres en fallback.
  */
 export async function initScene(): Promise<void> {
+  reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   app = new Application();
   await app.init({
     resizeTo: window,
@@ -570,9 +631,15 @@ export async function initScene(): Promise<void> {
 
   // Resize : recalcule baseScale (caméra) puis regrave la grille à la nouvelle
   // taille native (le zoom max reste ~ZOOM_MAX_CELLS cases, texte net).
+  // Débounce léger : évite un relayout complet (25 Text) à chaque pixel d'un
+  // redimensionnement continu (barre latérale tirée, rotation d'écran…).
+  let resizeTimer: ReturnType<typeof setTimeout> | undefined;
   app.renderer.on("resize", () => {
-    camera.resize();
-    relayout();
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      camera.resize();
+      relayout();
+    }, 120);
   });
 
   // Secousse de refus : offset écran ajouté chaque frame après le clamp caméra.

@@ -21,6 +21,7 @@ import maximizeSvg from "../assets/icons/maximize.svg?raw";
 import minusSvg from "../assets/icons/minus.svg?raw";
 import plusSvg from "../assets/icons/plus.svg?raw";
 import starSvg from "../assets/icons/star.svg?raw";
+import volumeSvg from "../assets/icons/volume-2.svg?raw";
 import xSvg from "../assets/icons/x.svg?raw";
 
 // Parsé une fois : chaque icône posée n'est qu'un clone du nœud modèle.
@@ -41,6 +42,7 @@ const ARROW_LEFT = template(arrowLeftSvg, "icon-arrow-left");
 const CLOSE = template(xSvg, "icon-close");
 const CHEVRON = template(chevronRightSvg, "icon-chevron");
 const INFO = template(infoSvg, "icon-info");
+const VOLUME = template(volumeSvg, "icon-volume");
 const PLUS = template(plusSvg, "icon-plus");
 const MINUS = template(minusSvg, "icon-minus");
 const MAXIMIZE = template(maximizeSvg, "icon-maximize");
@@ -76,6 +78,12 @@ export function chevronIcon(): SVGSVGElement {
 // Règle du jeu : le bouton qui l'ouvre, dans le header de partie.
 export function infoIcon(): SVGSVGElement {
   return INFO.cloneNode(true) as SVGSVGElement;
+}
+
+// Réglages sonores : le déclencheur du panneau dans le header de partie (sur
+// l'accueil, le bouton SONS parle en toutes lettres).
+export function volumeIcon(): SVGSVGElement {
+  return VOLUME.cloneNode(true) as SVGSVGElement;
 }
 
 // Les trois boutons de la caméra (src/render/scene.ts).
