@@ -1,7 +1,7 @@
 // Données de niveaux : import STATIQUE des 4 JSON prégénérés (doc 01 §
 // « Données de niveaux »). Plus de fetch runtime ni de cache de promesses
 // (l'ancien game/level-loader.ts a disparu) : les 288 niveaux sont inline
-// dans le bundle, aussi bien logic.js (124 Ko, 12 % de la limite de 1 Mo)
+// dans le bundle, aussi bien logic.js (153 Ko, ~15 % de la limite de 1 Mo)
 // que client.js — les deux sont générés du même source au même build, donc
 // aucun risque de dérive entre ce que la logic valide et ce que le client
 // affiche.

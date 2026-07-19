@@ -99,8 +99,8 @@
 /* Lien d'un panneau vers un écran entier : le panneau règle en pose un vers
    « Comment jouer » (src/render/render.ts), pour revoir le tutoriel sans
    ressortir deux fois de l'écran. Secondaire mais tokenisé — surface carte,
-   filet standard, mono capitale (label-caps), inversion au survol — dans le même
-   idiome que .home-levels / .status-retry, sans apparence native. */
+   filet standard, mono capitale (label-caps), inversion au survol — même
+   idiome que les autres boutons secondaires de l'app, sans apparence native. */
 .panel-link {
   display: block;
   width: 100%;

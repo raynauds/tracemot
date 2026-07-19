@@ -102,11 +102,15 @@ export interface WordRace {
 // PRINCIPAL : `rollbacks` (doc api rune-sdk — les actions optimistes de CE
 // client invalidées à ce tick) porte un `submitWord` de ma part, donc ma
 // soumission a perdu la course. Diff de `found` en FILET pour retrouver
-// l'identité du gagnant : la première entrée fraîchement confirmée qui n'est
-// pas de moi, parmi celles apparues entre `previousGame` et `game` — une
-// hypothèse raisonnable tant qu'une seule course a lieu par tick, ce qui est
-// le cas courant (deux mots distincts validés au même tick ne se
-// « percutent » pas, ils s'ajoutent simplement tous les deux à `found`).
+// l'identité du gagnant : la première entrée de `game.found` absente de
+// `previousGame.found` (comparée par CONTENU — mot/auteur/tracé — jamais par
+// index) qui n'est pas de moi. Comparer par contenu plutôt que par longueur
+// couvre aussi le cas où `previousGame` reflétait déjà MA prédiction optimiste
+// (même longueur des deux côtés : mon entrée prédite est simplement remplacée
+// par celle du gagnant) — une hypothèse raisonnable tant qu'une seule course a
+// lieu par tick, ce qui est le cas courant (deux mots distincts validés au
+// même tick ne se « percutent » pas, ils s'ajoutent simplement tous les deux à
+// `found`).
 export function wordRaceLost(
   game: RuneGameState,
   previousGame: RuneGameState,
@@ -118,9 +122,13 @@ export function wordRaceLost(
     (r) => r.name === "submitWord" && r.playerId === yourPlayerId,
   );
   if (!lostSubmit) return null;
-  for (let i = previousGame.found.length; i < game.found.length; i++) {
-    const entry = game.found[i];
-    if (entry.by !== yourPlayerId) return { winner: entry.by, word: entry.word };
+  const before = new Set(
+    previousGame.found.map((f) => `${f.word}|${f.by}|${f.path.join(",")}`),
+  );
+  for (const entry of game.found) {
+    if (entry.by === yourPlayerId) continue;
+    const key = `${entry.word}|${entry.by}|${entry.path.join(",")}`;
+    if (!before.has(key)) return { winner: entry.by, word: entry.word };
   }
   return null;
 }

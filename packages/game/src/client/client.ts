@@ -139,7 +139,24 @@ function yourOwnProgress(game: Game): Game["sharedProgress"] {
 
 // --- Écran carte -------------------------------------------------------------
 
+// Annule l'affichage différé de l'écran de victoire (handleWon, plus bas) :
+// une victoire peut survenir alors qu'une proposition (abandon, ou tout autre
+// niveau) est déjà en cours d'acceptation — submitWord/applyVictory n'a aucune
+// garde sur `game.proposal` — et atteindre l'unanimité DANS la fenêtre de
+// WIN_DELAY_MS, faisant basculer phase 'playing'→'map' avant l'échéance du
+// timer. Sans cette annulation, celui-ci peindrait l'écran de victoire
+// PAR-DESSUS la carte (ou la manche suivante) à son échéance. Appelée par les
+// deux transitions d'écran (carte et partie), à l'image de rejectTimer
+// (render.ts § renderNewGame).
+function clearWinTimer(): void {
+  if (local.winTimer !== null) {
+    clearTimeout(local.winTimer);
+    local.winTimer = null;
+  }
+}
+
 function enterMapScreen(game: Game): void {
+  clearWinTimer();
   local.screen = "map";
   local.ready = false;
   cancelAllGestures();
@@ -178,6 +195,7 @@ function winRenderOpts(game: Game): Parameters<typeof renderWin>[0] {
 // qu'il a manquées) et l'écran de victoire, si la manche est déjà gagnée,
 // apparaît sans délai.
 function enterGameScreen(game: Game): void {
+  clearWinTimer();
   local.screen = "game";
   cancelAllGestures();
   // Un geste en vol référencerait l'ancienne grille (la géométrie change d'un
@@ -198,7 +216,11 @@ function enterGameScreen(game: Game): void {
   hideMap();
   if (game.won) {
     renderWin(winRenderOpts(game));
-  } else {
+  } else if (yourPlayerId) {
+    // Spectateur (yourPlayerId indéfini) : jamais d'écran « Comment jouer »
+    // automatique — `setHelpSeen` n'est jamais dispatché pour lui (bindHelp
+    // onSeen, plus bas), donc `helpSeen` resterait éternellement faux et
+    // l'overlay reviendrait à chaque reconstruction/manche.
     showHelpOnFirstPlay(yourPersisted(game).helpSeen ?? false);
   }
 }

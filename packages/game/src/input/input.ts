@@ -311,8 +311,11 @@ function onPointerDown(e: FederatedPointerEvent) {
     return;
   }
 
-  // 1er pointeur : bouton du milieu → pan ; sinon on tente le tracé.
-  if (e.button !== 1 && local.ready && !local.won) {
+  // 1er pointeur : bouton du milieu → pan ; sinon on tente le tracé — jamais
+  // pour un spectateur (local.yourPlayerId indéfini, doc 02 § fin) : sans
+  // effet réseau (publisher/commitWord déjà gardés côté client.ts), mais
+  // autant ne pas laisser un tracé fantôme se peindre localement pour lui.
+  if (e.button !== 1 && local.ready && !local.won && local.yourPlayerId !== undefined) {
     const idx = cellAtGlobal(e.global);
     if (idx !== null && !usedCells().has(idx)) {
       beginTrace(e, idx);

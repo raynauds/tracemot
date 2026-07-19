@@ -90,8 +90,10 @@ export interface LocalState {
   /** Timeout d'effacement du dernier mot refusé (client-only, doc 01). */
   rejectTimer: number | null;
   /** Timeout d'affichage différé de l'écran de victoire (WIN_DELAY_MS,
-   *  game/config.ts) — annulé si une nouvelle manche démarre avant qu'il ne
-   *  se déclenche (rejeu du même niveau pendant le délai). */
+   *  game/config.ts) — annulé (client/client.ts § clearWinTimer) à toute
+   *  transition d'écran survenant avant son échéance : nouvelle manche
+   *  (rejeu du même niveau) ou retour carte (p. ex. un abandon voté à
+   *  l'unanimité pendant la fenêtre de délai). */
   winTimer: number | null;
 }
 
