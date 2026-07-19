@@ -103,12 +103,14 @@
 }
 
 /* Bouton standard de l'app (button-action, DESIGN.md) : surface carte, filet
-   encre, mono — inversion encre/papier au survol/appui. Les deux réponses du
-   prompt (PRÊT ?/PAS MAINTENANT) sont symétriques : ni l'une ni l'autre n'est
-   LE bouton primaire de l'écran (le vermillon reste réservé à la victoire). */
+   encre, mono — inversion encre/papier au survol/appui. Le refus (à gauche)
+   garde cette forme neutre ; l'acceptation (à droite, is-primary) est pleine :
+   vermillon pour un démarrage (is-start), encre pour un abandon — le
+   vermillon dit un mérite partout ailleurs, il ne doit jamais colorer une
+   action destructive. */
 .lobby-btn {
   flex: 1;
-  padding: 12px;
+  padding: 14px 12px;
   background: var(--card);
   border: var(--rule-standard);
   color: var(--ink);
@@ -119,16 +121,45 @@
   cursor: pointer;
 }
 
+.lobby-btn.is-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.lobby-btn.is-primary.is-start {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+}
+
 @media (hover: hover) {
   .lobby-btn:hover {
     background: var(--ink);
     color: var(--paper);
+  }
+  .lobby-btn.is-primary:hover {
+    background: color-mix(in srgb, var(--ink) 82%, var(--paper));
+    border-color: color-mix(in srgb, var(--ink) 82%, var(--paper));
+  }
+  .lobby-btn.is-primary.is-start:hover {
+    background: color-mix(in srgb, var(--vermilion) 85%, var(--ink));
+    border-color: color-mix(in srgb, var(--vermilion) 85%, var(--ink));
   }
 }
 
 .lobby-btn:active {
   background: var(--ink);
   color: var(--paper);
+}
+
+.lobby-btn.is-primary:active {
+  background: color-mix(in srgb, var(--ink) 82%, var(--paper));
+  border-color: color-mix(in srgb, var(--ink) 82%, var(--paper));
+}
+
+.lobby-btn.is-primary.is-start:active {
+  background: color-mix(in srgb, var(--vermilion) 85%, var(--ink));
+  border-color: color-mix(in srgb, var(--vermilion) 85%, var(--ink));
 }
 
 

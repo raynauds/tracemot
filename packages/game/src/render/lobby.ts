@@ -3,7 +3,7 @@
 // proposition (et tout joueur qui a déjà répondu, `proposal.accepted` en
 // atteste) voit l'attente des autres ; ceux qui n'ont pas encore répondu (y
 // compris un joueur qui vient de rejoindre en pleine proposition, doc 04 §
-// Q12b) voient le prompt PRÊT ?/PAS MAINTENANT. Posable par-dessus n'importe
+// Q12b) voient le prompt accepter/refuser. Posable par-dessus n'importe
 // quel écran local (carte, partie, victoire) : le voile couvre tout
 // (src/render/lobby.css, z-index au-dessus de map/win).
 //
@@ -63,16 +63,32 @@ function levelDescription(proposal: Proposal): string {
     : "";
 }
 
+// Wordings et hiérarchie par cas (doc 04 § UI) : le bouton qui ACCEPTE la
+// proposition énonce l'action déclenchée (jamais une question) et se place à
+// droite en primaire — vermillon pour un démarrage (action attendue,
+// positive), encre pour un abandon (destructif : surtout pas le vermillon,
+// qui dit un mérite partout ailleurs). Le refus reste à gauche en bouton
+// neutre ; pour l'abandon il nomme la voie sûre (« CONTINUER LA PARTIE »).
 function buildPrompt(proposal: Proposal): void {
   cardEl.textContent = "";
-  cardEl.setAttribute("aria-label", Rune.t("Proposition de niveau"));
-  cardEl.appendChild(el("span", "lobby-title", Rune.t("PROPOSITION")));
+  const isAbandon = proposal.kind === "abandon";
+  cardEl.setAttribute(
+    "aria-label",
+    isAbandon ? Rune.t("Proposition de départ") : Rune.t("Proposition de niveau"),
+  );
+  cardEl.appendChild(
+    el(
+      "span",
+      "lobby-title",
+      isAbandon ? Rune.t("QUITTER LA PARTIE") : Rune.t("PROPOSITION"),
+    ),
+  );
 
   const line = el("p", "lobby-line");
   line.appendChild(avatar(proposal.proposedBy));
   const who = playerName(proposal.proposedBy);
-  if (proposal.kind === "abandon") {
-    line.append(Rune.t("{{who}} propose d'abandonner la partie", { who }));
+  if (isAbandon) {
+    line.append(Rune.t("{{who}} propose de quitter la partie", { who }));
   } else {
     line.append(Rune.t("{{who}} propose ", { who }));
     line.appendChild(el("strong", undefined, levelDescription(proposal)));
@@ -80,19 +96,27 @@ function buildPrompt(proposal: Proposal): void {
   cardEl.appendChild(line);
 
   const actions = el("div", "lobby-actions");
-  const accept = el("button", "lobby-btn", Rune.t("PRÊT ?"));
-  accept.type = "button";
-  accept.addEventListener("click", () => {
-    playSound("ui-primary");
-    onAccept?.();
-  });
-  const refuse = el("button", "lobby-btn", Rune.t("PAS MAINTENANT"));
+  const refuse = el(
+    "button",
+    "lobby-btn",
+    isAbandon ? Rune.t("CONTINUER LA PARTIE") : Rune.t("PAS MAINTENANT"),
+  );
   refuse.type = "button";
   refuse.addEventListener("click", () => {
     playSound("ui-close");
     onRefuse?.();
   });
-  actions.append(accept, refuse);
+  const accept = el(
+    "button",
+    `lobby-btn is-primary${isAbandon ? "" : " is-start"}`,
+    isAbandon ? Rune.t("QUITTER") : Rune.t("PRÊT !"),
+  );
+  accept.type = "button";
+  accept.addEventListener("click", () => {
+    playSound("ui-primary");
+    onAccept?.();
+  });
+  actions.append(refuse, accept);
   cardEl.appendChild(actions);
 }
 
@@ -107,7 +131,7 @@ function buildWaiting(
 
   const line = el("p", "lobby-line");
   if (proposal.kind === "abandon") {
-    line.append(Rune.t("Abandon proposé"));
+    line.append(Rune.t("Départ proposé"));
   } else {
     line.append(Rune.t("Niveau proposé : "));
     line.appendChild(el("strong", undefined, levelDescription(proposal)));
