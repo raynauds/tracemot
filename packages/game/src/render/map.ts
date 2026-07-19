@@ -19,7 +19,6 @@
 
 import {
   DEFAULT_MODE,
-  DIFFICULTY_LABELS,
   GAME_MODES,
   defiMode,
   type ModeId,
@@ -34,8 +33,9 @@ import {
   levelId,
 } from "@tracemot/core";
 import { playSound } from "../audio/audio.ts";
+import type { ColorSlot, PlayerId } from "../logic/types.ts";
 import { checkIcon, closeIcon, starIcon } from "./icons.ts";
-import { countParam } from "./i18n.ts";
+import { countParam, difficultyDesc, difficultyName } from "./i18n.ts";
 import {
   cellState,
   emptyProgressByMode,
@@ -77,6 +77,18 @@ let currentProgress: ProgressByMode = emptyProgressByMode();
 // room » (currentProgress ∈ {active, validated} et celle-ci non) — jamais
 // utilisée pour peindre l'accès lui-même, seulement pour ce badge.
 let currentOwnProgress: ProgressByMode = emptyProgressByMode();
+
+// Joueurs de la room, pour la rangée d'avatars du header (buildRoster). Même
+// contrat que la progression : fourni à chaque showMap, mis en cache pour les
+// rendus internes (clic d'onglet). `slot` indéfini = pas de teinte (joueur
+// sans slot connu) ; `you` = moi (« Moi », jamais mon nom ni ma couleur,
+// doc 06).
+export interface MapPlayer {
+  id: PlayerId;
+  you: boolean;
+  slot: ColorSlot | undefined;
+}
+let currentRoster: MapPlayer[] = [];
 
 // Un badge « grâce à la room » est-il apparu QUELQUE PART sur ce rendu ? Sert
 // à n'ajouter l'entrée de légende que si elle sert à quelque chose sur cet
@@ -170,8 +182,9 @@ function foldMark(): HTMLElement {
 function buildTabs(): HTMLElement {
   const nav = el("nav", "map-tabs");
   nav.setAttribute("aria-label", Rune.t("Mode de jeu"));
-  // Il y a au plus un onglet verrouillé (cf. visibleModes) : son panneau se pose
-  // en fin de barre, qui l'ancre. Le mettre dans l'onglet est impossible — un
+  // Deux onglets sont interrogeables : l'actif (ses caractéristiques) et
+  // l'éventuel verrouillé (ce qu'il faut pour l'ouvrir — au plus un, cf.
+  // visibleModes). Leurs panneaux se posent en fin de barre, qui les ancre : un
   // panneau ne peut pas vivre dans un <button>.
   let lockedTab: ModeId | null = null;
   for (const modeId of visibleModes(currentProgress)) {
@@ -199,15 +212,26 @@ function buildTabs(): HTMLElement {
       lockedTab = modeId;
     } else {
       tab.dataset.mode = modeId;
-      if (modeId === currentMode) {
-        tab.classList.add("is-active");
-        tab.setAttribute("aria-current", "true");
-      }
       if (modeViaRoom) {
         tab.classList.add("is-shared");
         tab.setAttribute(
           "aria-label",
           Rune.t("Mode {{mode}}, débloqué grâce à la room", {
+            mode: modeLabel(modeId),
+          }),
+        );
+      }
+      if (modeId === currentMode) {
+        tab.classList.add("is-active");
+        tab.setAttribute("aria-current", "true");
+        // L'onglet actif n'emmène nulle part (on y est) : il devient
+        // interrogeable, comme le verrouillé — il dit ce qu'on y joue. Posé
+        // après le libellé « via la room », qui cède : l'affordance du panneau
+        // prime sur la provenance (le badge visuel, lui, reste).
+        asPanelTrigger(tab, `mode-${modeId}`);
+        tab.setAttribute(
+          "aria-label",
+          Rune.t("Mode {{mode}}, sélectionné — ses caractéristiques", {
             mode: modeLabel(modeId),
           }),
         );
@@ -223,27 +247,31 @@ function buildTabs(): HTMLElement {
     }
     nav.appendChild(tab);
   }
-  if (lockedTab) nav.appendChild(buildLockedModePanel(lockedTab));
+  if (lockedTab) nav.appendChild(buildModePanel(lockedTab));
+  nav.appendChild(buildModePanel(currentMode));
   return nav;
 }
 
-// Ce que dit un mode verrouillé : d'abord ce qu'il faut pour l'ouvrir, ensuite
-// ce qu'on y trouvera. Le mode qui tient le verrou est NOMMÉ — c'est le
-// précédent, pas forcément celui qu'on regarde (cf. gateModeOf).
-function buildLockedModePanel(modeId: ModeId): DocumentFragment {
-  const gate = gateModeOf(modeId);
-  const missing = starsMissingForMode(currentProgress, modeId);
+// Ce que dit un mode : verrouillé, d'abord ce qu'il faut pour l'ouvrir, ensuite
+// ce qu'on y trouvera ; sélectionné (donc débloqué), ses caractéristiques
+// seules — le verrou n'a plus rien à dire. Le mode qui tient le verrou est
+// NOMMÉ — c'est le précédent, pas forcément celui qu'on regarde (cf.
+// gateModeOf).
+function buildModePanel(modeId: ModeId): DocumentFragment {
   const lines: (string | HTMLElement)[] = [];
   // Même phrase que pour une difficulté verrouillée — un seul verrou, une seule
   // formulation —, au mode gardien près : c'est le PRÉCÉDENT qui tient la porte,
   // pas forcément celui qu'on regarde, il faut donc le nommer.
-  if (gate) {
-    lines.push(
-      missingStarsLine(
-        missing,
-        Rune.t("ce mode (en {{mode}})", { mode: modeLabel(gate) }),
-      ),
-    );
+  if (!isModeUnlocked(currentProgress, modeId)) {
+    const gate = gateModeOf(modeId);
+    if (gate) {
+      lines.push(
+        missingStarsLine(
+          starsMissingForMode(currentProgress, modeId),
+          Rune.t("ce mode (en {{mode}})", { mode: modeLabel(gate) }),
+        ),
+      );
+    }
   }
   const m = GAME_MODES[modeId];
   lines.push(
@@ -281,8 +309,9 @@ function starsLines(): string[] {
 }
 
 // Voile + panneau : le composant partagé du header de partie
-// (src/render/panel.css), réemployé tel quel. La carte en pose trois — le
-// compteur d'étoiles, chaque jalon de difficulté, le mode verrouillé —, d'où
+// (src/render/panel.css), réemployé tel quel. La carte en pose plusieurs — le
+// compteur d'étoiles, chaque jalon de difficulté, le mode sélectionné et
+// l'éventuel verrouillé —, d'où
 // une fabrique : un élément qui nomme un palier s'explique quand on le touche,
 // et toujours de la même façon.
 //
@@ -367,37 +396,49 @@ function buildStars(p: ModeProgress): HTMLElement | null {
   return box;
 }
 
-// La carte est désormais le PREMIER écran (doc 08 § Q21a : l'accueil disparaît,
-// « pas de menu ») : son bouton REPRENDRE migre ici, en tête de carte — le
-// raccourci le plus court vers le jeu, sans passer par les onglets ni les
-// cases. Absent quand il n'y a plus rien à reprendre nulle part (tout validé).
-//
-// Le point de reprise est calculé sur l'onglet AFFICHÉ (currentMode) : c'est le
-// même rôle que jouait `lastMode` pour l'ancien accueil (« le dernier mode
-// consulté »), currentMode EST ce mode ici — pas un second concept à tenir
-// d'accord avec lui.
-function buildResumeButton(): HTMLElement | null {
-  const resume = resumePoint(currentProgress, currentMode);
-  if (!resume) return null;
-  const button = el("button", "map-resume", Rune.t("REPRENDRE"));
-  button.type = "button";
-  button.dataset.resumeMode = resume.modeId;
-  button.dataset.resumeLevel = resume.id;
-  return button;
+// Rangée des joueurs de la room : la carte est le premier écran d'un jeu
+// MULTIJOUEUR, elle montre qui est là. Avatar Rune + nom, dans l'ordre de
+// `game.playerIds` ; moi sans mon nom Rune (« Moi », comme le classement,
+// doc 06) et jamais ma couleur de slot — les autres portent leur teinte
+// d'encre via owner-N (cf. map.css). Purement informatif : aucun clic.
+function buildRoster(): HTMLElement | null {
+  if (currentRoster.length === 0) return null;
+  const box = el("div", "map-roster");
+  box.setAttribute("aria-label", Rune.t("Joueurs de la room"));
+  for (const player of currentRoster) {
+    const accent = player.you
+      ? " is-you"
+      : player.slot !== undefined
+        ? ` owner-${player.slot}`
+        : "";
+    const item = el("span", `map-roster-player${accent}`);
+    const info = Rune.getPlayerInfo(player.id);
+    const img = el("img", "map-roster-avatar");
+    img.src = info.avatarUrl;
+    img.alt = "";
+    item.appendChild(img);
+    item.appendChild(
+      el(
+        "span",
+        "map-roster-name",
+        player.you ? Rune.t("Moi") : info.displayName,
+      ),
+    );
+    box.appendChild(item);
+  }
+  return box;
 }
 
 // Sans marque : le jeu ne se nomme nulle part sur la carte (src/theme/
 // DESIGN.md — un logo n'a rien à faire dans le premier écran d'un jeu Rune).
-// Reprendre et les onglets ouvrent donc le header — d'où l'on reprend, ce
-// qu'on regarde —, le compteur d'étoiles le ferme.
+// Les onglets ouvrent le header — ce qu'on regarde —, les joueurs de la room
+// et le compteur d'étoiles le ferment.
 function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
-  const left = el("div", "map-header-left");
-  const resume = buildResumeButton();
-  if (resume) left.appendChild(resume);
-  left.appendChild(buildTabs());
-  head.appendChild(left);
+  head.appendChild(buildTabs());
   head.appendChild(el("div", "map-spring"));
+  const roster = buildRoster();
+  if (roster) head.appendChild(roster);
   const stars = buildStars(p);
   if (stars) head.appendChild(stars);
   return head;
@@ -479,33 +520,6 @@ function defiSub(modeId: ModeId, locked: boolean): string {
     : sub;
 }
 
-// Seul le défi verrouillé (« disabled », donc à 4/5) a une légende. Ouvert ou
-// gagné, il n'en a pas : le relief du bouton dit déjà qu'on peut le lancer, et
-// l'étoile pleine qu'il est gagné. Le répéter en toutes lettres n'ajoute rien.
-//
-// Verrouillé, elle ne dit plus une injonction générique (« terminez la
-// ligne ») mais la progression déjà faite dans la ligne. Elle n'en porte que la
-// DERNIÈRE marche (4/5) : la case défi n'ayant l'état « disabled » qu'au moment
-// où le dernier normal devient jouable, ses quatre prédécesseurs sont déjà
-// validés ici. Les marches précédentes (0→3/5) reviennent au teaser
-// (buildDefiProgress), tant que le défi n'existe pas encore comme case.
-// Partagée par defiCaption et buildDefiProgress (même phrase, deux endroits) :
-// un seul appel Rune.t() à tenir à jour.
-function beforeDefiCaption(doneInRow: number): string {
-  return Rune.t("{{done}}/{{total}} avant le défi", {
-    done: String(doneInRow),
-    total: String(ROW_LENGTH),
-  });
-}
-
-function defiCaption(
-  state: Exclude<CellState, "hidden">,
-  doneInRow: number,
-): string | null {
-  if (state !== "disabled") return null;
-  return beforeDefiCaption(doneInRow);
-}
-
 // Le défi porte l'étoile qu'il met en jeu, et son remplissage EST le score :
 // creuse tant qu'elle reste à prendre, pleine une fois gagnée. Même signe que
 // dans les jalons de section — un joueur n'a qu'une lecture à apprendre.
@@ -521,7 +535,6 @@ function buildDefi(
   row: Row,
   state: Exclude<CellState, "hidden">,
   variant: "card" | "band",
-  doneInRow: number,
   viaRoom = false,
 ): HTMLElement {
   const key = defiOfRow(row);
@@ -538,8 +551,6 @@ function buildDefi(
   texts.appendChild(
     el("span", "map-defi-sub", defiSub(modeId, state === "disabled")),
   );
-  const caption = defiCaption(state, doneInRow);
-  if (caption) texts.appendChild(el("span", "map-defi-caption", caption));
   defi.appendChild(texts);
 
   // Validé, le défi prend la coche des cases, au même coin : deux niveaux gagnés
@@ -553,7 +564,7 @@ function buildDefi(
   // Trois défis par section, tous de la même difficulté : la clé A/B/C est ce
   // qui les distingue à l'oreille d'un lecteur d'écran.
   const name = Rune.t("Défi {{name}} {{key}}", {
-    name: DIFFICULTY_LABELS[s].name,
+    name: difficultyName(s),
     key,
   });
   // Badge neutre « grâce à la room » (doc 03/06 § Q9), même règle que les
@@ -579,28 +590,12 @@ function buildDefi(
   return defi;
 }
 
-// Peint À LA PLACE du défi tant qu'il reste caché (doneInRow 0→3) : la case défi
-// n'a d'état « disabled » — le seul qui porte une légende (cf. defiCaption) —
-// qu'à 4/5, quand le dernier normal de la ligne devient jouable. Sans ce teaser,
-// aucune des quatre premières victoires de la ligne ne se lirait sur la carte.
-//
-// Il garde aussi la colonne du défi occupée (même empreinte que .map-defi--card)
-// pour que les lignes restent alignées, et se décline en carte (desktop) et
-// bandeau (mobile) comme le défi. Muet pour le lecteur d'écran : les cases
-// disent déjà leur état une à une, ceci n'est qu'un rappel visuel.
-function buildDefiProgress(
-  doneInRow: number,
-  variant: "card" | "band",
-): HTMLElement {
-  const node = el("div", `map-defi map-defi--${variant} is-teaser`);
-  node.setAttribute("aria-hidden", "true");
-  node.appendChild(el("span", "map-defi-caption", beforeDefiCaption(doneInRow)));
-  return node;
-}
-
 // Une ligne = ses 5 normaux PUIS son défi (carte desktop + bandeau mobile).
-// Le bandeau n'est rendu que si le défi est visible : sur mobile, un
-// placeholder pleine largeur creuserait un trou dans la carte.
+// Défi caché : pas de compte à rebours — la surprise se garde, la progression
+// se lit déjà sur les cases elles-mêmes (le prochain niveau « disabled »).
+// Seule reste une carte invisible (desktop) qui tient la colonne pour
+// l'alignement ; sur mobile, un bandeau pleine largeur creuserait un trou
+// dans la carte, on n'en rend pas.
 function buildRow(
   modeId: ModeId,
   p: ModeProgress,
@@ -612,11 +607,9 @@ function buildRow(
   const own = currentOwnProgress[modeId];
   const node = el("div", "map-row");
   const grid = el("div", "map-grid");
-  let doneInRow = 0;
   for (let i = 1; i <= ROW_LENGTH; i++) {
     const n = (row - 1) * ROW_LENGTH + i;
     const id = levelId(s, n);
-    if (id in p.validated) doneInRow++;
     const shared = viaRoom(p, own, id);
     if (shared) anySharedBadge = true;
     grid.appendChild(buildCell(id, n, cellState(p, id), shared));
@@ -626,15 +619,14 @@ function buildRow(
   const defiLevelId = defiId(s, defiOfRow(row));
   const state = cellState(p, defiLevelId);
   if (state === "hidden") {
-    // Défi encore caché : la colonne porte le compte des victoires de la ligne,
-    // dans les deux enveloppes comme le défi lui-même (cf. buildDefiProgress).
-    node.appendChild(buildDefiProgress(doneInRow, "card"));
-    node.appendChild(buildDefiProgress(doneInRow, "band"));
+    const placeholder = el("div", "map-defi map-defi--card is-hidden");
+    placeholder.setAttribute("aria-hidden", "true");
+    node.appendChild(placeholder);
   } else {
     const shared = viaRoom(p, own, defiLevelId);
     if (shared) anySharedBadge = true;
-    node.appendChild(buildDefi(modeId, s, row, state, "card", doneInRow, shared));
-    node.appendChild(buildDefi(modeId, s, row, state, "band", doneInRow, shared));
+    node.appendChild(buildDefi(modeId, s, row, state, "card", shared));
+    node.appendChild(buildDefi(modeId, s, row, state, "band", shared));
   }
   return node;
 }
@@ -692,13 +684,11 @@ function buildMilestone(
   label.setAttribute(
     "aria-label",
     Rune.t("{{name}}{{suffix}} — ce que c'est", {
-      name: DIFFICULTY_LABELS[s].name,
+      name: difficultyName(s),
       suffix: lockedOrSharedSuffix,
     }),
   );
-  label.appendChild(
-    el("span", "map-milestone-name", DIFFICULTY_LABELS[s].name),
-  );
+  label.appendChild(el("span", "map-milestone-name", difficultyName(s)));
   // Section débloquée par l'union mais pas par ma progression propre (doc 03/
   // 06 § Q9) : même badge neutre que les cases.
   if (viaRoom) label.appendChild(foldMark());
@@ -718,13 +708,13 @@ function buildMilestone(
   anchor.appendChild(
     buildInfoPanel(
       `section-${s}`,
-      DIFFICULTY_LABELS[s].name.toUpperCase(),
+      difficultyName(s).toUpperCase(),
       locked
         ? [
-            DIFFICULTY_LABELS[s].desc,
+            difficultyDesc(s),
             missingStarsLine(missing, Rune.t("cette difficulté")),
           ]
-        : [DIFFICULTY_LABELS[s].desc],
+        : [difficultyDesc(s)],
     ),
   );
   milestone.appendChild(anchor);
@@ -868,11 +858,19 @@ function buildLegend(withShared: boolean): HTMLElement {
 // `ownProgress` : ma progression propre (doc 03) — jamais peinte pour
 // l'accès, seulement comparée à `progress` (l'union) pour le badge « grâce à
 // la room » (doc 03/06 § Q9).
+//
+// Le scroll distingue OUVERTURE et rafraîchissement : à l'ouverture (la carte
+// était cachée), on amène le point de reprise en vue (scrollToResume) ; un
+// rafraîchissement (showMap retourne à chaque onChange tant qu'on est sur la
+// carte — un mot trouvé par la room, une arrivée de joueur) restaure la
+// position d'avant la reconstruction, sans quoi chaque update ramènerait le
+// joueur en haut de carte pendant qu'il la lit.
 export function showMap(
   progress: ProgressByMode,
   ownProgress: ProgressByMode,
   lastMode: ModeId,
   seenModesList: ModeId[],
+  roster: MapPlayer[],
 ): void {
   if (!modeInitialized) {
     currentMode = lastMode;
@@ -881,12 +879,41 @@ export function showMap(
   }
   currentProgress = progress;
   currentOwnProgress = ownProgress;
+  currentRoster = roster;
+  const opening = mapEl.hidden;
+  const scrollTop = mapEl.scrollTop;
   renderMap(currentMode);
   mapEl.hidden = false;
-  mapEl.scrollTop = 0;
+  if (opening) {
+    scrollToResume();
+  } else {
+    // La reconstruction (textContent = "") a écrasé le scroll : on le repose.
+    mapEl.scrollTop = scrollTop;
+  }
   // Le chrome de partie (header, registre, zoom) est masqué par le CSS via
   // cette classe : la carte n'a pas à connaître ses éléments un par un.
   document.body.classList.add("map-open");
+}
+
+// Amène le point de reprise en vue à l'ouverture — l'ex-bouton REPRENDRE,
+// devenu un simple cadrage : le joueur retombe sur sa prochaine case au lieu
+// de la chercher. Calculé sur l'onglet AFFICHÉ (currentMode) ; si le point de
+// reprise vit dans un autre mode (celui-ci est terminé), la carte reste en
+// tête. Un défi existe en deux nœuds (carte desktop, bandeau mobile) : on
+// défile celui que le CSS affiche — l'autre est en display:none, ce que son
+// offsetParent nul trahit.
+function scrollToResume(): void {
+  const resume = resumePoint(currentProgress, currentMode);
+  if (!resume || resume.modeId !== currentMode) return;
+  const nodes = mapEl.querySelectorAll<HTMLElement>(
+    `[data-level="${resume.id}"]`,
+  );
+  for (const node of nodes) {
+    if (node.offsetParent !== null) {
+      node.scrollIntoView({ block: "center" });
+      return;
+    }
+  }
 }
 
 export function hideMap(): void {
@@ -921,8 +948,6 @@ function setPanelOpen(key: string | null): void {
 // Délégation unique sur #map : le contenu étant reconstruit à chaque rendu,
 // attacher les écouteurs aux cases signifierait les réattacher sans cesse.
 //
-// `onSelectLevel` sert À LA FOIS aux cases/défis et au bouton REPRENDRE :
-// proposer un niveau est le même geste, quelle que soit la case d'où il part.
 // `handlers.onModeSeen` (dispatché vers `Rune.actions.markModeSeen`) ne
 // tourne qu'à la PREMIÈRE ouverture d'un mode (gated par le Set local, cf.
 // markModeSeen) ; `handlers.onModeChange` (→ `Rune.actions.setLastMode`)
@@ -967,21 +992,13 @@ export function bindMap(
     const tab = target.closest<HTMLElement>("[data-mode]");
     if (tab) {
       const modeId = tab.dataset.mode as ModeId;
-      if (modeId === currentMode) return; // onglet déjà actif : rien, pas même un son
+      // Garde-fou : l'onglet actif porte data-panel et est capté par la
+      // branche des panneaux, il n'arrive normalement pas ici.
+      if (modeId === currentMode) return;
       playSound("ui-secondary");
       renderMap(modeId); // marque aussi le mode vu (cf. renderMap)
       onModeChange?.(modeId);
       mapEl.scrollTop = 0;
-      return;
-    }
-
-    const resume = target.closest<HTMLElement>("[data-resume-level]");
-    if (resume && onSelect) {
-      playSound("ui-primary");
-      onSelect(
-        resume.dataset.resumeMode as ModeId,
-        resume.dataset.resumeLevel as LevelId,
-      );
       return;
     }
 

@@ -52,4 +52,4 @@ Le jeu actuel, identique à jouer, mais architecturé pour Rune. Aucune feature 
 
 ## Pré-requis produit
 
-Les questions **Q1-Q5** (périmètre, solo, langue, progression web, coût Corsé) conditionnent le chantier 1 ; **Q18-Q19** (couleurs) le chantier 4 ; **Q20** (gameOver) le chantier 5. Le reste peut se trancher en cours de route — les recommandations des docs tiennent lieu de défaut.
+Les questions **Q1-Q5** (périmètre, solo, langue, progression web, coût Platine) conditionnent le chantier 1 ; **Q18-Q19** (couleurs) le chantier 4 ; **Q20** (gameOver) le chantier 5. Le reste peut se trancher en cours de route — les recommandations des docs tiennent lieu de défaut.

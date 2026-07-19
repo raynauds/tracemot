@@ -10,12 +10,12 @@
 import { playSound } from "../audio/audio.ts";
 import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
 import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
-import { MAX_STARS, type NextChoice } from "../game/progress.ts";
+import { MAX_STARS, type NextChoice, type StarReward } from "../game/progress.ts";
 import { local, wordCheckContext } from "../client/local-state.ts";
 import type { FoundWord, PlayerId, WinSummary } from "../logic/types.ts";
 import { wordRejectReason, type WordRejectCode } from "../game/rules.ts";
 import { showHelp } from "./help.ts";
-import { countParam } from "./i18n.ts";
+import { countParam, difficultyName } from "./i18n.ts";
 import {
   arrowLeftIcon,
   chevronIcon,
@@ -543,9 +543,18 @@ function renderStandings(winSummary: WinSummary | null): void {
 // niveaux normaux laissent l'écran de victoire inchangé, sans quoi l'étoile ne
 // voudrait plus rien dire.
 // choices : ce que la victoire vient d'ouvrir (0 à 2 niveaux).
+// Libellé du palier débloqué : le state ne transporte qu'un code (doc 07),
+// la présentation — traduite — se fabrique ici. Le modeId s'écrit avec la
+// croix typographique (« Mode 6×6 »).
+function rewardLabel(reward: StarReward): string {
+  return reward.kind === "mode"
+    ? Rune.t("Mode {{mode}}", { mode: reward.mode.replace("x", "×") })
+    : difficultyName(reward.section);
+}
+
 export function renderWin(
   opts: {
-    star?: { count: number; unlocked: string | null };
+    star?: { count: number; unlocked: StarReward | null };
     choices?: NextChoice[];
     winSummary?: WinSummary | null;
   } = {},
@@ -572,7 +581,7 @@ export function renderWin(
     // que pour la complétion du mode, on n'annonce donc que le gain.
     winStarUnlockEl.hidden = star.unlocked === null;
     winStarUnlockEl.textContent = star.unlocked
-      ? Rune.t("Accès à : {{unlock}}", { unlock: star.unlocked })
+      ? Rune.t("Accès à : {{unlock}}", { unlock: rewardLabel(star.unlocked) })
       : "";
   }
   renderWinActions(choices);

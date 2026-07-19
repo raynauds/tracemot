@@ -20,16 +20,16 @@ Série N×N : un mode = N mots de N lettres sur une grille N×N.
 
 ## Structure d'un mode
 
-4 sections × 25 niveaux = 100 niveaux. Une section = une difficulté, dans l'ordre des 4 premières difficultés existantes (« Brûlant » n'est pas utilisé) :
+4 sections × 25 niveaux = 100 niveaux. Une section = une difficulté, dans l'ordre des 4 rangs (échelle Bronze→Platine) :
 
 | Section | Difficulté (quotas actuels) |
 | ------- | --------------------------- |
-| 1-\*    | 1 · Doux                    |
-| 2-\*    | 2 · Équilibré               |
-| 3-\*    | 3 · Relevé                  |
-| 4-\*    | 4 · Corsé                   |
+| 1-\*    | 1 · Bronze                  |
+| 2-\*    | 2 · Argent                  |
+| 3-\*    | 3 · Or                      |
+| 4-\*    | 4 · Platine                 |
 
-Numérotation `s-n` : section `s` (1–4), niveau `n` (1–25). Les niveaux 1 à 24 sont des grilles normales du mode ; le niveau 25 est le boss. Le boss utilise les quotas de difficulté de sa section (le 1-25 est un 10×10 doux, le 2-25 un 10×10 équilibré, etc.).
+Numérotation `s-n` : section `s` (1–4), niveau `n` (1–25). Les niveaux 1 à 24 sont des grilles normales du mode ; le niveau 25 est le boss. Le boss utilise les quotas de difficulté de sa section (le 1-25 est un 10×10 bronze, le 2-25 un 10×10 argent, etc.).
 
 ### Disposition sur la carte
 
@@ -78,7 +78,7 @@ En DOM (HTML/CSS), plein écran par-dessus le canvas, dans le style papier exist
 - Header : titre « Tracemot », onglets de mode, et compteur « N VALIDÉS » (portée à trancher, cf. points ouverts).
 - Onglets de mode : les modes débloqués, plus le prochain mode grisé avec cadenas (les modes plus lointains sont cachés). Un mode débloqué mais jamais visité porte une pastille vermillon sur son onglet.
 - Sous le header, une ligne d'accroche en italique : « Choisissez un niveau. Chaque grille validée révèle la suite de la carte. » ; au premier lancement : « Tracez tous les mots de la grille pour valider le niveau et révéler la suite. »
-- Sous l'onglet actif : les sections visibles, empilées, avec leur nom de difficulté (« Doux », « Équilibré », …).
+- Sous l'onglet actif : les sections visibles, empilées, avec leur nom de difficulté (« Bronze », « Argent », …).
 - Cliquer une case active (validée ou non) lance le niveau.
 - C'est l'écran d'accueil de l'application. En partie, le header affiche l'identifiant du niveau (ex. « 5×5 · 1-12 ») et un bouton retour vers la carte.
 
@@ -128,9 +128,9 @@ tracemot.progress.5x5 = [
 soit 52 niveaux validés. États dérivés :
 
 - **Onglets** : 5×5 ouvert ; 6×6 débloqué (boss 1-25 validé) ; 7×7 grisé avec cadenas ; 8×8 caché.
-- **Section 1 · Doux** : tout validé, boss compris → _boss validé_.
-- **Section 2 · Équilibré** : 24 niveaux validés, boss 2-25 **actif non validé** (seul état boss jouable).
-- **Section 3 · Relevé** : mélange de tous les états normaux, boss **visible désactivé** (adjacent à 3-6 active, mais 24 normaux non validés) :
+- **Section 1 · Bronze** : tout validé, boss compris → _boss validé_.
+- **Section 2 · Argent** : 24 niveaux validés, boss 2-25 **actif non validé** (seul état boss jouable).
+- **Section 3 · Or** : mélange de tous les états normaux, boss **visible désactivé** (adjacent à 3-6 active, mais 24 normaux non validés) :
 
   ```
   col →   1    2    3    4    5    6      boss
@@ -143,6 +143,6 @@ soit 52 niveaux validés. États dérivés :
   ✔ validé · ● actif non validé · ○ visible désactivé · « · » caché.
   (3-3…3-6 sont actives par adjacence à la dernière ligne de la section 2, entièrement validée ; 3-8 et 3-13 par adjacence à 3-2 et 3-7.)
 
-- **Section 4 · Corsé** : entièrement cachée (aucune case active en ligne 4 de la section 3), boss caché — la section n'apparaît pas du tout.
+- **Section 4 · Platine** : entièrement cachée (aucune case active en ligne 4 de la section 3), boss caché — la section n'apparaît pas du tout.
 
 L'écran couvre ainsi : les 4 états d'une case normale, les 4 états d'un boss (validé / actif / désactivé / caché), une section complète, une section en cours, une section invisible, et les 3 états d'onglet de mode.

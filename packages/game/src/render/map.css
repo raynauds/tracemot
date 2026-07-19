@@ -38,8 +38,18 @@ body.map-open .win {
 /* --- En-tête de la carte --- */
 
 /* Aucun filet sous le header : les jalons de section découpent déjà la carte, un
-   trait de plus ne ferait que la refermer. Le header flotte sur le papier. */
+   trait de plus ne ferait que la refermer. Le header flotte sur le papier.
+
+   Sticky : sur une carte longue, onglets, joueurs et compteur restent sous la
+   main pendant le scroll. Le fond papier est nécessaire (les cases défilent
+   dessous) ; le z-index le pose au-dessus du contenu positionné de la carte,
+   mais SOUS le voile et les panneaux (20/21, panel.css) — un popover de jalon
+   doit pouvoir le recouvrir. */
 .map-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--paper);
   display: flex;
   align-items: center;
   gap: 28px;
@@ -57,38 +67,60 @@ body.map-open .win {
   flex: 1;
 }
 
-/* Flèche + onglets : une même phrase (« retour, depuis ici »), donc serrés au
-   même écart que dans le header de partie — l'écart de 28px du header est celui
-   qui les sépare du compteur, pas celui qui les lie. */
-.map-header-left {
+/* Rangée des joueurs de la room : la carte est le premier écran d'un jeu
+   multijoueur, elle montre qui est là. Purement informative — aucun clic. */
+.map-roster {
   display: flex;
   align-items: center;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 8px 14px;
 }
 
-/* REPRENDRE : le raccourci le plus court vers le jeu, en tête de carte — ex-
-   bouton primaire de l'accueil disparu (doc 08 § Q21a). Plein vermillon,
-   comme .home-primary l'était : c'est la seule action pleine de tout le
-   header, elle prime sur les onglets et les cases. */
-.map-resume {
-  height: 40px;
-  padding: 0 20px;
-  background: var(--vermilion);
-  border: none;
-  color: var(--paper);
-  font-family: var(--mono);
+.map-roster-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Pastille ronde : exception `border-radius` du DESIGN.md, même traitement
+   que .lobby-avatar/.word-avatar/.standing-avatar. Le cercle porte la teinte
+   du joueur (doc 06) : moi en vermillon — le vermillon me désigne partout —,
+   les autres leur encre de slot (owner-N), un slot inconnu reste à l'encre. */
+.map-roster-avatar {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 9999px;
+  border: 1.5px solid var(--ink);
+  object-fit: cover;
+}
+
+.map-roster-player.is-you .map-roster-avatar {
+  border-color: var(--vermilion);
+}
+.map-roster-player.owner-0 .map-roster-avatar {
+  border-color: var(--player-1);
+}
+.map-roster-player.owner-1 .map-roster-avatar {
+  border-color: var(--player-2);
+}
+.map-roster-player.owner-2 .map-roster-avatar {
+  border-color: var(--player-3);
+}
+.map-roster-player.owner-3 .map-roster-avatar {
+  border-color: var(--player-4);
+}
+
+/* Le nom se lit : serif, en secondaire — l'information du header reste le
+   compteur. Borné : un pseudo Rune ne doit pas pousser le compteur hors
+   écran. */
+.map-roster-name {
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  cursor: pointer;
-}
-
-.map-resume:hover {
-  filter: brightness(1.08);
-}
-
-.map-resume:active {
-  filter: brightness(0.94);
+  color: var(--muted);
 }
 
 /* Ancre du panneau du mode verrouillé : il ne peut pas vivre dans son onglet
@@ -650,30 +682,6 @@ body.map-open .win {
   color: var(--map-rule);
 }
 
-.map-defi-caption {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.8px;
-  line-height: 1.3;
-  color: var(--map-count);
-}
-
-/* Teaser de progression : la colonne du défi encore caché porte le compte des
-   victoires de la ligne (« N/5 avant le défi »). Même empreinte que la carte du
-   défi — largeur et hauteur héritées de .map-defi--card — pour garder
-   l'alignement des lignes, mais sans relief (la bordure transparente et
-   l'absence d'ombre de .map-defi valent déjà) : ce n'est pas encore une cible. */
-.map-defi--card.is-teaser {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Une seule légende subsiste, celle du défi verrouillé : ce qu'il lui manque. */
-.map-defi.is-disabled .map-defi-caption {
-  color: var(--ghost);
-}
-
 /* --- Légende --- */
 
 .map-legend {
@@ -747,8 +755,8 @@ body.map-open .win {
     gap: 12px;
     padding-bottom: 12px;
   }
-  /* La marque partie, le header tient sur une ligne : les onglets à gauche, le
-     compteur à droite. Plus rien à réordonner. */
+  /* Onglets à gauche, joueurs et compteur à droite ; le flex-wrap du header
+     replie la rangée des joueurs sous les onglets quand la room est pleine. */
   .map-stars-chip {
     gap: 6px;
   }
@@ -758,14 +766,19 @@ body.map-open .win {
   .map-stars-icon {
     font-size: 12px;
   }
-  .map-header-left {
-    gap: 10px;
+  .map-roster {
+    gap: 6px 10px;
   }
-  .map-resume {
-    height: 36px;
-    padding: 0 16px;
+  .map-roster-player {
+    gap: 6px;
+  }
+  .map-roster-avatar {
+    width: 20px;
+    height: 20px;
+  }
+  .map-roster-name {
+    max-width: 64px;
     font-size: 12px;
-    letter-spacing: 1px;
   }
   .map-tabs {
     gap: 8px;
@@ -879,17 +892,6 @@ body.map-open .win {
     letter-spacing: 1px;
     line-height: 1.2;
   }
-  .map-defi--band .map-defi-caption {
-    font-size: 9.5px; /* légende compacte (DESIGN.md § Typography) — était 9px */
-    letter-spacing: 0.5px;
-    line-height: 1;
-    white-space: nowrap;
-  }
-  /* Teaser de progression : bandeau pleine largeur sans relief, compte centré. */
-  .map-defi--band.is-teaser {
-    justify-content: center;
-  }
-
   .map-legend {
     gap: 10px 18px;
     font-size: 9.5px;

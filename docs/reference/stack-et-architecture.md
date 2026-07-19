@@ -33,7 +33,7 @@ Découpé en couches : `game/` = runtime du domaine côté jeu, `render/` = tout
 
 ## Configuration
 
-Domaine dans `@tracemot/core/config.ts` : `GAME_MODES` / `DEFAULT_MODE` / `MODE_ORDER` et `defiMode()` (grille doublée), avec l'invariant `wordCount × wordLength = rows × cols` validé au chargement pour chaque mode et son défi ; `DIFFICULTY_QUOTAS` / `DIFFICULTY_LABELS` ; paramètres du solveur (`MAX_GRID_TRIES`, `GRID_REPAIRS_PER_WORD`, `REPAIR_CANDIDATES`, `LETTER_WEIGHTS`).
+Domaine dans `@tracemot/core/config.ts` : `GAME_MODES` / `DEFAULT_MODE` / `MODE_ORDER` et `defiMode()` (grille doublée), avec l'invariant `wordCount × wordLength = rows × cols` validé au chargement pour chaque mode et son défi ; `DIFFICULTY_QUOTAS` (les libellés des rangs Bronze→Platine sont côté client, `render/i18n.ts`) ; paramètres du solveur (`MAX_GRID_TRIES`, `GRID_REPAIRS_PER_WORD`, `REPAIR_CANDIDATES`, `LETTER_WEIGHTS`).
 
 Présentation dans `game/config.ts` : `CELL_SIZE`, `CELL_GAP`, `VIEW_MARGIN`, `FIT_MARGIN_PX`, `ZOOM_MAX_CELLS`, `ZOOM_STEP`, `KEY_PAN_SPEED`, timings, et la palette numérique (`PAPER`, `CARD`, `INK`…) dérivée de `theme/tokens.ts`.
 

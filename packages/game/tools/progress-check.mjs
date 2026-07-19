@@ -337,12 +337,33 @@ const ids = (s, ns) => ns.map((n) => `${s}-${n}`);
   checkCell(p4, "4-2", "disabled", tag);
 
   // Récompense d'une étoile donnée : sert à l'écran de victoire d'un défi.
-  check(starRewardAt("5x5", 1) === "Équilibré", `${tag} : 5x5 étoile 1`);
-  check(starRewardAt("5x5", 2) === "Relevé", `${tag} : 5x5 étoile 2`);
-  check(starRewardAt("5x5", 3) === "Mode 6×6", `${tag} : 5x5 étoile 3`);
-  check(starRewardAt("7x7", 3) === "Mode 8×8", `${tag} : 7x7 étoile 3`);
+  // Codes, pas libellés (le client traduit : section 2 = Argent, etc.).
+  checkEqual(
+    starRewardAt("5x5", 1),
+    { kind: "section", section: 2 },
+    `${tag} : 5x5 étoile 1`,
+  );
+  checkEqual(
+    starRewardAt("5x5", 2),
+    { kind: "section", section: 3 },
+    `${tag} : 5x5 étoile 2`,
+  );
+  checkEqual(
+    starRewardAt("5x5", 3),
+    { kind: "mode", mode: "6x6" },
+    `${tag} : 5x5 étoile 3`,
+  );
+  checkEqual(
+    starRewardAt("7x7", 3),
+    { kind: "mode", mode: "8x8" },
+    `${tag} : 7x7 étoile 3`,
+  );
   check(starRewardAt("8x8", 3) === null, `${tag} : 8x8 étoile 3 = rien à débloquer`);
-  check(starRewardAt("5x5", 4) === "Corsé", `${tag} : 5x5 étoile 4`);
+  checkEqual(
+    starRewardAt("5x5", 4),
+    { kind: "section", section: 4 },
+    `${tag} : 5x5 étoile 4`,
+  );
   check(starRewardAt("5x5", 5) === null, `${tag} : au-delà de la 4e, rien`);
   check(starRewardAt("5x5", 12) === null, `${tag} : la 12e ne débloque rien`);
   console.log("Barème des étoiles : OK");

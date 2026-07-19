@@ -87,17 +87,10 @@ export const DIFFICULTY_QUOTAS: Record<
   4: { ado: [0.2, 0.4], adulte: [0.2, 0.4], inconnu: [0, 0] },
 };
 
-// Nom et description de chaque difficulté : titre du jalon de section sur la
-// carte (le nom décrit la grille, pas le joueur).
-export const DIFFICULTY_LABELS: Record<
-  Difficulty,
-  { name: string; desc: string }
-> = {
-  1: { name: "Doux", desc: "Que des mots très courants" },
-  2: { name: "Équilibré", desc: "Un ou deux mots moins courants" },
-  3: { name: "Relevé", desc: "Une bonne pincée de mots moins courants" },
-  4: { name: "Corsé", desc: "Quelques mots recherchés dans le lot" },
-};
+// Les libellés des difficultés (rangs Bronze→Platine et descriptions) sont de
+// la présentation pure : ils vivent côté client, traduits par Rune.t
+// (packages/game/src/render/i18n.ts) — core et logic ne manipulent que le
+// code (Difficulty/Section).
 
 // Tentatives complètes (choix des mots + placement + réparations +
 // vérification) avant de rendre la meilleure grille imparfaite rencontrée.

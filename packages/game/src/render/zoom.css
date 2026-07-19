@@ -75,10 +75,10 @@
   color: var(--vermilion);
 }
 
-/* Sur écran tactile, le pinch remplace les boutons de pas : on ne garde que
-   « tout voir ». `(pointer: coarse)` = dispositif de pointage grossier (doigt),
-   indépendant de la largeur d'écran. */
-@media (pointer: coarse) {
+/* Les boutons de pas sont un meuble de desktop : au doigt le pinch/pan les
+   remplace, et sous le breakpoint mobile (même en pointeur fin, ex. devtools)
+   ils n'ont pas leur place non plus. On ne garde que « tout voir ». */
+@media (pointer: coarse), (max-width: 860px) {
   .zoom-btn--step {
     display: none;
   }

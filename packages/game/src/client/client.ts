@@ -167,6 +167,14 @@ function enterMapScreen(game: Game): void {
     wrapProgress(yourOwnProgress(game)),
     persisted.lastMode ?? DEFAULT_MODE,
     persisted.seenModes ?? [],
+    // Rangée des joueurs du header de carte : moi marqué à part (« Moi »,
+    // doc 06), les autres avec leur slot de couleur — indéfini si le slot
+    // n'est pas (encore) attribué, la carte reste alors à l'encre neutre.
+    game.playerIds.map((id) => ({
+      id,
+      you: id === yourPlayerId,
+      slot: game.colorSlots[id],
+    })),
   );
 }
 

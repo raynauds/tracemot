@@ -35,7 +35,7 @@ Le localStorage du site web n'est pas transférable vers Rune (autre origine, au
 - [ ] Prévoir un code d'import manuel (saisie d'un code généré par le site web) — coût réel pour un gain marginal
 - [ ] Autre : ___
 
-### Q5. Coût de la section Corsé — décision déjà ouverte côté review UX (doc 03)
+### Q5. Coût de la section Platine — décision déjà ouverte côté review UX (doc 03)
 La section 4 coûte 4★ alors que le mode suivant s'ouvre à 3★ (documenté comme volontaire dans `progress.ts`, contesté par la review du 2026-07-19). À figer **avant** le premier upload : les seuils entrent dans la dérivation appliquée à des persisted en circulation.
 - [ ] **Garder 4★ et assumer** (recommandé — c'est un choix de design argumenté : offrir une grille plus grande avant une difficulté plus rude) ; étiqueter « bonus » sur la carte si besoin
 - [ ] Passer la section 4 à 3★ (avant le mode suivant)
@@ -219,7 +219,7 @@ Précision de statut : la doc Rune classe menus/pause/audio en **best practices*
 ## G. Vrac / vigilances (pas de case à cocher, juste à savoir)
 
 - La notation « 5-5 » de ta demande : je l'ai lue comme « le mode 5×5 » (les ids de niveaux vont de 1-1 à 4-C ; « 5-5 » n'existe pas). Dis-moi si tu voulais autre chose.
-- MEMORY.md mentionne une échelle de difficulté « Doux→Brûlant » validée ; le code dit Doux/Équilibré/Relevé/Corsé. Le code fait foi pour ce plan — signale si l'échelle doit changer (ça touchera `Rune.t` et la carte).
+- Tranché le 2026-07-19 : l'échelle est passée aux rangs Bronze/Argent/Or/Platine (traduits via `Rune.t`, `render/i18n.ts`) — l'ancienne échelle Doux→Brûlant est abandonnée.
 - Signatures exactes de `Rune.interpolator`/`interpolatorLatency` non documentées ([TODO côté skill]) — sans impact prévu (le plan n'en a pas besoin), à vérifier seulement si on lisse un jour les tracés.
 - Comportement précis du popup gameOver et du départ de joueur sans callback : à tester au Dev UI (chantiers 1 et 5).
 - « Points reportés » solo (sauvegarde de partie en cours sur les grands défis, indices) : hors périmètre v1 — le multi atténue le blocage (les autres joueurs servent d'indices vivants). Réouvrable après.

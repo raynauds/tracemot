@@ -26,12 +26,7 @@
 // Les étoiles sont fongibles : peu importe de quelle section elles viennent.
 // C'est ce qui laisse le joueur plonger en difficulté sans être taxé.
 
-import {
-  DIFFICULTY_LABELS,
-  MODE_ORDER,
-  type ModeId,
-  type Section,
-} from "@tracemot/core";
+import { MODE_ORDER, type ModeId, type Section } from "@tracemot/core";
 import {
   DEFI_KEYS,
   LEVELS_PER_SECTION,
@@ -290,19 +285,24 @@ export function sectionStats(p: ModeProgress, s: Section): SectionStats {
 // --- Paliers d'étoiles ------------------------------------------------------
 
 // Ce que débloque la n-ième étoile d'un mode (1-indexé), ou null si elle ne
-// débloque rien (au-delà de la 4e, l'étoile n'est plus qu'un score). Les libellés
-// sont DÉRIVÉS (nom de la difficulté de la section, forme du mode suivant) : les
-// écrire en dur ici les ferait diverger de config.ts au premier réglage.
-export function starRewardAt(modeId: ModeId, star: number): string | null {
+// débloque rien (au-delà de la 4e, l'étoile n'est plus qu'un score). CODE et
+// non libellé : stocké dans le winSummary du state Rune, il doit rester
+// traduisible côté client (render/i18n.ts, rangs Bronze→Platine) — une chaîne
+// d'affichage figée dans le state ne le serait pas.
+export type StarReward =
+  | { kind: "section"; section: Section }
+  | { kind: "mode"; mode: ModeId };
+
+export function starRewardAt(modeId: ModeId, star: number): StarReward | null {
   if (star === STARS_FOR_NEXT_MODE) {
     const next = MODE_ORDER[MODE_ORDER.indexOf(modeId) + 1];
     // Dernier mode de la série : ce palier ne débloque rien, il est SAUTÉ.
-    return next ? `Mode ${next.replace("x", "×")}` : null;
+    return next ? { kind: "mode", mode: next } : null;
   }
-  // Section s ⇒ difficulté s : le nom du palier est celui de la difficulté.
+  // Section s ⇒ difficulté s : le palier débloque la section de ce rang.
   // La section 1 (coût 0) n'est jamais trouvée ici, star valant au moins 1.
   const section = SECTIONS.find((s) => STARS_FOR_SECTION[s] === star);
-  return section ? DIFFICULTY_LABELS[section].name : null;
+  return section ? { kind: "section", section } : null;
 }
 
 // --- (b) Dérivation INTER-modes (Record<ModeId, ModeProgress> en argument) --

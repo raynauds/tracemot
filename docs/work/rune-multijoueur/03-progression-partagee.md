@@ -54,4 +54,4 @@ rebuildSharedProgress(game)
 
 - `firstPlayableLevel`/`resumePoint` (bouton « reprendre ») opèrent sur l'union en room — sens conservé, signatures re-travaillées (cf. plus haut). `isFirstLaunch` (accroche pédagogique de la carte) : sur l'union aussi (si quelqu'un a déjà joué, pas de version « première fois »).
 - La règle des verrous teasés « à un défi près » reste calculée sur l'union : cohérente, mais l'arrivée d'un joueur avancé peut faire apparaître/disparaître des verrous d'un coup — la carte se re-rend intégralement (`renderMap`), rien à faire de spécial.
-- Q5 (coût de la section Corsé 4★) doit être tranché **avant** le premier upload : changer les seuils après coup modifie la dérivation sur des persisted en circulation.
+- Q5 (coût de la section Platine 4★) doit être tranché **avant** le premier upload : changer les seuils après coup modifie la dérivation sur des persisted en circulation.

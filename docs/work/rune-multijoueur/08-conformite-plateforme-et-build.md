@@ -30,7 +30,7 @@ Ce que la review Rune vérifie et ce que la webview impose. Précision de statut
 
 - Plateforme : en/es/pt/ru via `Rune.t()` (client uniquement, extraction statique `npx rune extract-translations` → script tag dans `index.html`).
 - **Le contenu du jeu est français** (mots, dictionnaires) et ne se traduit pas par `Rune.t` — c'est un choix de produit assumé ou un chantier futur (dictionnaires en/es/pt/ru + regénération studio) (→ Q3).
-- v1 recommandée : UI (boutons, états, messages de refus — devenus des codes, doc 01) passée à `Rune.t()`, contenu français. Les libellés viennent du client, jamais de logic.
+- v1 recommandée : UI (boutons, états, messages de refus — devenus des codes, doc 01) passée à `Rune.t()`, contenu français. Les libellés viennent du client, jamais de logic. Les difficultés (rangs Bronze→Platine et descriptions, `render/i18n.ts`) sont traduites aussi : le winSummary transporte un code (`StarReward`), jamais un libellé.
 - Règle DESIGN.md « majuscules aux labels » à confronter aux traductions (hors périmètre technique).
 
 ## Build et publication

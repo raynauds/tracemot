@@ -22,11 +22,11 @@ Seule la liste des niveaux validés est persistée (`tracemot.progress.<mode>`) 
 
 ## Difficultés
 
-**La difficulté est une propriété de la section** (section *s* ⇒ difficulté *s*), pas un choix libre : il n'y a plus de sélecteur. Quatre niveaux nommés dosent le vocabulaire des mots cachés, tiré des paliers de vocabulaire enfant, ado et adulte (fichiers disjoints), les quotas étant exprimés en **fraction du nombre de mots du mode** (arrondie au plus proche) pour garder le même sens sur toutes les grilles. Entre parenthèses, l'équivalent sur 5 mots.
+**La difficulté est une propriété de la section** (section *s* ⇒ difficulté *s*), pas un choix libre : il n'y a plus de sélecteur. Quatre rangs nommés — l'échelle de médailles **Bronze → Argent → Or → Platine**, comprise partout et triviale à traduire — dosent le vocabulaire des mots cachés, tiré des paliers de vocabulaire enfant, ado et adulte (fichiers disjoints), les quotas étant exprimés en **fraction du nombre de mots du mode** (arrondie au plus proche) pour garder le même sens sur toutes les grilles. Entre parenthèses, l'équivalent sur 5 mots.
 
-- ⭐ **Doux** — uniquement des mots enfant.
-- ⭐⭐ **Équilibré** — enfant + ado, 20 à 40 % de mots ado (1 ou 2).
-- ⭐⭐⭐ **Relevé** — enfant + ado, 60 à 100 % de mots ado (3 à 5).
-- ⭐⭐⭐⭐ **Corsé** — 20 à 40 % de mots ado et autant d'adulte (1 ou 2 de chaque), le reste enfant.
+- ⭐ **Bronze** — uniquement des mots enfant.
+- ⭐⭐ **Argent** — enfant + ado, 20 à 40 % de mots ado (1 ou 2).
+- ⭐⭐⭐ **Or** — enfant + ado, 60 à 100 % de mots ado (3 à 5).
+- ⭐⭐⭐⭐ **Platine** — 20 à 40 % de mots ado et autant d'adulte (1 ou 2 de chaque), le reste enfant.
 
-Les quotas exacts sont dans `DIFFICULTY_QUOTAS` (`@tracemot/core`, `packages/core/src/config.ts`), consommés hors-ligne par le générateur. Le joueur, lui, n'en voit que la formulation de `DIFFICULTY_LABELS` (« Que des mots très courants »…), affichée par le panneau du jalon de section sur la carte.
+Les quotas exacts sont dans `DIFFICULTY_QUOTAS` (`@tracemot/core`, `packages/core/src/config.ts`), consommés hors-ligne par le générateur. Le joueur, lui, n'en voit que le rang et sa description (« Que des mots très courants »…), libellés d'affichage traduits par `Rune.t` (`packages/game/src/render/i18n.ts`, `difficultyName`/`difficultyDesc`) et montrés par le panneau du jalon de section sur la carte : le nom dit le rang de la section, la description décrit la grille.

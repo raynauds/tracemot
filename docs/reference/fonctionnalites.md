@@ -38,6 +38,6 @@ Une chip « i » ouvre le panneau de règle, sur l'accueil comme dans le header 
 
 ## Explications sur la carte
 
-Le même composant sert d'explication *in situ* : sur la carte, tout ce qui **nomme un palier** répond au clic — le compteur d'étoiles (ce qu'une étoile vaut), chaque jalon de difficulté (ce que la difficulté change, et ce qui l'ouvre si elle est verrouillée), l'onglet du mode verrouillé (ce qu'il faut pour l'atteindre, et ce qu'on y trouvera). Un seul panneau ouvert à la fois ; le voile, la croix et Échap ferment. Le jalon est le seul endroit où les descriptions de `DIFFICULTY_LABELS` sont affichées.
+Le même composant sert d'explication *in situ* : sur la carte, tout ce qui **nomme un palier** répond au clic — le compteur d'étoiles (ce qu'une étoile vaut), chaque jalon de difficulté (ce que la difficulté change, et ce qui l'ouvre si elle est verrouillée), l'onglet du mode verrouillé (ce qu'il faut pour l'atteindre, et ce qu'on y trouvera). Un seul panneau ouvert à la fois ; le voile, la croix et Échap ferment. Le jalon est le seul endroit où les descriptions des difficultés (`difficultyDesc`, `render/i18n.ts`) sont affichées.
 
 Les **cases restent inertes** : une case allumée lance son niveau, une case pointillée ne fait rien. Sa raison d'être verrouillée est unique et déjà lisible (la case précédente n'est pas validée) ; un défi verrouillé la porte même en toutes lettres (« TERMINEZ LA LIGNE »).

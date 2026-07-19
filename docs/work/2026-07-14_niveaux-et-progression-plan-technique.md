@@ -34,7 +34,7 @@ export function bossMode(m: GameMode): GameMode {
 
 - `bossMode` satisfait l'invariant de pavage existant : `4N × N = (2N)²`.
 - Supprimés : `ENABLED_MODES`, `ENABLED_DIFFICULTIES`, `DEFAULT_DIFFICULTY`, `TOAST_MS`, `MODE_LABELS.desc` (le nom `5×5` suffit pour les onglets).
-- Conservés : `DIFFICULTY_QUOTAS` et `DIFFICULTY_LABELS` (script de génération + titres de sections ; « Brûlant » (5) reste défini mais inutilisé), constantes solveur (`MAX_GRID_TRIES`…) car importées par le script, palette et géométrie Pixi.
+- Conservés : `DIFFICULTY_QUOTAS` (script de génération ; les libellés des rangs Bronze→Platine — titres de sections — vivent désormais côté client, `render/i18n.ts`), constantes solveur (`MAX_GRID_TRIES`…) car importées par le script, palette et géométrie Pixi.
 
 ### 1.2 `levels.ts` (nouveau)
 
@@ -120,7 +120,7 @@ Même environnement d'exécution que `tools/solver-check.mjs` (Node important le
 5. Écrit `public/levels/<modeId>.json` (letters en chaîne compacte, tri par id). Ordre de grandeur : ~40 Ko par mode avant gzip — négligeable.
 6. Script npm : `"generate:levels": "node scripts/generate-levels.ts"`.
 
-Point d'attention : la convergence du 16×16 corsé (boss du 8×8) est le cas le plus dur pour le solveur — valider les temps de génération avant de fixer les plafonds, quitte à monter `MAX_GRID_TRIES`/`GRID_REPAIRS_PER_WORD` localement dans le script.
+Point d'attention : la convergence du 16×16 platine (boss du 8×8) est le cas le plus dur pour le solveur — valider les temps de génération avant de fixer les plafonds, quitte à monter `MAX_GRID_TRIES`/`GRID_REPAIRS_PER_WORD` localement dans le script.
 
 ## Phase 3 — Écran carte (DOM)
 

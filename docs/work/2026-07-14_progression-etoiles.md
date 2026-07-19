@@ -23,14 +23,14 @@ Série N×N : un mode = N mots de N lettres sur une grille N×N.
 
 4 sections × 18 niveaux = **72 niveaux par mode**, soit 288 au total (dont 48 défis).
 
-Une section = une difficulté, dans l'ordre des 4 premières difficultés existantes (« Brûlant » n'est pas utilisée) :
+Une section = une difficulté, dans l'ordre des 4 rangs (échelle Bronze→Platine) :
 
 | Section | Difficulté     |
 | ------- | -------------- |
-| 1       | 1 · Doux       |
-| 2       | 2 · Équilibré  |
-| 3       | 3 · Relevé     |
-| 4       | 4 · Corsé      |
+| 1       | 1 · Bronze     |
+| 2       | 2 · Argent     |
+| 3       | 3 · Or         |
+| 4       | 4 · Platine    |
 
 ### Contenu d'une section
 
@@ -65,12 +65,12 @@ Un défi coûte donc toujours 6 niveaux (les 5 normaux de sa ligne, puis lui-mê
 
 | Étoile | Débloque                          |
 | ------ | --------------------------------- |
-| 1re    | Section 2 · Équilibré             |
-| 2e     | Section 3 · Relevé                |
+| 1re    | Section 2 · Argent                |
+| 2e     | Section 3 · Or                    |
 | 3e     | **Mode suivant** (son 1-1)        |
-| 4e     | Section 4 · Corsé                 |
+| 4e     | Section 4 · Platine               |
 
-Peu importe **d'où** viennent les étoiles : 1-A + 1-B + 1-C (une section entière) et 1-A + 2-A + 3-A (un défi par section, en difficulté croissante) valent la même chose et coûtent tous deux 18 niveaux. Le joueur qui trouve le Doux trop facile n'est pas taxé pour plonger.
+Peu importe **d'où** viennent les étoiles : 1-A + 1-B + 1-C (une section entière) et 1-A + 2-A + 3-A (un défi par section, en difficulté croissante) valent la même chose et coûtent tous deux 18 niveaux. Le joueur qui trouve le Bronze trop facile n'est pas taxé pour plonger.
 
 Les étoiles au-delà de la 4e ne débloquent rien : elles servent de **score de complétion** du mode, affiché sur son onglet (« 7 / 12 ★ »).
 
@@ -100,10 +100,10 @@ Ce que ça donne, les seuils (1, 2, 3, 4) étant distincts et un défi valant un
 
 | Étoiles du mode | Verrou montré, si un défi est jouable |
 | --------------- | ------------------------------------- |
-| 0               | Section 2 · Équilibré                 |
-| 1               | Section 3 · Relevé                    |
+| 0               | Section 2 · Argent                    |
+| 1               | Section 3 · Or                        |
 | 2               | Onglet du mode suivant (cadenas)      |
-| 3               | Section 4 · Corsé                     |
+| 3               | Section 4 · Platine                   |
 
 **Pourquoi.** Au premier lancement il manque bien une étoile pour la section 2 — mais aucun défi n'est atteignable (1-A demande 1-5). Annoncer le prix à cet instant, c'est promettre avant d'avoir donné le moyen de tenir la promesse. Avec cette règle, le premier défi et l'annonce de ce qu'il ouvre apparaissent **ensemble**, au même instant.
 
@@ -140,7 +140,7 @@ Le jalon d'une section apparaît dès qu'au moins une de ses cases est visible.
 
 ## Écran de sélection
 
-- **Header** : titre « Tracemot », onglets de mode, compteur d'étoiles du mode courant (« 3 / 12 ★ ») et rappel du prochain palier (« Prochaine étoile : Corsé »).
+- **Header** : titre « Tracemot », onglets de mode, compteur d'étoiles du mode courant (« 3 / 12 ★ ») et rappel du prochain palier (« Prochaine étoile : Platine »).
 - **Onglets de mode** : les modes débloqués, plus le prochain grisé avec cadenas (les modes plus lointains sont cachés). Un mode débloqué mais jamais visité porte une pastille vermillon.
 - Sous le header, une ligne d'accroche en italique : « Choisissez un niveau. Chaque défi validé rapporte une étoile. » ; au premier lancement : « Tracez tous les mots de la grille pour valider le niveau et révéler la suite. »
 - Cliquer une case validée ou jouable lance le niveau.
@@ -193,10 +193,10 @@ tracemot.progress.5x5 = [
 soit 27 niveaux validés et **3 étoiles**.
 
 - **Onglets** : 5×5 ouvert (3 / 12 ★) ; 6×6 débloqué (3e étoile) avec pastille. **7×7 absent** : son verrou est tenu par le 6×6, encore vierge — il n'est donc pas à un défi près. 8×8 absent.
-- **Section 1 · Doux** : 18 ✓, ★★★ — tout validé, défis compris.
-- **Section 2 · Équilibré** : 2-1…2-5 validés ; **2-A jouable** et 2-6 jouable ; 2-7 visible désactivée ; le reste caché.
-- **Section 3 · Relevé** : 3-1…3-4 validés ; 3-5 jouable ; **3-A et 3-6 visibles désactivées** ; le reste caché.
-- **Section 4 · Corsé** : jalon **verrouillé** (« ★ Encore 1 étoile »), aucune case rendue — montré parce que 2-A est jouable et donnerait la 4e étoile.
+- **Section 1 · Bronze** : 18 ✓, ★★★ — tout validé, défis compris.
+- **Section 2 · Argent** : 2-1…2-5 validés ; **2-A jouable** et 2-6 jouable ; 2-7 visible désactivée ; le reste caché.
+- **Section 3 · Or** : 3-1…3-4 validés ; 3-5 jouable ; **3-A et 3-6 visibles désactivées** ; le reste caché.
+- **Section 4 · Platine** : jalon **verrouillé** (« ★ Encore 1 étoile »), aucune case rendue — montré parce que 2-A est jouable et donnerait la 4e étoile.
 
 L'écran couvre ainsi : les 4 états d'une case normale, les 3 états visibles d'un défi (validé / jouable / visible désactivé), une section complète, deux sections en cours, une section verrouillée et montrée, et 2 des 3 états d'onglet de mode. L'onglet verrouillé-et-montré (cadenas) demande un autre état de progression : un mode à 2 étoiles avec un défi jouable.
 

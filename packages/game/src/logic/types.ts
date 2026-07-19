@@ -7,6 +7,7 @@
 
 import type { LevelId, ModeId } from "@tracemot/core";
 import type { RuneClient } from "rune-sdk";
+import type { StarReward } from "../game/progress.ts";
 
 export type PlayerId = string;
 
@@ -55,7 +56,7 @@ export interface WinSummary {
   counts: Record<PlayerId, number>; // joueurs actifs à la victoire (classement)
   firstValidation: boolean; // au sens de l'union (bloc étoile)
   starCount: number; // après crédit
-  rewardCode: string | null; // palier débloqué (code, libellé côté client)
+  rewardCode: StarReward | null; // palier débloqué (code ; libellé traduit côté client)
 }
 
 export type GamePhase = "map" | "playing";

@@ -124,8 +124,9 @@ laissé help.css (2px/3px) et sound.css (2px) dériver de l'échelle documentée
 - Empilement z-index documenté dans DESIGN.md et respecté à la lettre dans les 13 CSS.
 - `border-radius: 0` respecté partout, unique exception documentée (`.map-tab-dot`).
 - Ordre des `@import` pensé pour la cascade, aucun conflit de spécificité constaté.
-- Wording des difficultés conforme à la règle projet : les niveaux décrivent la grille
-  (Doux/Équilibré/Relevé/Corsé), jamais le joueur.
+- Wording des difficultés : depuis le passage aux rangs (Bronze/Argent/Or/Platine,
+  2026-07-19), le nom dit le rang de la section ; la règle « décrire la grille,
+  jamais le joueur » reste portée par les descriptions du jalon.
 - Enchaînement de victoire (SUIVANT/DÉFI/CONTINUER) qui évite l'aller-retour carte.
 - Un seul geste retour, cohérent sur tous les écrans.
 
@@ -145,6 +146,6 @@ laissé help.css (2px/3px) et sound.css (2px) dériver de l'échelle documentée
 1. Délai ~300 ms avant l'écran de victoire + son de victoire dédié (game feel, effort faible).
 2. Hit-test carré (`pitch/2`) + garde-fou pinch (confort mobile, cœur du jeu).
 3. `aria-live` registre + `role="alert"` sur `#win` et `#status` (une ligne chacun).
-4. Décision produit sur Corsé (coût 4★ vs déblocage à 3★) : corriger ou étiqueter « bonus ».
+4. Décision produit sur Platine (coût 4★ vs déblocage à 3★) : corriger ou étiqueter « bonus ».
 5. `prefers-reduced-motion` sur secousse + confettis.
 6. Chantier de fond : accessibilité clavier/lecteur d'écran de la grille Pixi.
