@@ -43,6 +43,7 @@ import {
   resumePoint,
   sectionStats,
   sectionTeased,
+  sectionUnlocked,
   starCount,
   starsMissingForMode,
   starsMissingForSection,
@@ -69,6 +70,28 @@ let modeInitialized = false;
 // lui donne — mais un clic d'onglet doit pouvoir re-rendre sans qu'on la lui
 // repasse, d'où ce cache.
 let currentProgress: ProgressByMode = emptyProgressByMode();
+
+// Progression PROPRE du joueur local (doc 03 § « débloqué grâce à quelqu'un
+// d'autre ») : sert de seule et unique comparaison au badge « grâce à la
+// room » (currentProgress ∈ {active, validated} et celle-ci non) — jamais
+// utilisée pour peindre l'accès lui-même, seulement pour ce badge.
+let currentOwnProgress: ProgressByMode = emptyProgressByMode();
+
+// Un badge « grâce à la room » est-il apparu QUELQUE PART sur ce rendu ? Sert
+// à n'ajouter l'entrée de légende que si elle sert à quelque chose sur cet
+// écran (remis à false en tête de renderMap).
+let anySharedBadge = false;
+
+// Case/défi débloqué par l'union mais pas par ma progression propre (doc 03/
+// 06 § Q9) : même case, deux dérivations pures, comparées. Positif seulement
+// pour un état jouable ou validé — un « disabled »/« hidden » identique des
+// deux côtés n'a rien à annoncer.
+function viaRoom(shared: ModeProgress, own: ModeProgress, id: LevelId): boolean {
+  const sharedState = cellState(shared, id);
+  if (sharedState !== "active" && sharedState !== "validated") return false;
+  const ownState = cellState(own, id);
+  return ownState !== "active" && ownState !== "validated";
+}
 
 // « Vu » n'est pas dérivable de la progression : un mode peut être débloqué et
 // jamais ouvert. Le Set est un cache de session (mise à jour immédiate de la
@@ -133,6 +156,16 @@ function lockIcon(): SVGSVGElement {
   return svg;
 }
 
+// Badge « grâce à la room » (doc 03/06 § Q9) : un coin de page repliée, en
+// miniature, posé à côté d'un libellé (onglet de mode, jalon de section). Pur
+// décor — muet pour le lecteur d'écran, qui a déjà la mention dans
+// l'aria-label ; le sens complet est dans la légende (buildLegend).
+function foldMark(): HTMLElement {
+  const mark = el("span", "map-fold");
+  mark.setAttribute("aria-hidden", "true");
+  return mark;
+}
+
 function buildTabs(): HTMLElement {
   const nav = el("nav", "map-tabs");
   nav.setAttribute("aria-label", "Mode de jeu");
@@ -142,6 +175,10 @@ function buildTabs(): HTMLElement {
   let lockedTab: ModeId | null = null;
   for (const modeId of visibleModes(currentProgress)) {
     const unlocked = isModeUnlocked(currentProgress, modeId);
+    // Débloqué par l'union mais pas par ma progression propre (doc 03/06 §
+    // Q9) : même badge neutre que les cases, sans attribution nominative.
+    const modeViaRoom = unlocked && !isModeUnlocked(currentOwnProgress, modeId);
+    if (modeViaRoom) anySharedBadge = true;
     const tab = el("button", "map-tab");
     tab.type = "button";
     if (!unlocked) {
@@ -163,8 +200,16 @@ function buildTabs(): HTMLElement {
         tab.classList.add("is-active");
         tab.setAttribute("aria-current", "true");
       }
+      if (modeViaRoom) {
+        tab.classList.add("is-shared");
+        tab.setAttribute(
+          "aria-label",
+          `Mode ${modeLabel(modeId)}, débloqué grâce à la room`,
+        );
+      }
     }
     tab.appendChild(el("span", "map-tab-label", modeLabel(modeId)));
+    if (modeViaRoom) tab.appendChild(foldMark());
     // Pastille : mode débloqué mais jamais ouvert — le seul signal « nouveau ».
     if (unlocked && !isModeSeen(modeId)) {
       const dot = el("span", "map-tab-dot");
@@ -335,7 +380,12 @@ function stateClass(s: CellState): string {
   return `is-${s}`;
 }
 
-function buildCell(id: LevelId, n: number, state: CellState): HTMLElement {
+function buildCell(
+  id: LevelId,
+  n: number,
+  state: CellState,
+  viaRoom = false,
+): HTMLElement {
   if (state === "hidden") {
     // Rendue vide : elle ne réserve sa place que parce que sa ligne, elle,
     // est visible (une ligne entièrement cachée n'est pas rendue du tout).
@@ -344,15 +394,17 @@ function buildCell(id: LevelId, n: number, state: CellState): HTMLElement {
     return ghost;
   }
   const playable = state === "active" || state === "validated";
-  const cell = playable
-    ? el("button", `map-cell ${stateClass(state)}`)
-    : el("div", `map-cell ${stateClass(state)}`);
+  const cls = `map-cell ${stateClass(state)}${viaRoom ? " is-shared" : ""}`;
+  const cell = playable ? el("button", cls) : el("div", cls);
   cell.appendChild(el("span", "map-cell-num", String(n)));
   if (state === "validated") {
     const mark = checkIcon();
     mark.classList.add("map-cell-mark");
     cell.appendChild(mark);
   }
+  // Badge neutre « grâce à la room » (doc 03/06 § Q9) : le coin replié suffit
+  // visuellement, l'aria-label porte l'équivalent textuel.
+  const suffix = viaRoom ? ", débloqué grâce à la room" : "";
   if (playable) {
     const button = cell as HTMLButtonElement;
     button.type = "button";
@@ -360,8 +412,8 @@ function buildCell(id: LevelId, n: number, state: CellState): HTMLElement {
     button.setAttribute(
       "aria-label",
       state === "validated"
-        ? `Niveau ${id}, validé, rejouable`
-        : `Niveau ${id}, jouable`,
+        ? `Niveau ${id}, validé, rejouable${suffix}`
+        : `Niveau ${id}, jouable${suffix}`,
     );
   } else {
     cell.setAttribute("aria-label", `Niveau ${id}, à débloquer`);
@@ -415,10 +467,11 @@ function buildDefi(
   state: Exclude<CellState, "hidden">,
   variant: "card" | "band",
   doneInRow: number,
+  viaRoom = false,
 ): HTMLElement {
   const key = defiOfRow(row);
   const id = defiId(s, key);
-  const cls = `map-defi map-defi--${variant} ${stateClass(state)}`;
+  const cls = `map-defi map-defi--${variant} ${stateClass(state)}${viaRoom ? " is-shared" : ""}`;
   const playable = state === "active" || state === "validated";
   const defi = playable ? el("button", cls) : el("div", cls);
 
@@ -445,6 +498,10 @@ function buildDefi(
   // Trois défis par section, tous de la même difficulté : la clé A/B/C est ce
   // qui les distingue à l'oreille d'un lecteur d'écran.
   const name = `Défi ${DIFFICULTY_LABELS[s].name} ${key}`;
+  // Badge neutre « grâce à la room » (doc 03/06 § Q9), même règle que les
+  // cases : le coin replié (CSS, cf. .map-defi.is-shared) porte le visuel,
+  // l'aria-label son équivalent textuel.
+  const suffix = viaRoom ? ", débloqué grâce à la room" : "";
   if (playable) {
     const button = defi as HTMLButtonElement;
     button.type = "button";
@@ -452,8 +509,8 @@ function buildDefi(
     button.setAttribute(
       "aria-label",
       state === "validated"
-        ? `${name}, validé, rejouable`
-        : `${name}, prêt à jouer`,
+        ? `${name}, validé, rejouable${suffix}`
+        : `${name}, prêt à jouer${suffix}`,
     );
   } else {
     defi.setAttribute("aria-label", `${name}, à débloquer`);
@@ -491,6 +548,9 @@ function buildRow(
   s: Section,
   row: Row,
 ): HTMLElement {
+  // Ma progression propre pour CE mode : seule comparaison du badge « grâce à
+  // la room » (doc 03/06 § Q9), jamais utilisée pour l'accès lui-même.
+  const own = currentOwnProgress[modeId];
   const node = el("div", "map-row");
   const grid = el("div", "map-grid");
   let doneInRow = 0;
@@ -498,19 +558,24 @@ function buildRow(
     const n = (row - 1) * ROW_LENGTH + i;
     const id = levelId(s, n);
     if (id in p.validated) doneInRow++;
-    grid.appendChild(buildCell(id, n, cellState(p, id)));
+    const shared = viaRoom(p, own, id);
+    if (shared) anySharedBadge = true;
+    grid.appendChild(buildCell(id, n, cellState(p, id), shared));
   }
   node.appendChild(grid);
 
-  const state = cellState(p, defiId(s, defiOfRow(row)));
+  const defiLevelId = defiId(s, defiOfRow(row));
+  const state = cellState(p, defiLevelId);
   if (state === "hidden") {
     // Défi encore caché : la colonne porte le compte des victoires de la ligne,
     // dans les deux enveloppes comme le défi lui-même (cf. buildDefiProgress).
     node.appendChild(buildDefiProgress(doneInRow, "card"));
     node.appendChild(buildDefiProgress(doneInRow, "band"));
   } else {
-    node.appendChild(buildDefi(modeId, s, row, state, "card", doneInRow));
-    node.appendChild(buildDefi(modeId, s, row, state, "band", doneInRow));
+    const shared = viaRoom(p, own, defiLevelId);
+    if (shared) anySharedBadge = true;
+    node.appendChild(buildDefi(modeId, s, row, state, "card", doneInRow, shared));
+    node.appendChild(buildDefi(modeId, s, row, state, "band", doneInRow, shared));
   }
   return node;
 }
@@ -547,6 +612,7 @@ function buildMilestone(
   count: HTMLElement | null,
   stars: number | null,
   missing: number,
+  viaRoom = false,
 ): HTMLElement {
   const locked = stars === null;
   const milestone = el("div", `map-milestone${locked ? " is-locked" : ""}`);
@@ -558,13 +624,17 @@ function buildMilestone(
   const label = el("button", "map-milestone-label");
   label.type = "button";
   asPanelTrigger(label, `section-${s}`);
+  const viaRoomSuffix = viaRoom ? ", débloqué grâce à la room" : "";
   label.setAttribute(
     "aria-label",
-    `${DIFFICULTY_LABELS[s].name}${locked ? ", verrouillé" : ""} — ce que c'est`,
+    `${DIFFICULTY_LABELS[s].name}${locked ? ", verrouillé" : viaRoomSuffix} — ce que c'est`,
   );
   label.appendChild(
     el("span", "map-milestone-name", DIFFICULTY_LABELS[s].name),
   );
+  // Section débloquée par l'union mais pas par ma progression propre (doc 03/
+  // 06 § Q9) : même badge neutre que les cases.
+  if (viaRoom) label.appendChild(foldMark());
   // Le décompte des niveaux validés se lit sur la carte elle-même : le jalon ne
   // le répète pas. Il ne reste que la section complète (« 18 ✓ ») et la section
   // verrouillée (son prix).
@@ -628,8 +698,14 @@ function buildSection(
     count.appendChild(checkIcon());
   }
 
+  // Section débloquée par l'union mais pas encore par ma progression propre
+  // (doc 03/06 § Q9) : `stats.unlocked` est garanti vrai ici (renderMap
+  // n'appelle buildSection que pour une section déjà ouverte côté union).
+  const sectionShared = !sectionUnlocked(currentOwnProgress[modeId], s);
+  if (sectionShared) anySharedBadge = true;
+
   const section = el("section", "map-section");
-  section.appendChild(buildMilestone(s, count, stats.stars, 0));
+  section.appendChild(buildMilestone(s, count, stats.stars, 0, sectionShared));
 
   // Croissance additive : aucune ligne au-delà de la dernière visible — la
   // carte grandit vers le bas, elle ne réserve pas de vide.
@@ -647,6 +723,12 @@ export function renderMap(modeId: ModeId): void {
   currentMode = modeId;
   markModeSeen(modeId); // idempotent : couvre l'onglet initial ET les clics
   const p = currentProgress[modeId];
+
+  // Remis à false à chaque rendu : la légende (buildLegend) n'annonce le
+  // badge « grâce à la room » que s'il apparaît vraiment sur CET écran (doc
+  // 03/06 § Q9) — buildTabs (tous les modes) et buildSection/buildRow (le
+  // mode affiché) le font passer à true en le rencontrant.
+  anySharedBadge = false;
 
   // Le DOM part avec ses panneaux : plus rien n'est ouvert.
   openPanel = null;
@@ -673,7 +755,7 @@ export function renderMap(modeId: ModeId): void {
   body.appendChild(sections);
   mapEl.appendChild(body);
 
-  mapEl.appendChild(buildLegend());
+  mapEl.appendChild(buildLegend(anySharedBadge));
 }
 
 function legendItem(className: string, label: string): HTMLElement {
@@ -687,11 +769,16 @@ function legendItem(className: string, label: string): HTMLElement {
   return item;
 }
 
-function buildLegend(): HTMLElement {
+// `withShared` : n'ajoute l'entrée « grâce à la room » que si le badge est
+// vraiment apparu sur cet écran (doc 03/06 § Q9) — sinon la légende d'une
+// partie solo (ou d'une room dont l'union égale ma progression) resterait
+// silencieuse sur un signe qu'elle ne montre jamais.
+function buildLegend(withShared: boolean): HTMLElement {
   const legend = el("div", "map-legend");
   legend.appendChild(legendItem("is-validated", "VALIDÉ"));
   legend.appendChild(legendItem("is-active", "JOUABLE"));
   legend.appendChild(legendItem("is-disabled", "À DÉBLOQUER"));
+  if (withShared) legend.appendChild(legendItem("is-shared", "GRÂCE À LA ROOM"));
   return legend;
 }
 
@@ -708,8 +795,13 @@ function buildLegend(): HTMLElement {
 // `lastMode`/`seenModes` : lus depuis `game.persisted` (doc 02/08) — ne
 // SEEDENT `currentMode`/seenModes qu'une fois (modeInitialized) : les rendus
 // suivants ne doivent pas écraser un onglet choisi par le joueur en session.
+//
+// `ownProgress` : ma progression propre (doc 03) — jamais peinte pour
+// l'accès, seulement comparée à `progress` (l'union) pour le badge « grâce à
+// la room » (doc 03/06 § Q9).
 export function showMap(
   progress: ProgressByMode,
+  ownProgress: ProgressByMode,
   lastMode: ModeId,
   seenModesList: ModeId[],
 ): void {
@@ -719,6 +811,7 @@ export function showMap(
     modeInitialized = true;
   }
   currentProgress = progress;
+  currentOwnProgress = ownProgress;
   renderMap(currentMode);
   mapEl.hidden = false;
   mapEl.scrollTop = 0;

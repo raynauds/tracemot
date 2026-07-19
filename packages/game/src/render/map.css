@@ -154,6 +154,19 @@ body.map-open .win {
   background: var(--vermilion);
 }
 
+/* Même pli que .map-cell.is-shared (doc 03/06 § Q9), en miniature, posé en
+   ligne à côté d'un libellé (onglet de mode, jalon de section) : ton unique,
+   trop petit pour le double liseré des cases. */
+.map-fold {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 9px solid var(--map-dash);
+  border-right: 9px solid transparent;
+  vertical-align: middle;
+  flex: none;
+}
+
 /* Compteur d'étoiles du mode courant : la monnaie du jeu, donc le seul chiffre
    vermillon du header. Il est cliquable — il ouvre le panneau qui dit ce que
    l'étoile vaut. D'où `position: relative` : le popover s'y ancre. */
@@ -459,6 +472,36 @@ body.map-open .win {
   color: var(--vermilion);
 }
 
+/* Badge neutre « débloqué grâce à la room » (doc 03/06 § Q9) : un coin de
+   case replié, sans attribution nominative (l'union peut venir de plusieurs
+   joueurs — la couleur par joueur, doc 06, est un chantier à part). Deux
+   triangles superposés au coin haut-gauche (encre, puis le gris de la carte)
+   dessinent un pli net, à l'opposé de la coche du validé (coin bas-droit) :
+   les deux signes ne se chevauchent jamais. */
+.map-cell.is-shared::before,
+.map-defi.is-shared::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-top: 15px solid var(--ink);
+  border-right: 15px solid transparent;
+}
+
+.map-cell.is-shared::after,
+.map-defi.is-shared::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-top: 13px solid var(--map-dash);
+  border-right: 13px solid transparent;
+}
+
 /* --- Défi (fin de ligne) --- */
 
 /* Deux nœuds, un seul affiché : carte à droite de SA ligne (desktop), bandeau
@@ -683,6 +726,17 @@ body.map-open .win {
   border: var(--rule-dashed);
 }
 
+/* Même pli que .map-fold : la pastille de légende reprend le motif à la
+   taille des deux autres (12px), sans fond ni filet propres — le triangle
+   dessine sa propre forme. */
+.map-legend-swatch.is-shared {
+  width: 0;
+  height: 0;
+  background: none;
+  border-top: 12px solid var(--map-dash);
+  border-right: 12px solid transparent;
+}
+
 /* --- Carte : mobile --- */
 
 @media (max-width: 640px) {
@@ -777,6 +831,16 @@ body.map-open .win {
   }
   .map-cell-mark {
     font-size: 11px;
+  }
+  .map-cell.is-shared::before,
+  .map-defi.is-shared::before {
+    border-top-width: 12px;
+    border-right-width: 12px;
+  }
+  .map-cell.is-shared::after,
+  .map-defi.is-shared::after {
+    border-top-width: 10px;
+    border-right-width: 10px;
   }
 
   /* Le défi quitte la droite pour un bandeau pleine largeur : à cette largeur,

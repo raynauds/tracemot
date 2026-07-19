@@ -99,6 +99,18 @@ function yourPersisted(game: Game) {
   return yourPlayerId ? (game.persisted[yourPlayerId] ?? {}) : {};
 }
 
+// Ma progression propre (doc 03) : `game.ownProgress[yourPlayerId]`, vide pour
+// un spectateur (`yourPlayerId` indéfini). Sert UNIQUEMENT à la comparaison du
+// badge « grâce à la room » de la carte (map.ts § Q9) — jamais à l'accès
+// lui-même, qui reste dérivé de l'union (`game.sharedProgress`).
+function yourOwnProgress(game: Game): Game["sharedProgress"] {
+  const own = yourPlayerId ? game.ownProgress[yourPlayerId] : undefined;
+  if (own) return own;
+  const empty = {} as Game["sharedProgress"];
+  for (const modeId of MODE_ORDER) empty[modeId] = {};
+  return empty;
+}
+
 // --- Écran carte -------------------------------------------------------------
 
 function enterMapScreen(game: Game): void {
@@ -109,6 +121,7 @@ function enterMapScreen(game: Game): void {
   const persisted = yourPersisted(game);
   showMap(
     wrapProgress(game.sharedProgress),
+    wrapProgress(yourOwnProgress(game)),
     persisted.lastMode ?? DEFAULT_MODE,
     persisted.seenModes ?? [],
   );

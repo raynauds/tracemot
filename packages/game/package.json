@@ -10,8 +10,9 @@
     "generate:tokens": "node scripts/generate-tokens.ts",
     "check:tokens": "node scripts/generate-tokens.ts --check",
     "check:progress": "node tools/progress-check.mjs",
+    "check:shared-progress": "node tools/shared-progress-check.mjs",
     "check:rune-logic": "eslint src/logic",
-    "check": "tsc --noEmit && npm run check:rune-logic"
+    "check": "tsc --noEmit && npm run check:rune-logic && npm run check:progress && npm run check:shared-progress"
   },
   "dependencies": {
     "@tracemot/core": "*",

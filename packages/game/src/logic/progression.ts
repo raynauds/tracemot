@@ -9,6 +9,7 @@
 import { MODE_ORDER, isDefi, type LevelId, type ModeId } from "@tracemot/core";
 import {
   cellState,
+  isModeUnlocked,
   starCount,
   starRewardAt,
   type ModeProgress,
@@ -137,14 +138,28 @@ export function applyVictory(
   game.traces = {};
 }
 
-// Un niveau est « jouable » (proposable) s'il est actif OU déjà validé dans
-// l'union de la room — même prédicat que la carte, le rejeu reste permis
-// (doc 04 § Q17).
+// Enveloppe l'union ENTIÈRE (tous modes, pas seulement `modeId`) : c'est ce
+// qu'attend isModeUnlocked, qui vérifie toute la chaîne des modes précédents
+// (doc 01 § conformité #6) — jamais stocké, un adaptateur d'appel de plus.
+function wrapAllModes(shared: ProgressByMode): Record<ModeId, ModeProgress> {
+  const out = {} as Record<ModeId, ModeProgress>;
+  for (const modeId of MODE_ORDER) out[modeId] = toModeProgress(shared[modeId]);
+  return out;
+}
+
+// Un niveau est « jouable » (proposable) si son MODE est débloqué (union,
+// étoiles des modes précédents) ET que la case elle-même est active ou déjà
+// validée dans l'union — même double condition que la carte (un onglet
+// verrouillé n'est pas cliquable, cf. map.ts § buildTabs), le rejeu reste
+// permis (doc 04 § Q17). Sans le premier terme, un client pourrait proposer
+// n'importe quel niveau d'un mode encore fermé : la case "1-1" d'un mode est
+// toujours "active" en soi (elle ne coûte aucune étoile), seul le mode l'est.
 export function isLevelPlayable(
   shared: ProgressByMode,
   modeId: ModeId,
   levelId: LevelId,
 ): boolean {
+  if (!isModeUnlocked(wrapAllModes(shared), modeId)) return false;
   const state = cellState(toModeProgress(shared[modeId]), levelId);
   return state === "active" || state === "validated";
 }
