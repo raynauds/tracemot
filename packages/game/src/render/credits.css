@@ -16,6 +16,13 @@
   padding-top: 15px;
 }
 
+/* La première entrée suit déjà le filet fort du titre — pas besoin d'un
+   second filet, plus clair, collé dessous. */
+.credits-entry:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
 .credits-role {
   font-family: var(--mono);
   font-size: 11px; /* token meta (DESIGN.md) — était 10.5px, écart sans raison */
