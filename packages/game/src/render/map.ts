@@ -430,12 +430,12 @@ function buildRoster(): HTMLElement | null {
   return box;
 }
 
-// Le header reste sans marque : le nom du jeu vit dans la manchette, juste
-// dessous (buildMasthead — DESIGN.md § Marque). Les onglets ouvrent le header
-// — ce qu'on regarde —, les joueurs de la room et le compteur d'étoiles le
-// ferment. Le rouage du menu tient le bord droit, au même coin que son
-// homologue du header de partie : un seul geste à apprendre, quel que soit
-// l'écran (render/menu.ts).
+// La rangée de jeu, sous la manchette : les onglets l'ouvrent — ce qu'on
+// regarde —, les joueurs de la room et le compteur d'étoiles la ferment. Le
+// rouage du menu, lui, vit dans la manchette (buildMasthead) : la hiérarchie
+// de page prime — le titre d'abord, les commandes ensuite. Cette rangée est
+// la seule sticky : pendant le scroll, onglets, joueurs et compteur restent
+// sous la main, la marque n'a pas à y rester.
 function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
   head.appendChild(buildTabs());
@@ -444,7 +444,6 @@ function buildHeader(p: ModeProgress): HTMLElement {
   if (roster) head.appendChild(roster);
   const stars = buildStars(p);
   if (stars) head.appendChild(stars);
-  head.appendChild(buildMenuChip());
   return head;
 }
 
@@ -454,18 +453,25 @@ function buildHeader(p: ModeProgress): HTMLElement {
 // nulle part une fois en jeu (le header Rune ne le porte pas). Le point final
 // reprend la signature vermillon de l'ex-accueil. L'accroche dit ce que le jeu
 // EST, en une phrase : un joueur Rune arrive ici sans autre contexte.
+//
+// Le rouage du menu tient son bord droit — le coin haut-droit de l'écran,
+// même position que son homologue du header de partie : un seul geste à
+// apprendre, quel que soit l'écran (render/menu.ts).
 function buildMasthead(): HTMLElement {
   const masthead = el("div", "map-masthead");
+  const texts = el("div", "map-masthead-texts");
   const name = el("h1", "map-masthead-name", "Traceword");
   name.appendChild(el("span", "map-masthead-dot", "."));
-  masthead.appendChild(name);
-  masthead.appendChild(
+  texts.appendChild(name);
+  texts.appendChild(
     el(
       "p",
       "map-masthead-tagline",
       Rune.t("Tracez les mots cachés dans la grille."),
     ),
   );
+  masthead.appendChild(texts);
+  masthead.appendChild(buildMenuChip());
   return masthead;
 }
 
@@ -815,13 +821,13 @@ export function renderMap(modeId: ModeId): void {
   // Le DOM part avec ses panneaux : plus rien n'est ouvert.
   openPanel = null;
   mapEl.textContent = "";
-  mapEl.appendChild(buildHeader(p));
-
-  // La manchette défile avec la carte : le header sticky garde les commandes
-  // sous la main, la marque n'a pas à y rester. Au-delà d'elle, la carte se
-  // lit d'elle-même (une case, un numéro, une étoile) ; ce que l'étoile vaut
-  // est dit par le panneau du compteur.
+  // La hiérarchie de la page : la marque d'abord, la rangée de jeu ensuite.
+  // La manchette défile avec la carte (le rouage avec elle) ; seule la rangée
+  // de jeu est sticky. Au-delà d'elles, la carte se lit d'elle-même (une
+  // case, un numéro, une étoile) ; ce que l'étoile vaut est dit par le
+  // panneau du compteur.
   mapEl.appendChild(buildMasthead());
+  mapEl.appendChild(buildHeader(p));
   const body = el("div", "map-body");
   const sections = el("div", "map-sections");
   // Les seuils d'étoiles étant croissants, les sections débloquées forment un

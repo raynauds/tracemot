@@ -37,14 +37,15 @@ body.map-open .win {
 
 /* --- En-tête de la carte --- */
 
-/* Aucun filet sous le header : les jalons de section découpent déjà la carte, un
-   trait de plus ne ferait que la refermer. Le header flotte sur le papier.
+/* La rangée de jeu, sous la manchette. Aucun filet dessous : les jalons de
+   section découpent déjà la carte, un trait de plus ne ferait que la refermer.
+   Elle flotte sur le papier.
 
-   Sticky : sur une carte longue, onglets, joueurs et compteur restent sous la
-   main pendant le scroll. Le fond papier est nécessaire (les cases défilent
-   dessous) ; le z-index le pose au-dessus du contenu positionné de la carte,
-   mais SOUS le voile et les panneaux (20/21, panel.css) — un popover de jalon
-   doit pouvoir le recouvrir. */
+   Sticky — la manchette, elle, défile : sur une carte longue, onglets, joueurs
+   et compteur restent sous la main pendant le scroll. Le fond papier est
+   nécessaire (les cases défilent dessous) ; le z-index le pose au-dessus du
+   contenu positionné de la carte, mais SOUS le voile et les panneaux (20/21,
+   panel.css) — un popover de jalon doit pouvoir le recouvrir. */
 .map-header {
   position: sticky;
   top: 0;
@@ -53,11 +54,11 @@ body.map-open .win {
   display: flex;
   align-items: center;
   gap: 28px;
-  /* Le cadre de l'application (--edge, src/theme/base.css) : haut, gauche et
-     droite au même retrait — celui du header de partie, qui prend la relève dès
-     qu'on lance un niveau. Seul le retrait bas est libre : il ne sépare pas du
-     bord de l'écran, il tient la première section à distance. */
-  padding: var(--edge) max(var(--edge), env(safe-area-inset-right)) 18px
+  /* Gauche et droite au retrait --edge (src/theme/base.css) — le cadre haut,
+     lui, appartient à la manchette. Le retrait haut sépare de la manchette au
+     repos (et respire une fois la rangée collée en haut d'écran) ; le bas
+     tient la première section à distance. */
+  padding: 16px max(var(--edge), env(safe-area-inset-right)) 18px
     max(var(--edge), env(safe-area-inset-left));
 }
 
@@ -280,11 +281,30 @@ body.map-open .win {
 /* Le nom du jeu, une fois, en tête de page (DESIGN.md § Marque : l'accueil
    retiré du portage Rune, la carte hérite du rôle). Typo `title` (serif 30px
    700), pas `brand` : une manchette de page courante, pas une page de titre.
-   Sans filet : le jalon Bronze découpe déjà la page juste dessous. Fer à
-   gauche au retrait --edge, avec les onglets du header. */
+   Sans filet : le jalon Bronze découpe déjà la page juste dessous.
+
+   C'est la manchette qui tient le cadre haut de l'application (--edge, trois
+   bords) : la rangée de jeu (.map-header) vient dessous. Le rouage du menu
+   occupe son bord droit — le coin haut-droit de l'écran, même position que
+   son homologue du header de partie. */
 .map-masthead {
-  margin: 0 max(var(--edge), env(safe-area-inset-right)) 24px
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  padding: var(--edge) max(var(--edge), env(safe-area-inset-right)) 0
     max(var(--edge), env(safe-area-inset-left));
+}
+
+.map-masthead-texts {
+  flex: 1;
+  min-width: 0;
+}
+
+/* La marge négative du composant (menu.css) rend le padding de la cible du
+   doigt : l'icône affleure le cadre. On lui rend 5px en haut pour la centrer
+   optiquement sur la ligne du titre (30px contre ~20px d'icône). */
+.map-masthead .map-menu-chip {
+  margin-top: -5px;
 }
 
 .map-masthead-name {
@@ -828,9 +848,10 @@ body.map-open .win {
   }
 
   /* La manchette suit la carte qui se resserre : même dégradé que les jalons
-     (18 → 16px), l'accroche descend au corps `hint`. */
+     (18 → 16px), l'accroche descend au corps `hint`, la gouttière du rouage
+     celle du header mobile. */
   .map-masthead {
-    margin-bottom: 20px;
+    gap: 12px;
   }
   .map-masthead-name {
     font-size: 26px;
