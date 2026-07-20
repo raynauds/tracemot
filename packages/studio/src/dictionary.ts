@@ -3,7 +3,7 @@
 // Aucune dépendance au DOM ni à l'état : parseWordList et buildLengthSets
 // sont réutilisables hors navigateur (harnais de test Node).
 
-import type { Tier } from "@tracemot/core";
+import type { Tier } from "@traceword/core";
 
 // Fichiers des quatre paliers de vocabulaire, du plus courant au plus rare.
 // Les paliers sont disjoints : un mot n'apparaît que dans son palier.

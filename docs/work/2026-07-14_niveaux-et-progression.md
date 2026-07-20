@@ -75,7 +75,7 @@ Le jalon d'une section (séparateur, titre, compteur) apparaît dès qu'au moins
 
 En DOM (HTML/CSS), plein écran par-dessus le canvas, dans le style papier existant. Pixi reste dédié à la grille de jeu.
 
-- Header : titre « Tracemot », onglets de mode, et compteur « N VALIDÉS » (portée à trancher, cf. points ouverts).
+- Header : titre « Traceword », onglets de mode, et compteur « N VALIDÉS » (portée à trancher, cf. points ouverts).
 - Onglets de mode : les modes débloqués, plus le prochain mode grisé avec cadenas (les modes plus lointains sont cachés). Un mode débloqué mais jamais visité porte une pastille vermillon sur son onglet.
 - Sous le header, une ligne d'accroche en italique : « Choisissez un niveau. Chaque grille validée révèle la suite de la carte. » ; au premier lancement : « Tracez tous les mots de la grille pour valider le niveau et révéler la suite. »
 - Sous l'onglet actif : les sections visibles, empilées, avec leur nom de difficulté (« Bronze », « Argent », …).
@@ -102,9 +102,9 @@ Toutes les grilles sont prédéfinies, générées hors-ligne et versionnées da
 
 localStorage uniquement :
 
-- `tracemot.progress.<modeId>` : liste des identifiants de niveaux validés (ex. `["1-1","1-2"]`). Tout l'état de la carte (visible / actif / validé, boss, déblocage des modes) se recalcule à partir de ces listes.
-- `tracemot.lastMode` : dernier mode consulté, pour rouvrir la carte au bon onglet.
-- Les clés actuelles `tracemot.mode` et `tracemot.difficulty` deviennent obsolètes (les sélecteurs disparaissent).
+- `traceword.progress.<modeId>` : liste des identifiants de niveaux validés (ex. `["1-1","1-2"]`). Tout l'état de la carte (visible / actif / validé, boss, déblocage des modes) se recalcule à partir de ces listes.
+- `traceword.lastMode` : dernier mode consulté, pour rouvrir la carte au bon onglet.
+- Les clés actuelles `traceword.mode` et `traceword.difficulty` deviennent obsolètes (les sélecteurs disparaissent).
 
 ## Impacts sur l'existant
 
@@ -118,7 +118,7 @@ localStorage uniquement :
 Un seul écran (onglet 5×5) doit montrer tous les états possibles. Progression persistée pour l'obtenir :
 
 ```
-tracemot.progress.5x5 = [
+traceword.progress.5x5 = [
   "1-1" … "1-24", "1-25",   // section 1 entière, boss compris
   "2-1" … "2-24",           // section 2 : les 24 normaux, pas le boss
   "3-1", "3-2", "3-7"       // section 3 : début de progression

@@ -11,7 +11,7 @@
 //
 // Pas de réglage de volume ici (doc 08 § Q21b) : Rune fournit ses propres
 // contrôles audio in-app, le panneau maison (render/sound.ts) et sa
-// persistance localStorage (tracemot.vol-ui/tracemot.vol-music) ont disparu
+// persistance localStorage (traceword.vol-ui/traceword.vol-music) ont disparu
 // avec lui. Ce module ne fait plus que précharger, jouer, débloquer.
 
 import {
@@ -88,7 +88,7 @@ export function initAudio() {
       .then((data) => ctx!.decodeAudioData(data))
       .then((buffer) => buffers.set(id, buffer))
       .catch((err) => {
-        console.warn(`Tracemot : son « ${id} » indisponible`, err);
+        console.warn(`Traceword : son « ${id} » indisponible`, err);
       });
   }
 
@@ -103,7 +103,7 @@ export function initAudio() {
       tryStartMusic();
     })
     .catch((err) => {
-      console.warn("Tracemot : musique de fond indisponible", err);
+      console.warn("Traceword : musique de fond indisponible", err);
     });
 }
 

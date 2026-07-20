@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Tracemot
+name: Traceword
 description: >-
   Papier, encre et vermillon. Un jeu de mots tracés à la main sur une grille,
   rendu comme une page imprimée : angles vifs, filets nets, aucune rondeur.
@@ -167,7 +167,7 @@ components:
 
 ## Overview
 
-Tracemot se lit comme une page imprimée, pas comme une application. Le papier
+Traceword se lit comme une page imprimée, pas comme une application. Le papier
 crème, l'encre presque noire et le filet net sont le vocabulaire complet ; le
 vermillon est la seule couleur, et il ne sert qu'à une chose : dire qu'un mot a
 été trouvé. Une interface qui ne récompense rien reste en noir et blanc.

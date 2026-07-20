@@ -67,9 +67,9 @@ const {
   NORMALS_PER_SECTION,
   DEFI_KEYS,
   LEVELS_PER_SECTION,
-} = await import("@tracemot/core");
+} = await import("@traceword/core");
 
-const { GAME_MODES, defiMode } = await import("@tracemot/core");
+const { GAME_MODES, defiMode } = await import("@traceword/core");
 
 let failures = 0;
 /**

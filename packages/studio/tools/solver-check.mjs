@@ -17,8 +17,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { DIFFICULTY_QUOTAS, GAME_MODES, defiMode } from "@tracemot/core";
-import { createGeometry } from "@tracemot/core";
+import { DIFFICULTY_QUOTAS, GAME_MODES, defiMode } from "@traceword/core";
+import { createGeometry } from "@traceword/core";
 import {
   FULL_DICT_FILE,
   TIER_FILES,
@@ -35,7 +35,7 @@ const WITH_DEFIS = ARGS.includes("--defis");
 const POSITIONAL = ARGS.filter((a) => !a.startsWith("--"));
 const GRIDS_PER_CASE = Number(POSITIONAL[0]) || 20;
 const MODE_FILTER = POSITIONAL[1] ?? null;
-/** @type {import("@tracemot/core").Difficulty[]} */
+/** @type {import("@traceword/core").Difficulty[]} */
 const DIFFICULTIES = [1, 2, 3, 4, 5];
 
 // Sans ce garde, un mode mal orthographié saute toutes les itérations : le
@@ -55,7 +55,7 @@ function readWords(file) {
 }
 
 const fullWords = readWords(FULL_DICT_FILE);
-/** @type {Record<import("@tracemot/core").Tier, Set<string>>} */
+/** @type {Record<import("@traceword/core").Tier, Set<string>>} */
 const tierWords = /** @type {any} */ ({});
 for (const tier of TIER_NAMES) tierWords[tier] = readWords(TIER_FILES[tier]);
 
@@ -63,7 +63,7 @@ for (const tier of TIER_NAMES) tierWords[tier] = readWords(TIER_FILES[tier]);
  * Énumérateur indépendant : tous les tracés de `length` cases dont le mot est
  * dans `words`, par DFS exhaustif (sans préfixes). Retourne mot → Set de clés
  * canoniques de tracés.
- * @param {import("@tracemot/core").Geometry} geometry
+ * @param {import("@traceword/core").Geometry} geometry
  * @param {string[]} letters
  * @param {Set<string>} words
  * @param {number} length
@@ -113,7 +113,7 @@ function check(ok, label) {
 // Cas à éprouver : la géométrie de chaque mode, plus celle de ses défis quand
 // --defis est passé. Les niveaux livrés (cf. scripts/generate-levels.ts) usent
 // des deux : ne tester que les modes laisserait les grandes grilles sans filet.
-/** @type {{ label: string; mode: import("@tracemot/core").GameMode }[]} */
+/** @type {{ label: string; mode: import("@traceword/core").GameMode }[]} */
 const CASES = [];
 for (const [modeId, mode] of Object.entries(GAME_MODES)) {
   if (MODE_FILTER && modeId !== MODE_FILTER) continue;

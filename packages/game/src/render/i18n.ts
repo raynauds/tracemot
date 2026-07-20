@@ -1,4 +1,4 @@
-import type { Difficulty } from "@tracemot/core";
+import type { Difficulty } from "@traceword/core";
 
 // Rune.t embarque i18next : la résolution des variantes de pluriel
 // (`_one`/`_other`…, générées par `npx rune extract-translations` dans

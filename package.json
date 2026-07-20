@@ -1,5 +1,5 @@
 {
-  "name": "tracemot",
+  "name": "traceword",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,14 +7,14 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @tracemot/game",
-    "build": "npm run build -w @tracemot/game",
-    "preview": "npm run preview -w @tracemot/game",
-    "generate:levels": "npm run generate:levels -w @tracemot/studio",
-    "generate:tokens": "npm run generate:tokens -w @tracemot/game",
-    "check:tokens": "npm run check:tokens -w @tracemot/game",
-    "check:solver": "npm run check:solver -w @tracemot/studio",
-    "check:progress": "npm run check:progress -w @tracemot/game",
+    "dev": "npm run dev -w @traceword/game",
+    "build": "npm run build -w @traceword/game",
+    "preview": "npm run preview -w @traceword/game",
+    "generate:levels": "npm run generate:levels -w @traceword/studio",
+    "generate:tokens": "npm run generate:tokens -w @traceword/game",
+    "check:tokens": "npm run check:tokens -w @traceword/game",
+    "check:solver": "npm run check:solver -w @traceword/studio",
+    "check:progress": "npm run check:progress -w @traceword/game",
     "check": "npm run check --workspaces --if-present"
   },
   "devDependencies": {

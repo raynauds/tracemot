@@ -5,7 +5,7 @@
 // fonction pure, doc 01 § conformité #5) — ce module ne connaît pas la
 // solution.
 
-import type { Geometry } from "@tracemot/core";
+import type { Geometry } from "@traceword/core";
 import type { FoundWord } from "./types.ts";
 
 // Cases consommées par les mots déjà trouvés : DÉRIVÉES de found[].path,

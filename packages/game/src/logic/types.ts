@@ -5,7 +5,7 @@
 // `phase` est globale (la room), les écrans sont locaux (chaque client) : les
 // deux ne se confondent jamais (doc 02 § Machine de phase).
 
-import type { LevelId, ModeId } from "@tracemot/core";
+import type { LevelId, ModeId } from "@traceword/core";
 import type { RuneClient } from "rune-sdk";
 import type { StarReward } from "../game/progress.ts";
 

@@ -1,4 +1,4 @@
-// Domaine partagé (@tracemot/core) : dimensions des modes, barèmes de
+// Domaine partagé (@traceword/core) : dimensions des modes, barèmes de
 // difficulté et paramètres du solveur. GAME_MODES et DEFAULT_MODE sont faits
 // pour être modifiés, le reste décrit la grille. Aucune dépendance au thème,
 // au DOM ou à Pixi — la présentation (couleurs, métriques caméra) vit côté
@@ -50,7 +50,7 @@ export function defiMode(m: GameMode): GameMode {
 export function assertPavage(id: string, m: GameMode): void {
   if (m.wordCount * m.wordLength !== m.rows * m.cols) {
     throw new Error(
-      `Tracemot : mode « ${id} » invalide - ` +
+      `Traceword : mode « ${id} » invalide - ` +
         `${m.wordCount} × ${m.wordLength} ≠ ${m.rows} × ${m.cols}`,
     );
   }

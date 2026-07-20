@@ -1,6 +1,6 @@
 // Présentation du jeu : timings d'interface, géométrie du monde Pixi et
 // palette numérique. Dérive du thème (src/theme/tokens.ts). Le domaine
-// (dimensions des modes, barèmes, solveur) vit dans @tracemot/core.
+// (dimensions des modes, barèmes, solveur) vit dans @traceword/core.
 
 import { hex } from "../theme/tokens.ts";
 

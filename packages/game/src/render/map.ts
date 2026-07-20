@@ -23,15 +23,15 @@ import {
   defiMode,
   type ModeId,
   type Section,
-} from "@tracemot/core";
-import type { LevelId, Row } from "@tracemot/core";
+} from "@traceword/core";
+import type { LevelId, Row } from "@traceword/core";
 import {
   LEVELS_PER_SECTION,
   ROW_LENGTH,
   defiId,
   defiOfRow,
   levelId,
-} from "@tracemot/core";
+} from "@traceword/core";
 import { playSound } from "../audio/audio.ts";
 import type { ColorSlot, PlayerId } from "../logic/types.ts";
 import { checkIcon, closeIcon, starIcon } from "./icons.ts";

@@ -21,7 +21,7 @@ Migration de `packages/game` (site web solo) vers une web app Rune (webview dans
 
 ## Faits établis (cartographie du 2026-07-19)
 
-- Code actuel ~6 200 lignes TS ; logique déjà bien stratifiée : `@tracemot/core` pur, `game/` (état, règles, progression) sans DOM, `render/` (PixiJS 8 + chrome DOM), `input/`.
+- Code actuel ~6 200 lignes TS ; logique déjà bien stratifiée : `@traceword/core` pur, `game/` (état, règles, progression) sans DOM, `render/` (PixiJS 8 + chrome DOM), `input/`.
 - 288 niveaux prégénérés (4 modes × 72), 124 Ko de JSON au total — importables statiquement dans logic.js (limite 1 Mo très confortable).
 - Progression = une seule donnée persistée (liste des `LevelId` validés par mode), tout le reste est dérivé par des fonctions pures → le modèle « union des progressions » se greffe naturellement.
 - Aucun `Math.random`/`Date` au runtime. Points de friction Rune identifiés : regex dans `core/levels.ts` (`isDefi`), `Set` dans l'état, `try/catch` + `localStorage` dans `progress.ts`, `fetch`/`async` dans `level-loader.ts`, `setTimeout` dans `main.ts`/`render.ts`.

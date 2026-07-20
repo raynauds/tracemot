@@ -9,9 +9,9 @@ import {
   MAX_GRID_TRIES,
   GRID_REPAIRS_PER_WORD,
   REPAIR_CANDIDATES,
-} from "@tracemot/core";
-import type { GameMode, Tier, Difficulty } from "@tracemot/core";
-import type { Geometry } from "@tracemot/core";
+} from "@traceword/core";
+import type { GameMode, Tier, Difficulty } from "@traceword/core";
+import type { Geometry } from "@traceword/core";
 
 // --- Tirage pondéré des lettres ---------------------------------------
 
@@ -487,7 +487,7 @@ export function createGridGenerator(
       // Paliers de vocabulaire trop pauvres pour composer la solution : ne
       // devrait jamais arriver avec les fichiers fournis.
       console.warn(
-        "Tracemot : génération du pavage impossible, grille aléatoire.",
+        "Traceword : génération du pavage impossible, grille aléatoire.",
       );
       return {
         letters: drawLetters(cellCount),
@@ -497,7 +497,7 @@ export function createGridGenerator(
       };
     }
     console.warn(
-      `Tracemot : plafond de ${MAX_GRID_TRIES} tentatives atteint - ` +
+      `Traceword : plafond de ${MAX_GRID_TRIES} tentatives atteint - ` +
         `meilleure grille conservée (${best.issues} tracé(s) parasite(s)).`,
     );
     return {

@@ -71,7 +71,7 @@ Dérivés (jamais stockés) : cases consommées = union des `found[].path` ; com
 
 ```ts
 interface Persisted {
-  schema?: number;                          // versioning, remplace tracemot.schema
+  schema?: number;                          // versioning, remplace traceword.schema
   progress?: Record<ModeId, LevelId[]>;     // niveaux validés
   lastMode?: ModeId;                        // préférences (ex-localStorage)
   seenModes?: ModeId[];

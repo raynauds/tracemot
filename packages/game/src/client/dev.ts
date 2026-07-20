@@ -47,7 +47,7 @@ export function trackAction(name: string): void {
   el.textContent = `actions/s: ${rate} (${name})`;
   if (rate > BUDGET_PER_SECOND) {
     el.style.background = "#b3402a"; // vermillon : hors budget, alerte visible
-    console.warn(`Tracemot [dev] : ${rate} actions/s — au-delà du budget Rune (${BUDGET_PER_SECOND}/s)`);
+    console.warn(`Traceword [dev] : ${rate} actions/s — au-delà du budget Rune (${BUDGET_PER_SECOND}/s)`);
   } else {
     el.style.background = DEBUG_GREEN;
   }

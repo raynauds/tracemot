@@ -4,7 +4,7 @@
 // Le client n'est pas encore branché (chantier suivant, doc 09) : ce fichier
 // n'est lu que par la VM logic (predict-rollback).
 
-import { DEFAULT_MODE, createGeometry, levelMode } from "@tracemot/core";
+import { DEFAULT_MODE, createGeometry, levelMode } from "@traceword/core";
 import { resolveLevel } from "../levels/data.ts";
 import { wordRejectReason } from "../game/rules.ts";
 import { isTraceWithinGrid, isValidTrace, wordFromPath } from "./board.ts";

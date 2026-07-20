@@ -4,7 +4,7 @@
 // par le proposeur sans snackbar, expiration après 30 s sans unanimité (via
 // update(), Rune.gameTime() — une action ne peut jamais s'auto-expirer).
 
-import type { LevelId, ModeId } from "@tracemot/core";
+import type { LevelId, ModeId } from "@traceword/core";
 import type { PlayerId, ProposalKind, RuneGameState } from "./types.ts";
 
 export const PROPOSAL_TIMEOUT_MS = 30_000;

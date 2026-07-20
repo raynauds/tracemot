@@ -26,7 +26,7 @@
 // Les étoiles sont fongibles : peu importe de quelle section elles viennent.
 // C'est ce qui laisse le joueur plonger en difficulté sans être taxé.
 
-import { MODE_ORDER, type ModeId, type Section } from "@tracemot/core";
+import { MODE_ORDER, type ModeId, type Section } from "@traceword/core";
 import {
   DEFI_KEYS,
   LEVELS_PER_SECTION,
@@ -45,7 +45,7 @@ import {
   rowOfDefi,
   sectionOf,
   type LevelId,
-} from "@tracemot/core";
+} from "@traceword/core";
 
 export type CellState = "hidden" | "disabled" | "active" | "validated";
 

@@ -9,16 +9,16 @@
 
 ## Garanties de la grille
 
-Elles sont établies **hors-ligne** à la génération (`@tracemot/studio`), pas au runtime qui fait confiance au JSON figé. Le solveur garantit qu'exactement les mots de la solution sont traçables (à la longueur du mode), vérifié contre le dictionnaire **complet** ; chaque mot n'a qu'un seul tracé possible ; deux mots de la solution diffèrent toujours d'au moins 2 lettres (pas de SALLE/BALLE). Chaque grille est ensuite **re-vérifiée par un énumérateur de tracés indépendant** du solveur avant d'être écrite (`scripts/generate-levels.ts`), et le harnais `npm run check:solver` contrôle ces invariants en masse.
+Elles sont établies **hors-ligne** à la génération (`@traceword/studio`), pas au runtime qui fait confiance au JSON figé. Le solveur garantit qu'exactement les mots de la solution sont traçables (à la longueur du mode), vérifié contre le dictionnaire **complet** ; chaque mot n'a qu'un seul tracé possible ; deux mots de la solution diffèrent toujours d'au moins 2 lettres (pas de SALLE/BALLE). Chaque grille est ensuite **re-vérifiée par un énumérateur de tracés indépendant** du solveur avant d'être écrite (`scripts/generate-levels.ts`), et le harnais `npm run check:solver` contrôle ces invariants en masse.
 
 ## Progression : sections, défis, étoiles
 
-Un mode = **4 sections × 18 niveaux** (`@tracemot/core/levels.ts`, `src/game/progress.ts`). Une section = 3 lignes de 5 niveaux normaux, chaque ligne close par un **défi** (A/B/C) sur grille doublée. Deux mécanismes seulement :
+Un mode = **4 sections × 18 niveaux** (`@traceword/core/levels.ts`, `src/game/progress.ts`). Une section = 3 lignes de 5 niveaux normaux, chaque ligne close par un **défi** (A/B/C) sur grille doublée. Deux mécanismes seulement :
 
 - une **chaîne** linéaire à l'intérieur d'une section (valider un niveau ouvre le suivant) ;
 - une monnaie, l'**étoile** (1 défi validé = 1 étoile), qui ouvre les sections suivantes (coûts 0/1/2/4 étoiles) et, à 3 étoiles, le mode suivant.
 
-Seule la liste des niveaux validés est persistée (`tracemot.progress.<mode>`) ; tout le reste (cases jouables, étoiles, sections et modes débloqués) s'en déduit.
+Seule la liste des niveaux validés est persistée (`traceword.progress.<mode>`) ; tout le reste (cases jouables, étoiles, sections et modes débloqués) s'en déduit.
 
 ## Difficultés
 
@@ -29,4 +29,4 @@ Seule la liste des niveaux validés est persistée (`tracemot.progress.<mode>`) 
 - ⭐⭐⭐ **Or** — enfant + ado, 60 à 100 % de mots ado (3 à 5).
 - ⭐⭐⭐⭐ **Platine** — 20 à 40 % de mots ado et autant d'adulte (1 ou 2 de chaque), le reste enfant.
 
-Les quotas exacts sont dans `DIFFICULTY_QUOTAS` (`@tracemot/core`, `packages/core/src/config.ts`), consommés hors-ligne par le générateur. Le joueur, lui, n'en voit que le rang et sa description (« Que des mots très courants »…), libellés d'affichage traduits par `Rune.t` (`packages/game/src/render/i18n.ts`, `difficultyName`/`difficultyDesc`) et montrés par le panneau du jalon de section sur la carte : le nom dit le rang de la section, la description décrit la grille.
+Les quotas exacts sont dans `DIFFICULTY_QUOTAS` (`@traceword/core`, `packages/core/src/config.ts`), consommés hors-ligne par le générateur. Le joueur, lui, n'en voit que le rang et sa description (« Que des mots très courants »…), libellés d'affichage traduits par `Rune.t` (`packages/game/src/render/i18n.ts`, `difficultyName`/`difficultyDesc`) et montrés par le panneau du jalon de section sur la carte : le nom dit le rang de la section, la description décrit la grille.

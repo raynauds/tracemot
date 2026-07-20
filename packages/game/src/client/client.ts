@@ -36,7 +36,7 @@ import {
   isDefi,
   type LevelId,
   type ModeId,
-} from "@tracemot/core";
+} from "@traceword/core";
 import { initAudio, playSound } from "../audio/audio.ts";
 import { WIN_DELAY_MS } from "../game/config.ts";
 import {
@@ -533,6 +533,6 @@ async function boot(): Promise<void> {
 // arriver (assets, Pixi) ne doit pas laisser le joueur devant un écran vide à
 // jamais — mieux vaut révéler un chrome incomplet qu'un mur de papier.
 boot().catch((err) => {
-  console.error("Tracemot : échec du démarrage", err);
+  console.error("Traceword : échec du démarrage", err);
   document.body.classList.remove("booting");
 });

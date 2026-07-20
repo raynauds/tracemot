@@ -29,7 +29,7 @@ import {
   type Geometry,
   type LevelId,
   type ModeId,
-} from "@tracemot/core";
+} from "@traceword/core";
 import { resolveLevel } from "../levels/data.ts";
 import type { WordCheckContext } from "../game/rules.ts";
 import type { ColorSlot, PlayerId, RuneGameState } from "../logic/types.ts";
@@ -179,7 +179,7 @@ export function syncFromGame(game: RuneGameState): void {
     // Ne devrait jamais survenir : logic ne pose `levelId` qu'à partir des
     // mêmes données statiques que le client (doc 01 § Données de niveaux,
     // build unique). Défense en profondeur seulement.
-    console.error(`Tracemot : niveau « ${game.levelId} » absent du mode ${game.modeId}`);
+    console.error(`Traceword : niveau « ${game.levelId} » absent du mode ${game.modeId}`);
     return;
   }
   local.mode = levelMode(game.modeId, level.id);

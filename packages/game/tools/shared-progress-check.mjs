@@ -13,7 +13,7 @@
 //   node tools/shared-progress-check.mjs
 
 const { cellState, isModeUnlocked } = await import("../src/game/progress.ts");
-const { MODE_ORDER, allLevelIds } = await import("@tracemot/core");
+const { MODE_ORDER, allLevelIds } = await import("@traceword/core");
 const {
   rebuildSharedProgress,
   ownProgressFromPersisted,

@@ -1,5 +1,5 @@
 {
-  "name": "@tracemot/game",
+  "name": "@traceword/game",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "i18n:extract": "npx rune@latest extract-translations"
   },
   "dependencies": {
-    "@tracemot/core": "*",
+    "@traceword/core": "*",
     "pixi.js": "^8.19.0",
     "rune-sdk": "^6.0.1"
   },

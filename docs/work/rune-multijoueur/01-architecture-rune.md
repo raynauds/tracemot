@@ -43,7 +43,7 @@ packages/game/
 ```
 
 - **`vite-plugin-rune`** (template officiel `npx rune@latest create`) gère le double bundle : logic.js séparé, SDK injecté. On l'ajoute à la config Vite existante plutôt que de repartir du template — le monorepo, TS 7 et les assets sont déjà en place. Si le plugin se marie mal avec le workspace npm, repli : scaffolder le template dans `packages/rune-app` et y pointer les sources (→ risque R1).
-- `base: '/tracemot/'` disparaît (hypothèse : un jeu uploadé n'est pas servi sous ce chemin ; non sourcé dans la doc Rune — à vérifier au premier build, jalon R1).
+- `base: '/traceword/'` disparaît (hypothèse : un jeu uploadé n'est pas servi sous ce chemin ; non sourcé dans la doc Rune — à vérifier au premier build, jalon R1).
 - ESLint plugin `rune-sdk/eslint.js` branché sur `src/logic/` : il attrape mécaniquement les violations de déterminisme.
 
 ## Mise en conformité du code partagé (chantier 1)

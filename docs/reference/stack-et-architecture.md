@@ -8,16 +8,16 @@ TypeScript (v7) + HTML + CSS, modules ES natifs. Build **Vite** (`tsc --noEmit` 
 
 npm workspaces, `packages/*` :
 
-- **`@tracemot/core`** (`packages/core/src`) — domaine pur, zéro DOM/Pixi/thème, réutilisable en Node : `config.ts` (modes, difficultés, paramètres solveur), `geometry.ts` (grille rows × cols, voisins orthogonaux), `levels.ts` (types des niveaux + arithmétique des identifiants : sections, lignes, défis A/B/C, ordre canonique).
-- **`@tracemot/studio`** (`packages/studio/src`) — **outillage hors-ligne** de génération des niveaux : `dictionary.ts`, `solver.ts` (pavage par backtracking, réparation hill-climbing, exclusivité contre le dictionnaire complet), `seeded-random.ts`, `scripts/generate-levels.ts`, harnais `tools/solver-check.mjs`. Les cinq dictionnaires vivent ici (`dictionnaires/`), jamais servis au runtime.
-- **`@tracemot/game`** (`packages/game/src`) — l'app navigateur (Vite + Pixi), voir ci-dessous.
+- **`@traceword/core`** (`packages/core/src`) — domaine pur, zéro DOM/Pixi/thème, réutilisable en Node : `config.ts` (modes, difficultés, paramètres solveur), `geometry.ts` (grille rows × cols, voisins orthogonaux), `levels.ts` (types des niveaux + arithmétique des identifiants : sections, lignes, défis A/B/C, ordre canonique).
+- **`@traceword/studio`** (`packages/studio/src`) — **outillage hors-ligne** de génération des niveaux : `dictionary.ts`, `solver.ts` (pavage par backtracking, réparation hill-climbing, exclusivité contre le dictionnaire complet), `seeded-random.ts`, `scripts/generate-levels.ts`, harnais `tools/solver-check.mjs`. Les cinq dictionnaires vivent ici (`dictionnaires/`), jamais servis au runtime.
+- **`@traceword/game`** (`packages/game/src`) — l'app navigateur (Vite + Pixi), voir ci-dessous.
 
 ## Modules du jeu (`packages/game/src`)
 
 Découpé en couches : `game/` = runtime du domaine côté jeu, `render/` = tout ce qui touche Pixi et le DOM, `input/` = gestes. `game/` n'importe jamais `render/` ni `input/`.
 
 - `main.ts` — composition root : `await` de l'init Pixi, cycle accueil → carte → partie, validation des mots ; seul endroit qui branche toutes les couches.
-- `game/config.ts` — **présentation** : timings, géométrie du monde Pixi et palette numérique (dérivée du thème). Le domaine (modes, barèmes) est dans `@tracemot/core`.
+- `game/config.ts` — **présentation** : timings, géométrie du monde Pixi et palette numérique (dérivée du thème). Le domaine (modes, barèmes) est dans `@traceword/core`.
 - `game/state.ts` — état de la partie ; adopté par niveau via `applyLevel` (la géométrie change à chaque niveau — un défi double le côté).
 - `game/level-loader.ts` — chargement `fetch` des grilles prégénérées (`public/levels/*.json`), cache de promesses.
 - `game/progress.ts` — progression : étoiles, déblocage sections/modes, suites de victoire, point de reprise (`firstPlayableLevel`, `resumePoint`), persistance dérivée.
@@ -33,13 +33,13 @@ Découpé en couches : `game/` = runtime du domaine côté jeu, `render/` = tout
 
 ## Configuration
 
-Domaine dans `@tracemot/core/config.ts` : `GAME_MODES` / `DEFAULT_MODE` / `MODE_ORDER` et `defiMode()` (grille doublée), avec l'invariant `wordCount × wordLength = rows × cols` validé au chargement pour chaque mode et son défi ; `DIFFICULTY_QUOTAS` (les libellés des rangs Bronze→Platine sont côté client, `render/i18n.ts`) ; paramètres du solveur (`MAX_GRID_TRIES`, `GRID_REPAIRS_PER_WORD`, `REPAIR_CANDIDATES`, `LETTER_WEIGHTS`).
+Domaine dans `@traceword/core/config.ts` : `GAME_MODES` / `DEFAULT_MODE` / `MODE_ORDER` et `defiMode()` (grille doublée), avec l'invariant `wordCount × wordLength = rows × cols` validé au chargement pour chaque mode et son défi ; `DIFFICULTY_QUOTAS` (les libellés des rangs Bronze→Platine sont côté client, `render/i18n.ts`) ; paramètres du solveur (`MAX_GRID_TRIES`, `GRID_REPAIRS_PER_WORD`, `REPAIR_CANDIDATES`, `LETTER_WEIGHTS`).
 
 Présentation dans `game/config.ts` : `CELL_SIZE`, `CELL_GAP`, `VIEW_MARGIN`, `FIT_MARGIN_PX`, `ZOOM_MAX_CELLS`, `ZOOM_STEP`, `KEY_PAN_SPEED`, timings, et la palette numérique (`PAPER`, `CARD`, `INK`…) dérivée de `theme/tokens.ts`.
 
 ## Persistance
 
-Clés `localStorage` (lecture/écriture tolérante aux échecs, `game/progress.ts`) : `tracemot.progress.<mode>` (niveaux validés — seule donnée stockée), `tracemot.lastMode`, `tracemot.seenModes`, `tracemot.schema` (version) et `tracemot.rule-seen`. `migrateStorage()` purge au démarrage les clés du jeu libre disparu (`tracemot.mode`, `tracemot.difficulty`) et toute progression d'un schéma antérieur.
+Clés `localStorage` (lecture/écriture tolérante aux échecs, `game/progress.ts`) : `traceword.progress.<mode>` (niveaux validés — seule donnée stockée), `traceword.lastMode`, `traceword.seenModes`, `traceword.schema` (version) et `traceword.rule-seen`. `migrateStorage()` purge au démarrage les clés du jeu libre disparu (`traceword.mode`, `traceword.difficulty`) et toute progression d'un schéma antérieur.
 
 ## Scripts
 

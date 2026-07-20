@@ -10,7 +10,7 @@
 // stateSync), sa fermeture le révèle.
 //
 // « Vu » n'est plus un drapeau localStorage : il vit dans `game.persisted`
-// (doc 02/08, ex-tracemot.help-seen) — ce module ne LIT ni n'ÉCRIT plus rien
+// (doc 02/08, ex-traceword.help-seen) — ce module ne LIT ni n'ÉCRIT plus rien
 // lui-même, client.ts lui passe l'état vu à l'appel et se charge de
 // persister l'action `setHelpSeen` via `onSeen`.
 
@@ -19,7 +19,7 @@ import { checkIcon, closeIcon, starIcon } from "./icons.ts";
 
 function byId(id: string): HTMLElement {
   const el = document.getElementById(id);
-  if (!el) throw new Error(`Tracemot : élément #${id} introuvable`);
+  if (!el) throw new Error(`Traceword : élément #${id} introuvable`);
   return el;
 }
 

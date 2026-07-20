@@ -41,16 +41,16 @@ import {
   GAME_MODES,
   MODE_ORDER,
   defiMode,
-} from "@tracemot/core";
+} from "@traceword/core";
 import type {
   Difficulty,
   GameMode,
   ModeId,
   Section,
   Tier,
-} from "@tracemot/core";
-import { createGeometry } from "@tracemot/core";
-import type { Geometry } from "@tracemot/core";
+} from "@traceword/core";
+import { createGeometry } from "@traceword/core";
+import type { Geometry } from "@traceword/core";
 import {
   FULL_DICT_FILE,
   TIER_FILES,
@@ -67,13 +67,13 @@ import {
   compareLevelIds,
   defiId,
   levelId,
-} from "@tracemot/core";
+} from "@traceword/core";
 import type {
   DefiKey,
   LevelData,
   LevelId,
   ModeLevels,
-} from "@tracemot/core";
+} from "@traceword/core";
 
 // --- Plan canonique -------------------------------------------------------
 
@@ -333,7 +333,7 @@ function makeLevel(
   }
 
   throw new Error(
-    `Tracemot : ${modeId} / niveau ${id} — aucune grille parfaite en ` +
+    `Traceword : ${modeId} / niveau ${id} — aucune grille parfaite en ` +
       `${MAX_DRAWS_PER_LEVEL} tirages. Relever MAX_DRAWS_PER_LEVEL ou ` +
       `assouplir les quotas de la difficulté ${difficulty}.`,
   );

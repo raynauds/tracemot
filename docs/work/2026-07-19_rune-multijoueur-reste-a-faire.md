@@ -1,6 +1,6 @@
 # Rune multijoueur — reste à faire
 
-État au 2026-07-19 : les 6 chantiers du plan [rune-multijoueur](rune-multijoueur/00-INDEX.md) sont implémentés et commités (`82e64fe` → `e97e98b`, branche `rune-refactor`). `npm run check` et `npm run build -w @tracemot/game` verts, logic.js 153 Ko (< 1 Mo). Ce doc liste ce qui n'a **pas** pu être fait par les agents (interdiction de lancer le projet) ou reste volontairement en suspens.
+État au 2026-07-19 : les 6 chantiers du plan [rune-multijoueur](rune-multijoueur/00-INDEX.md) sont implémentés et commités (`82e64fe` → `e97e98b`, branche `rune-refactor`). `npm run check` et `npm run build -w @traceword/game` verts, logic.js 153 Ko (< 1 Mo). Ce doc liste ce qui n'a **pas** pu être fait par les agents (interdiction de lancer le projet) ou reste volontairement en suspens.
 
 ## 1. Validation au Dev UI (bloquant avant upload)
 
@@ -24,12 +24,12 @@ Aucun `npm run dev` n'a été lancé : tous les critères de sortie « validé a
 - [ ] Image preview PNG **686×960**, sans texte, bas 240 px réservés (requise pour la release publique, pas pour le playtest).
 - [ ] Titre + description sur le Dev Dashboard, **avec les attributions contractuelles** (JDSherbert, Nathan Gibson, Kenney — source : `docs/ATTRIBUTIONS.md`), après vérification des termes exacts de chaque licence.
 - [ ] `npx rune@latest upload`, lien playtest (bon jalon post-Dev UI), puis review (~2-3 jours ouvrés).
-- [ ] Hypothèse à confirmer au premier upload : un jeu uploadé est servi à la racine (`base: '/'` — le `base: '/tracemot/'` a été retiré).
+- [ ] Hypothèse à confirmer au premier upload : un jeu uploadé est servi à la racine (`base: '/'` — le `base: '/traceword/'` a été retiré).
 - [ ] **Q20 / `gameOver`** : décision « jamais de gameOver par niveau » à valider en playtest/review ; les deux replis (`minimizePopUp`, jalon rare) sont documentés en commentaire au-dessus d'`applyVictory` (`logic/progression.ts`) et dans le doc 07.
 
 ## 4. Dettes techniques assumées (non bloquantes)
 
-- **Portée du lint Rune** : `check:rune-logic` ne couvre que `src/logic/**` — le code partagé inliné dans logic.js (`@tracemot/core`, `game/rules.ts`, `game/progress.ts`, `levels/data.ts`) n'est pas lint-é. Aucune violation actuelle, mais une regex/`Date`/`async` ajoutée là passerait le check en silence. Extension = parserOptions cross-package, mission dédiée.
+- **Portée du lint Rune** : `check:rune-logic` ne couvre que `src/logic/**` — le code partagé inliné dans logic.js (`@traceword/core`, `game/rules.ts`, `game/progress.ts`, `levels/data.ts`) n'est pas lint-é. Aucune violation actuelle, mais une regex/`Date`/`async` ajoutée là passerait le check en silence. Extension = parserOptions cross-package, mission dédiée.
 - **TS 7 (préversion)** : n'expose plus l'API compilateur classique — tout outillage type-aware futur devra passer par le même contournement (`overrides` npm `ts-api-utils` → TS 5.9 dans le package.json racine ; un changement d'override exige `rm -rf node_modules package-lock.json && npm install`).
 - **Estompe des tracés distants** : le fond de case teinté (~12 %) disparaît net quand le tracé sort du cache, seuls trait + pastille suivent le fondu (documenté dans `scene.ts`).
 - **Course au mot** : `wordRaceLost` suppose une seule course par tick (cas courant, documenté dans `diff.ts`).

@@ -45,10 +45,10 @@ rebuildSharedProgress(game)
 
 ## Persisted : versioning et migration
 
-- `persisted.schema` remplace `tracemot.schema`. Lecture tolérante : `schema` absent ou différent → on repart d'un `progress` vide (même politique de purge franche que `migrateStorage`, sans `try/catch` — de simples tests d'existence suffisent en JSON).
+- `persisted.schema` remplace `traceword.schema`. Lecture tolérante : `schema` absent ou différent → on repart d'un `progress` vide (même politique de purge franche que `migrateStorage`, sans `try/catch` — de simples tests d'existence suffisent en JSON).
 - Les versions **draft** de Rune lisent le persisted publié mais n'écrivent jamais : le développement ne peut pas corrompre les données réelles.
 - Progression web (localStorage) existante : non transférable automatiquement (autre origine, autre appareil). Recommandation : on repart de zéro sur Rune (→ Q4).
-- `tracemot.lastMode` / `tracemot.seenModes` / aide vue : préférences par joueur → **persisted** (sync cross-devices, Rune déconseille localStorage). Recommandation unique du plan (docs 01/02/08 alignés) ; schéma en doc 02.
+- `traceword.lastMode` / `traceword.seenModes` / aide vue : préférences par joueur → **persisted** (sync cross-devices, Rune déconseille localStorage). Recommandation unique du plan (docs 01/02/08 alignés) ; schéma en doc 02.
 
 ## Points de vigilance
 

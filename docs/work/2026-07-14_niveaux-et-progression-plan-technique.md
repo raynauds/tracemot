@@ -71,7 +71,7 @@ Fonctions pures (pas de DOM), le script du design fait foi pour la géométrie :
 export type CellState = "hidden" | "disabled" | "active" | "validated";
 export interface ModeProgress { validated: Set<LevelId>; }
 
-export function loadProgress(modeId: ModeId): ModeProgress;      // tracemot.progress.<modeId>
+export function loadProgress(modeId: ModeId): ModeProgress;      // traceword.progress.<modeId>
 export function saveValidated(modeId: ModeId, id: LevelId): void;
 
 export function cellState(p: ModeProgress, id: LevelId): CellState;
@@ -94,10 +94,10 @@ export function totalValidated(modeId: ModeId): number;
 
 Persistance (localStorage, accès try/catch comme aujourd'hui) :
 
-- `tracemot.progress.<modeId>` : `string[]` JSON des identifiants validés.
-- `tracemot.lastMode` : onglet à rouvrir.
-- `tracemot.seenModes` : `string[]` des modes déjà visités → pastille vermillon sur un onglet débloqué jamais visité. (Petit ajout à la section persistance de la spec : cet état n'est pas dérivable de la progression.)
-- Migration : suppression de `tracemot.mode` et `tracemot.difficulty` au boot.
+- `traceword.progress.<modeId>` : `string[]` JSON des identifiants validés.
+- `traceword.lastMode` : onglet à rouvrir.
+- `traceword.seenModes` : `string[]` des modes déjà visités → pastille vermillon sur un onglet débloqué jamais visité. (Petit ajout à la section persistance de la spec : cet état n'est pas dérivable de la progression.)
+- Migration : suppression de `traceword.mode` et `traceword.difficulty` au boot.
 
 ### 1.4 Harnais de vérification
 
@@ -144,7 +144,7 @@ export function bindMap(onSelectLevel: (modeId: ModeId, id: LevelId) => void): v
 
 Fond de carte `#EFE9DA` (distinct du papier `#F6F1E7` du jeu — nouvelle variable CSS).
 
-- **Header carte** : « Tracemot » (Source Serif 700), onglets, compteur `N` vermillon + « VALIDÉS » letterspacé. Bordure basse `2px solid #26221C`.
+- **Header carte** : « Traceword » (Source Serif 700), onglets, compteur `N` vermillon + « VALIDÉS » letterspacé. Bordure basse `2px solid #26221C`.
 - **Onglets** : actif = fond `#26221C` texte `#F6F1E7` ; débloqué = fond `#FDFBF5` bordure pleine encre, pastille `6px` `#B3402A` si jamais visité ; prochain verrouillé = `border: 1.5px dashed #C1B7A2`, texte `#B9AF9C`, SVG cadenas (repris du design) ; modes au-delà : absents.
 - **Accroche** : italique `#4A4438` ; texte alternatif au premier lancement (progression totalement vide).
 - **Jalon de section** : filets `1px #C6BCA6` de part et d'autre, nom en italique gras, compteur mono (`« n validés »` en `#8A806C`, `« 25 ✓ »` en vermillon quand complète, boss compris). Rendu dès qu'une case de la section est visible.
@@ -232,5 +232,5 @@ Chaque phase compile et se teste seule : **1** (modèle + harnais, aucun impact 
 ## Points ouverts
 
 - **Portée du compteur « N VALIDÉS »** (ouvert dans la spec) : le design compte les validés du mode affiché — 51 dans l'état de référence. (Suggestion : compteur du mode affiché, cohérent avec l'onglet actif et le script du design.)
-- **`tracemot.seenModes`** : ajout à la persistance non prévu par la spec, nécessaire pour la pastille « jamais visité ». (Suggestion : l'adopter ; alternative — pastille tant que `progress.<mode>` est vide — fausse dès qu'on visite sans jouer.)
+- **`traceword.seenModes`** : ajout à la persistance non prévu par la spec, nécessaire pour la pastille « jamais visité ». (Suggestion : l'adopter ; alternative — pastille tant que `progress.<mode>` est vide — fausse dès qu'on visite sans jouer.)
 - **Chrono en partie** : la spec ne persiste ni score ni chrono ; le chrono d'affichage actuel est conservé tel quel. (Suggestion : le garder, il ne coûte rien.)

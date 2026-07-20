@@ -6,7 +6,7 @@
 // dans le `ModeProgress` ({ validated }) que ces dérivations attendent, sans
 // jamais stocker le wrapper.
 
-import { MODE_ORDER, isDefi, type LevelId, type ModeId } from "@tracemot/core";
+import { MODE_ORDER, isDefi, type LevelId, type ModeId } from "@traceword/core";
 import {
   cellState,
   isModeUnlocked,

@@ -15,7 +15,7 @@ import { closeIcon } from "./icons.ts";
 
 function byId(id: string): HTMLElement {
   const el = document.getElementById(id);
-  if (!el) throw new Error(`Tracemot : élément #${id} introuvable`);
+  if (!el) throw new Error(`Traceword : élément #${id} introuvable`);
   return el;
 }
 

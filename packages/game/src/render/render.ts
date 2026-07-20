@@ -10,7 +10,7 @@
 
 import { playSound } from "../audio/audio.ts";
 import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
-import { isDefi, levelLabel, type LevelId } from "@tracemot/core";
+import { isDefi, levelLabel, type LevelId } from "@traceword/core";
 import { MAX_STARS, type NextChoice, type StarReward } from "../game/progress.ts";
 import { local, wordCheckContext } from "../client/local-state.ts";
 import type { FoundWord, PlayerId, WinSummary } from "../logic/types.ts";
@@ -25,7 +25,7 @@ function wordDots() {
 
 function byId(id: string): HTMLElement {
   const el = document.getElementById(id);
-  if (!el) throw new Error(`Tracemot : élément #${id} introuvable`);
+  if (!el) throw new Error(`Traceword : élément #${id} introuvable`);
   return el;
 }
 

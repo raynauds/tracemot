@@ -8,7 +8,7 @@ La **carte de progression** (`src/render/map.ts`) vient ensuite : on y choisit u
 
 ## Modes de jeu
 
-Une série de grilles carrées **N×N** (`GAME_MODES`, `@tracemot/core`) : `5x5`, `6x6`, `7x7`, `8x8` — N mots de N lettres sur une grille N×N. L'identifiant du mode *est* sa forme. Les modes se débloquent à l'étoile (voir [progression](regles-et-difficultes.md)) ; le mode par défaut, seul ouvert au premier lancement, est `5x5`. Le dernier mode consulté est mémorisé (`localStorage`, `tracemot.lastMode`).
+Une série de grilles carrées **N×N** (`GAME_MODES`, `@traceword/core`) : `5x5`, `6x6`, `7x7`, `8x8` — N mots de N lettres sur une grille N×N. L'identifiant du mode *est* sa forme. Les modes se débloquent à l'étoile (voir [progression](regles-et-difficultes.md)) ; le mode par défaut, seul ouvert au premier lancement, est `5x5`. Le dernier mode consulté est mémorisé (`localStorage`, `traceword.lastMode`).
 
 ## Niveaux prégénérés
 
@@ -34,7 +34,7 @@ Quand tous les mots du niveau sont trouvés (`src/main.ts:triggerWin`). Un **dé
 
 ## Règle du jeu
 
-Une chip « i » ouvre le panneau de règle, sur l'accueil comme dans le header de partie (même composant `.diff-panel`). En partie, il s'ouvre automatiquement au tout premier niveau lancé seulement : la mécanique n'étant pas devinable, elle est présentée d'emblée, puis ne revient plus (`localStorage`, `tracemot.rule-seen`).
+Une chip « i » ouvre le panneau de règle, sur l'accueil comme dans le header de partie (même composant `.diff-panel`). En partie, il s'ouvre automatiquement au tout premier niveau lancé seulement : la mécanique n'étant pas devinable, elle est présentée d'emblée, puis ne revient plus (`localStorage`, `traceword.rule-seen`).
 
 ## Explications sur la carte
 

@@ -10,7 +10,7 @@
 // packages/studio/scripts/generate-levels.ts — ce module ne fait que les
 // importer et exposer une résolution synchrone (modeId, levelId) → niveau.
 
-import type { LevelData, LevelId, ModeId, ModeLevels } from "@tracemot/core";
+import type { LevelData, LevelId, ModeId, ModeLevels } from "@traceword/core";
 import mode5x5 from "./json/5x5.json";
 import mode6x6 from "./json/6x6.json";
 import mode7x7 from "./json/7x7.json";

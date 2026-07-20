@@ -140,7 +140,7 @@ Le jalon d'une section apparaît dès qu'au moins une de ses cases est visible.
 
 ## Écran de sélection
 
-- **Header** : titre « Tracemot », onglets de mode, compteur d'étoiles du mode courant (« 3 / 12 ★ ») et rappel du prochain palier (« Prochaine étoile : Platine »).
+- **Header** : titre « Traceword », onglets de mode, compteur d'étoiles du mode courant (« 3 / 12 ★ ») et rappel du prochain palier (« Prochaine étoile : Platine »).
 - **Onglets de mode** : les modes débloqués, plus le prochain grisé avec cadenas (les modes plus lointains sont cachés). Un mode débloqué mais jamais visité porte une pastille vermillon.
 - Sous le header, une ligne d'accroche en italique : « Choisissez un niveau. Chaque défi validé rapporte une étoile. » ; au premier lancement : « Tracez tous les mots de la grille pour valider le niveau et révéler la suite. »
 - Cliquer une case validée ou jouable lance le niveau.
@@ -167,9 +167,9 @@ Toutes les grilles sont prédéfinies, générées hors-ligne et versionnées da
 
 localStorage uniquement :
 
-- `tracemot.progress.<modeId>` : liste des identifiants de niveaux validés (ex. `["1-1","1-2","1-A"]`). Tout l'état de la carte (visible / jouable / validé, étoiles, déblocage des sections et des modes) se recalcule à partir de ces listes. Le nombre d'étoiles d'un mode = nombre d'identifiants se terminant par `-A`, `-B` ou `-C`.
-- `tracemot.lastMode` : dernier mode consulté, pour rouvrir la carte au bon onglet.
-- Les clés actuelles `tracemot.mode` et `tracemot.difficulty` deviennent obsolètes.
+- `traceword.progress.<modeId>` : liste des identifiants de niveaux validés (ex. `["1-1","1-2","1-A"]`). Tout l'état de la carte (visible / jouable / validé, étoiles, déblocage des sections et des modes) se recalcule à partir de ces listes. Le nombre d'étoiles d'un mode = nombre d'identifiants se terminant par `-A`, `-B` ou `-C`.
+- `traceword.lastMode` : dernier mode consulté, pour rouvrir la carte au bon onglet.
+- Les clés actuelles `traceword.mode` et `traceword.difficulty` deviennent obsolètes.
 
 ## Impacts sur l'existant
 
@@ -183,7 +183,7 @@ localStorage uniquement :
 Un seul écran (onglet 5×5) doit montrer tous les états possibles. Progression persistée :
 
 ```
-tracemot.progress.5x5 = [
+traceword.progress.5x5 = [
   "1-1" … "1-15", "1-A", "1-B", "1-C",   // section 1 entière → 3 étoiles
   "2-1" … "2-5",                          // section 2 : ligne 1 terminée
   "3-1" … "3-4"                           // section 3 : début de ligne 1

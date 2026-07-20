@@ -1,4 +1,4 @@
-# Tracemot
+# Traceword
 
 Jeu de lettres pour la plateforme [Rune](https://developers.rune.ai) (webview dans l'app mobile) : on trace des mots au doigt sur une grille de lettres (5×5 à 8×8 selon le mode). Chaque grille cache N mots de N lettres qui pavent toutes les cases ; la partie est gagnée quand tous sont trouvés. Jouable seul ou en coopération à 2-4 : progression partagée, tracés des autres en temps réel, classement de fin.
 

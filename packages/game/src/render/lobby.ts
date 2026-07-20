@@ -13,7 +13,7 @@
 // propositions) restent décidées par client.ts à partir des diffs de
 // src/client/diff.ts, précisément pour ne jamais rejouer sur un stateSync.
 
-import { levelLabel } from "@tracemot/core";
+import { levelLabel } from "@traceword/core";
 import { playSound } from "../audio/audio.ts";
 import type { PlayerId, Proposal, RuneGameState } from "../logic/types.ts";
 
@@ -55,7 +55,7 @@ function avatar(id: PlayerId): HTMLElement {
   return img;
 }
 
-// « 5×5 · 1-12 » (levelLabel, @tracemot/core) — vide pour un abandon (pas de
+// « 5×5 · 1-12 » (levelLabel, @traceword/core) — vide pour un abandon (pas de
 // niveau à nommer).
 function levelDescription(proposal: Proposal): string {
   return proposal.modeId && proposal.levelId
