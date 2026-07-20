@@ -1,20 +1,20 @@
 /* Voile + panneau : composant partagé (popover desktop, feuille mobile).
-   Hérité du sélecteur de difficulté disparu — d'où les classes .diff-* ; le
-   menu (src/render/menu.css) et les panneaux de la carte s'en servent. */
+   Né du sélecteur de difficulté disparu (ex-classes .diff-*) ; le menu
+   (src/render/menu.css), les panneaux de la carte et le lobby s'en servent.
+   Convention de tête : DESIGN.md § Components → Panneaux. */
 
 
-/* Hérité du sélecteur de difficulté disparu ; le menu et les panneaux de la
-   carte l'emploient (popover desktop, feuille mobile). Les classes gardent
-   leur nom : elles restent le composant « panneau du header ». */
-.diff-overlay {
+/* Voile léger : la page reste lisible derrière un popover ancré. Les deux
+   densités vivent en tokens (--veil-*, src/theme/tokens.ts). */
+.panel-overlay {
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  background: var(--veil-light);
 }
 
 /* Desktop : popover ancré sous la chip */
-.diff-panel {
+.panel {
   position: absolute;
   z-index: 21;
   top: calc(100% + 14px);
@@ -26,17 +26,21 @@
   padding: 16px 16px 18px;
 }
 
-.diff-panel-head {
+.panel-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.diff-panel-title {
+/* Titre de panneau : une étiquette, jamais une commande — mono capitale
+   estompée (--muted), l'encre est réservée au contenu (DESIGN.md § Components
+   → Panneaux). Le lobby (lobby.ts) consomme la même classe. */
+.panel-title {
   font-family: var(--mono);
   font-size: 12px;
   font-weight: var(--label-caps-weight);
   letter-spacing: 2.5px;
+  color: var(--muted);
 }
 
 /* Icône nue (cf. src/render/icons.ts), comme la flèche du retour et le « i » de
@@ -46,7 +50,7 @@
    Le padding n'est là que pour la cible du doigt ; la marge négative le reprend,
    pour que la croix s'aligne quand même sur le bord du panneau et n'étire pas
    la ligne de titre. */
-.diff-close {
+.panel-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -65,12 +69,12 @@
    la souris : au doigt, le navigateur simule un :hover au tap et le laisse
    collé. L'appui (:active), lui, se relâche partout. */
 @media (hover: hover) {
-  .diff-close:hover {
+  .panel-close:hover {
     color: var(--vermilion);
   }
 }
 
-.diff-close:active {
+.panel-close:active {
   color: var(--vermilion);
 }
 
@@ -136,11 +140,12 @@
 /* --- Mobile (maquette 390x844) --- */
 
 @media (max-width: 860px) {
-  /* Feuille en bas d'écran à la place du popover, voile plus dense */
-  .diff-overlay {
-    background: color-mix(in srgb, var(--ink) 45%, transparent);
+  /* Feuille en bas d'écran à la place du popover : elle prend l'écran, le
+     voile passe en densité bloquante. */
+  .panel-overlay {
+    background: var(--veil-dense);
   }
-  .diff-panel {
+  .panel {
     position: fixed;
     top: auto;
     left: 0;
@@ -159,7 +164,7 @@
       transform: translateY(24px);
     }
   }
-  .diff-close {
+  .panel-close {
     font-size: 20px;
   }
   .panel-line {

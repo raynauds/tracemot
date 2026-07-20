@@ -315,7 +315,10 @@ dit « ce panneau flotte au-dessus de la page » : le registre (`0 14px 34px`),
 les modales (`0 20px 44px`). Elle est réservée aux surfaces qui recouvrent
 temporairement l'interface. Chaque teinte diluée (voile, ombre floue) s'écrit
 `color-mix(in srgb, var(--ink) X%, transparent)` — jamais en `rgba()` littéral,
-qui redirait la même couleur en hexadécimal ailleurs qu'à sa source.
+qui redirait la même couleur en hexadécimal ailleurs qu'à sa source. Les deux
+densités de voile, elles, sont déjà tokenisées (`--veil-light`, `--veil-dense`,
+§ Components → Panneaux) : un voile se pose avec le token, pas en `color-mix`
+retapé.
 
 **L'ombre dure** (encre pleine, décalage diagonal, flou nul) dit « ce papier est
 découpé et posé » : les cases de la carte (`--shadow-hard-md`, `2.5px 2.5px 0`),
@@ -416,10 +419,35 @@ La hiérarchie est portée par le remplissage, pas par la taille.
 
 ### Panneaux
 
-`panel` est un composant partagé (voile plein écran + surface ancrée). En
-desktop il s'ancre en popover sous son déclencheur ; en mobile il devient une
-feuille en bas d'écran. Le voile est `color-mix(in srgb, var(--ink) 18%,
-transparent)` — de l'encre diluée, jamais du noir pur.
+`panel` est un composant partagé (voile plein écran + surface — classes
+`.panel-*`, `src/render/panel.css`). En desktop il s'ancre en popover sous son
+déclencheur ; en mobile il devient une feuille en bas d'écran ; le lobby en
+consomme la tête sur sa carte centrée.
+
+**Voile : deux densités, en tokens** (`--veil-light`, `--veil-dense`,
+`src/theme/tokens.ts`) — de l'encre diluée, jamais du noir pur. Léger (18 %)
+sous un popover ancré : la page reste lisible derrière. Dense (45 %) sous une
+surface bloquante : feuille mobile, lobby de vote. Pas de troisième densité.
+
+**Tête de surface : deux registres, selon ce que la surface est.**
+
+- **Écran de consultation** (se lit : aide, crédits) — titre serif `title`,
+  filet standard dessous, croix **encre** : elle est la seule sortie, elle a
+  rang d'action.
+- **Panneau, feuille, carte** (s'actionne ou informe en passant : menu,
+  panneaux de la carte, lobby) — titre **mono capitale `muted`** : le titre
+  nomme, il ne commande jamais ; l'encre est réservée au contenu. Croix
+  **estompée** au repos : fermer n'est pas l'action du panneau, juste sa
+  sortie.
+
+Quand le corps d'un panneau parle la même voix mono capitale que sa tête (le
+menu : une liste de commandes), un **filet standard sous la tête** marque la
+frontière étiquette/commandes — celle que le contraste serif/mono fait tout
+seul dans les panneaux qui expliquent.
+
+**Échap ferme toute surface à croix** — menu, panneaux de la carte, écrans de
+consultation. Le lobby n'a ni croix ni Échap : la proposition vient de la
+room, elle ne se congédie pas localement.
 
 ### Cases
 
@@ -438,8 +466,9 @@ correspondance qui traverse la frontière canvas/DOM, et elle doit tenir.
 - Répercuter tout changement de couleur dans `style.css` **et**
   `src/game/config.ts`.
 - Poser les nouveaux composants sur l'échelle `spacing`.
-- Poser un filet ou une ombre dure avec `var(--rule-*)` / `var(--shadow-hard-*)`
-  (§ Elevation & Depth, § Shapes), jamais en littéral retapé.
+- Poser un filet, une ombre dure ou un voile avec `var(--rule-*)` /
+  `var(--shadow-hard-*)` / `var(--veil-*)` (§ Elevation & Depth, § Shapes,
+  § Components → Panneaux), jamais en littéral retapé.
 - Diluer l'encre ou le papier avec `color-mix(in srgb, var(--ink|paper) X%,
   transparent)`, jamais en `rgba()` littéral — le même principe qu'une couleur
   pleine : une seule source, écrite une fois.

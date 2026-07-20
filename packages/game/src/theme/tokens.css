@@ -28,6 +28,9 @@
   --rule-hairline: 1px solid var(--line);
   --rule-dashed: 1.5px dashed var(--map-rule);
 
+  --veil-light: color-mix(in srgb, var(--ink) 18%, transparent);
+  --veil-dense: color-mix(in srgb, var(--ink) 45%, transparent);
+
   --shadow-hard-xs: 1px 1px 0 var(--ink);
   --shadow-hard-sm: 1.5px 1.5px 0 var(--ink);
   --shadow-hard-md: 2.5px 2.5px 0 var(--ink);

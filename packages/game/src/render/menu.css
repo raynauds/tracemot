@@ -60,16 +60,25 @@
   width: 300px;
 }
 
+/* Ici le corps parle la même voix mono capitale que le titre : le filet
+   standard sous la tête marque la frontière étiquette/commandes que le
+   contraste serif/mono fait tout seul dans les autres panneaux (DESIGN.md
+   § Components → Panneaux). */
+.menu-panel .panel-head {
+  padding-bottom: 12px;
+  border-bottom: var(--rule-standard);
+}
+
 /* Items du menu : des lignes, pas des boutons encadrés — le panneau est une
    liste d'actions, le filet fin les sépare comme il sépare les mots du
-   registre. Mono capitale (label-caps) : ce sont des commandes. */
+   registre. Mono capitale (label-caps) : ce sont des commandes. Le padding
+   vertical symétrique fait la cible tactile (~44px) : toute la ligne se
+   tape, pas seulement le texte. */
 .menu-item {
   display: block;
   width: 100%;
-  margin-top: 14px;
-  padding: 13px 0 0;
+  padding: 15px 0;
   border: none;
-  border-top: var(--rule-hairline);
   background: none;
   text-align: left;
   font-family: var(--mono);
@@ -78,6 +87,18 @@
   letter-spacing: 1.5px;
   color: var(--ink);
   cursor: pointer;
+}
+
+/* Le filet fin ne sépare que deux items : la frontière avec la tête est déjà
+   tenue par le filet standard du panel-head. */
+.menu-item + .menu-item {
+  border-top: var(--rule-hairline);
+}
+
+/* Le retrait bas du composant partagé (18px) s'ajouterait au padding tactile
+   du dernier item : le panneau le rend, l'item garde sa pleine cible. */
+.menu-panel {
+  padding-bottom: 4px;
 }
 
 @media (hover: hover) {
@@ -114,5 +135,8 @@
     left: 0;
     right: 0;
     width: auto;
+    /* Même reprise qu'en desktop — le padding tactile du dernier item rend le
+       retrait bas — mais sans jamais passer sous la safe area. */
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
 }

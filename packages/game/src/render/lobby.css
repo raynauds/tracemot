@@ -14,7 +14,9 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: color-mix(in srgb, var(--ink) 30%, transparent);
+  /* Densité bloquante (--veil-*, tokens.ts) : la surface la plus bloquante de
+     l'app — elle ne se congédie pas, la room décide. */
+  background: var(--veil-dense);
 }
 
 .lobby-card {
@@ -28,13 +30,8 @@
   padding: 20px 20px 22px;
 }
 
-.lobby-title {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: var(--label-caps-weight);
-  letter-spacing: 2.5px;
-  color: var(--muted);
-}
+/* Le titre de la carte est le .panel-title du composant partagé (panel.css) :
+   étiquette mono capitale estompée, posée par lobby.ts. */
 
 .lobby-line {
   margin: 0;

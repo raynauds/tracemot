@@ -74,6 +74,15 @@ export const RULES = {
   dashed: "1.5px dashed var(--map-rule)", // inerte : visible mais pas encore atteignable.
 } as const;
 
+// Les deux densités de voile du système (DESIGN.md § Components → Panneaux) :
+// de l'encre diluée, jamais du noir pur. Léger sous un popover ancré — la page
+// reste lisible derrière —, dense sous une surface bloquante (feuille mobile,
+// lobby de vote) qui prend l'écran.
+export const VEILS = {
+  light: "color-mix(in srgb, var(--ink) 18%, transparent)",
+  dense: "color-mix(in srgb, var(--ink) 45%, transparent)",
+} as const;
+
 // Les ombres dures du système (DESIGN.md § Elevation & Depth) : encre pleine,
 // décalage diagonal égal en X/Y, flou nul. L'échelle documentée — 1 / 1.5 /
 // 2.5 / 4px — plus un palier « mini » dédié aux miniatures (figures d'aide,

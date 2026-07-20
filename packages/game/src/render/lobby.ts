@@ -79,7 +79,7 @@ function buildPrompt(proposal: Proposal): void {
   cardEl.appendChild(
     el(
       "span",
-      "lobby-title",
+      "panel-title",
       isAbandon ? Rune.t("QUITTER LA PARTIE") : Rune.t("PROPOSITION"),
     ),
   );
@@ -127,7 +127,7 @@ function buildWaiting(
 ): void {
   cardEl.textContent = "";
   cardEl.setAttribute("aria-label", Rune.t("En attente des autres joueurs"));
-  cardEl.appendChild(el("span", "lobby-title", Rune.t("EN ATTENTE DES AUTRES")));
+  cardEl.appendChild(el("span", "panel-title", Rune.t("EN ATTENTE DES AUTRES")));
 
   const line = el("p", "lobby-line");
   if (proposal.kind === "abandon") {

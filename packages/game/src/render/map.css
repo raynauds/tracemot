@@ -247,7 +247,7 @@ body.map-open .win {
 
 /* Le jalon, lui, est centré dans sa ligne : son popover se centre sur lui, et se
    borne à la largeur utile pour ne déborder d'aucun des deux côtés. */
-.map-milestone-anchor .diff-panel {
+.map-milestone-anchor .panel {
   left: 50%;
   transform: translateX(-50%);
   width: min(380px, calc(100vw - 2 * var(--edge)));
@@ -269,7 +269,7 @@ body.map-open .win {
    panneau, pas celui de la carte (640px). */
 @media (max-width: 860px) {
   .map-panel-stars,
-  .map-milestone-anchor .diff-panel {
+  .map-milestone-anchor .panel {
     left: 0;
     width: auto;
     transform: none;

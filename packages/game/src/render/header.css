@@ -14,10 +14,10 @@
   top: 0;
   left: 0;
   right: 0;
-  /* Contexte d'empilement du header : il englobe les modales de difficulté et
-     de règle (diff-overlay/panel, imbriqués). Placé au-dessus du registre (16)
-     et du zoom (15) pour que le voile et le panneau couvrent bien tout — mais
-     sous le statut/victoire (30). */
+  /* Contexte d'empilement du header : au-dessus du registre (16) et du zoom
+     (15), sous le statut/victoire (30). Le panneau du menu, lui, vit au niveau
+     du body (menu.css) — plus rien ne s'empile DANS le header depuis la
+     disparition des modales de difficulté et de règle. */
   z-index: 25;
   pointer-events: none;
   display: flex;

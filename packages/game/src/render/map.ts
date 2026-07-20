@@ -330,20 +330,20 @@ function buildInfoPanel(
 ): DocumentFragment {
   const frag = document.createDocumentFragment();
 
-  const overlay = el("div", "diff-overlay");
+  const overlay = el("div", "panel-overlay");
   overlay.id = `map-overlay-${key}`;
   overlay.hidden = true;
   frag.appendChild(overlay);
 
-  const panel = el("div", `diff-panel map-panel-${key}`);
+  const panel = el("div", `panel map-panel-${key}`);
   panel.id = `map-panel-${key}`;
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", title);
   panel.hidden = true;
 
-  const head = el("div", "diff-panel-head");
-  head.appendChild(el("span", "diff-panel-title", title));
-  const close = el("button", "diff-close");
+  const head = el("div", "panel-head");
+  head.appendChild(el("span", "panel-title", title));
+  const close = el("button", "panel-close");
   close.type = "button";
   close.setAttribute("aria-label", Rune.t("Fermer"));
   close.appendChild(closeIcon());
@@ -1023,7 +1023,7 @@ export function bindMap(
       setPanelOpen(openPanel === key ? null : key);
       return;
     }
-    if (target.closest(".diff-close") || target.closest(".diff-overlay")) {
+    if (target.closest(".panel-close") || target.closest(".panel-overlay")) {
       playSound("ui-close");
       setPanelOpen(null);
       return;

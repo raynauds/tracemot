@@ -837,12 +837,12 @@
          celui du header de la carte. Posé au niveau du body : ancré dans un
          header, il resterait sous la carte (z-index 40 contre 25). Contenu et
          événements : src/render/menu.ts. -->
-    <div class="diff-overlay menu-overlay" id="menu-overlay" hidden></div>
-    <div class="diff-panel menu-panel" id="menu-panel" role="dialog" hidden>
-      <div class="diff-panel-head">
-        <span class="diff-panel-title" id="menu-title"></span>
+    <div class="panel-overlay menu-overlay" id="menu-overlay" hidden></div>
+    <div class="panel menu-panel" id="menu-panel" role="dialog" hidden>
+      <div class="panel-head">
+        <span class="panel-title" id="menu-title"></span>
         <!-- La croix est une icône SVG posée par src/render/menu.ts. -->
-        <button type="button" class="diff-close" id="menu-close"></button>
+        <button type="button" class="panel-close" id="menu-close"></button>
       </div>
       <button type="button" class="menu-item" id="menu-help"></button>
       <button type="button" class="menu-item" id="menu-credits"></button>
