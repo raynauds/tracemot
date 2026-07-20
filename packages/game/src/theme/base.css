@@ -45,6 +45,15 @@
   display: none !important;
 }
 
+/* Toutes les listes du projet sont des listes sémantiques stylées en flex :
+   ni puces ni retrait natif nulle part. */
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 html,
 body {
   height: 100%;
