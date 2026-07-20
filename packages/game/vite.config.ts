@@ -1,10 +1,11 @@
 import rune from "rune-sdk/vite";
 import { defineConfig } from "vite";
 
-// base par défaut ('/') : un jeu Rune n'est pas servi sous un sous-chemin
-// fixe (contrairement à l'ancien hébergement web) — vérifié au build (jalon
-// R1, doc 01-architecture-rune.md).
 export default defineConfig({
+  // Chemins relatifs ('./assets/...') : Rune sert le jeu sous un sous-chemin
+  // CDN, une base absolue ('/') fait 404 la CSS et les modulepreloads — même
+  // réglage que le template officiel `rune create`.
+  base: "",
   plugins: [
     rune({
       // Chemin relatif au cwd (packages/game) : le plugin le résout lui-même
