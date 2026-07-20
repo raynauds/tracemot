@@ -430,12 +430,12 @@ function buildRoster(): HTMLElement | null {
   return box;
 }
 
-// Sans marque : le jeu ne se nomme nulle part sur la carte (src/theme/
-// DESIGN.md — un logo n'a rien à faire dans le premier écran d'un jeu Rune).
-// Les onglets ouvrent le header — ce qu'on regarde —, les joueurs de la room
-// et le compteur d'étoiles le ferment. Le rouage du menu tient le bord droit,
-// au même coin que son homologue du header de partie : un seul geste à
-// apprendre, quel que soit l'écran (render/menu.ts).
+// Le header reste sans marque : le nom du jeu vit dans la manchette, juste
+// dessous (buildMasthead — DESIGN.md § Marque). Les onglets ouvrent le header
+// — ce qu'on regarde —, les joueurs de la room et le compteur d'étoiles le
+// ferment. Le rouage du menu tient le bord droit, au même coin que son
+// homologue du header de partie : un seul geste à apprendre, quel que soit
+// l'écran (render/menu.ts).
 function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
   head.appendChild(buildTabs());
@@ -446,6 +446,27 @@ function buildHeader(p: ModeProgress): HTMLElement {
   if (stars) head.appendChild(stars);
   head.appendChild(buildMenuChip());
   return head;
+}
+
+// Manchette : le jeu se nomme une fois, en tête de page (DESIGN.md § Marque).
+// Le portage Rune a retiré l'écran d'accueil — la carte est le premier écran,
+// elle hérite donc du rôle : sans elle, le nom du jeu n'apparaîtrait plus
+// nulle part une fois en jeu (le header Rune ne le porte pas). Le point final
+// reprend la signature vermillon de l'ex-accueil. L'accroche dit ce que le jeu
+// EST, en une phrase : un joueur Rune arrive ici sans autre contexte.
+function buildMasthead(): HTMLElement {
+  const masthead = el("div", "map-masthead");
+  const name = el("h1", "map-masthead-name", "Traceword");
+  name.appendChild(el("span", "map-masthead-dot", "."));
+  masthead.appendChild(name);
+  masthead.appendChild(
+    el(
+      "p",
+      "map-masthead-tagline",
+      Rune.t("Tracez les mots cachés dans la grille."),
+    ),
+  );
+  return masthead;
 }
 
 function stateClass(s: CellState): string {
@@ -796,9 +817,11 @@ export function renderMap(modeId: ModeId): void {
   mapEl.textContent = "";
   mapEl.appendChild(buildHeader(p));
 
-  // Aucune accroche, pas même au premier lancement : la carte se lit d'elle-même
-  // (une case, un numéro, une étoile), et ce que l'étoile vaut est dit par le
-  // panneau du compteur. Elle ne s'explique pas, elle se montre.
+  // La manchette défile avec la carte : le header sticky garde les commandes
+  // sous la main, la marque n'a pas à y rester. Au-delà d'elle, la carte se
+  // lit d'elle-même (une case, un numéro, une étoile) ; ce que l'étoile vaut
+  // est dit par le panneau du compteur.
+  mapEl.appendChild(buildMasthead());
   const body = el("div", "map-body");
   const sections = el("div", "map-sections");
   // Les seuils d'étoiles étant croissants, les sections débloquées forment un

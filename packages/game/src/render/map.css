@@ -275,6 +275,41 @@ body.map-open .win {
   }
 }
 
+/* --- Manchette --- */
+
+/* Le nom du jeu, une fois, en tête de page (DESIGN.md § Marque : l'accueil
+   retiré du portage Rune, la carte hérite du rôle). Typo `title` (serif 30px
+   700), pas `brand` : une manchette de page courante, pas une page de titre.
+   Sans filet : le jalon Bronze découpe déjà la page juste dessous. Fer à
+   gauche au retrait --edge, avec les onglets du header. */
+.map-masthead {
+  margin: 0 max(var(--edge), env(safe-area-inset-right)) 24px
+    max(var(--edge), env(safe-area-inset-left));
+}
+
+.map-masthead-name {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+/* Le point vermillon signe la marque, comme l'ex-accueil (DESIGN.md § Marque :
+   seule entorse tolérée à « vermillon = mérité »). */
+.map-masthead-dot {
+  color: var(--vermilion);
+}
+
+/* L'accroche se lit : serif, en secondaire — elle explique, elle ne titre pas. */
+.map-masthead-tagline {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 /* --- Corps : sections --- */
 
 /* Aucune marge haute : le padding du header tient seul l'écart avec la première
@@ -790,6 +825,18 @@ body.map-open .win {
   .map-tab-lock {
     width: 9px;
     height: 11px;
+  }
+
+  /* La manchette suit la carte qui se resserre : même dégradé que les jalons
+     (18 → 16px), l'accroche descend au corps `hint`. */
+  .map-masthead {
+    margin-bottom: 20px;
+  }
+  .map-masthead-name {
+    font-size: 26px;
+  }
+  .map-masthead-tagline {
+    font-size: 14px;
   }
 
   .map-body {

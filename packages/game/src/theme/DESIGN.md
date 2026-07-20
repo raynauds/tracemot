@@ -39,14 +39,15 @@ typography:
     fontSize: 30px
     fontWeight: 700
     letterSpacing: 0.5px
-  brand: # le nom du jeu, sur l'accueil et lui seul — fluide, cf. § Marque
+  brand: # hérité de l'accueil retiré (portage Rune) — sans consommateur,
+    # réservé, cf. § Marque ; la manchette de la carte consomme `title`
     fontFamily: Source Serif 4
     fontSize: clamp(40px, 12vw, 72px)
     fontWeight: 700
     letterSpacing: 0.12em
-  hero: # grand titre plein écran hors accueil — "Gagné." de la victoire.
+  hero: # grand titre plein écran — "Gagné." de la victoire.
     # Même corps que le plafond de `brand` (72px) sans en consommer le
-    # token : `brand` reste exclusif à l'accueil (cf. § Marque).
+    # token : `brand` reste réservé à la marque (cf. § Marque).
     fontFamily: Source Serif 4
     fontSize: 72px
     fontWeight: 700
@@ -268,10 +269,10 @@ libellé de ce type — registre, panneaux, crédits, réglages sonores — via 
 custom property `--label-caps-weight` (`src/theme/base.css`) : un seul
 600 à changer, pas quatre déclarations à retrouver.
 
-`brand` (accueil) et `hero` (victoire) partagent le même corps — 72px, le
-plafond du clamp de `brand` — sans partager le token : `brand` reste réservé
-à l'accueil (cf. § Marque), `hero` porte l'italique et le corps plus resserré
-de l'écran de victoire.
+`brand` (ex-accueil, sans consommateur depuis le portage Rune) et `hero`
+(victoire) partagent le même corps — 72px, le plafond du clamp de `brand` —
+sans partager le token : `brand` reste réservé à la marque (cf. § Marque),
+`hero` porte l'italique et le corps plus resserré de l'écran de victoire.
 
 ## Layout
 
@@ -366,21 +367,27 @@ usage :
 
 ## Marque
 
-Le jeu se nomme **une fois, sur l'accueil, et nulle part ailleurs**. La carte et
-la partie n'ont pas à porter son nom : le joueur qui y est sait où il est, et
-une marque redite est du chrome qui n'informe plus.
+Le jeu se nomme **une fois, en tête de la carte, et nulle part ailleurs**. Le
+portage Rune a retiré l'écran d'accueil : la carte est devenue le premier
+écran, elle hérite donc du rôle — sans elle, le nom n'apparaîtrait plus nulle
+part une fois en jeu (le header Rune ne le porte pas). La partie, elle, ne
+porte toujours pas le nom : le joueur qui y est sait où il est, et une marque
+redite est du chrome qui n'informe plus.
 
-L'accueil est donc le seul consommateur du token `brand`, et il est composé
-comme une page de titre : une colonne unique fer à gauche, le nom au-dessus d'un
-filet de la largeur de la colonne, la ligne d'état et les deux actions alignées
-dessous — même largeur pour tout, c'est cet alignement qui porte l'écran.
+La marque est une **manchette de page courante**, pas une page de titre : le
+nom en typo `title` (serif 30px 700), suivi d'une accroche d'une ligne qui dit
+ce que le jeu est — un joueur Rune arrive sur la carte sans autre contexte —,
+le tout fer à gauche au retrait `--edge` (`src/render/map.ts`, buildMasthead).
+Sans filet propre : le jalon de la première section découpe déjà la page juste
+dessous.
 
-Le nom est écrit lettre par lettre à l'ouverture, chacune décalée de 30 ms, le
-point vermillon en dernier. **C'est le seul mouvement de l'écran**, et il ne
-rejoue pas : revenir à l'accueil retrouve un titre déjà écrit. Le point reprend
-l'idiome de « Gagné. » — le vermillon y signe au lieu de récompenser, seule
-entorse tolérée à la règle « vermillon = mérité », et elle tient parce que la
-marque n'est pas une information de jeu.
+Le point final est vermillon et reprend l'idiome de « Gagné. » — le vermillon
+y signe au lieu de récompenser, seule entorse tolérée à la règle « vermillon =
+mérité », et elle tient parce que la marque n'est pas une information de jeu.
+
+Le token `brand` (72px fluide) était celui de l'ancien accueil, composé comme
+une page de titre ; il n'a plus de consommateur et reste réservé — la
+manchette ne le consomme pas, elle consomme `title`.
 
 ## Components
 
