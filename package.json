@@ -10,6 +10,7 @@
     "dev": "npm run dev -w @traceword/game",
     "build": "npm run build -w @traceword/game",
     "preview": "npm run preview -w @traceword/game",
+    "upload": "npm run upload -w @traceword/game",
     "generate:levels": "npm run generate:levels -w @traceword/studio",
     "generate:tokens": "npm run generate:tokens -w @traceword/game",
     "check:tokens": "npm run check:tokens -w @traceword/game",

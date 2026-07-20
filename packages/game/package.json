@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "upload": "npm run build && npx rune@latest upload dist",
     "generate:tokens": "node scripts/generate-tokens.ts",
     "check:tokens": "node scripts/generate-tokens.ts --check",
     "check:progress": "node tools/progress-check.mjs",
