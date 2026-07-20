@@ -20,6 +20,16 @@ export const WORD_STAMP_MS = 300;
 // par l'overlay .win.
 export const WIN_DELAY_MS = 320;
 
+// --- Haptique (navigator.vibrate — Android uniquement) ---------------------
+// Motifs [vibration, pause, vibration…] en ms. Chaque appel REMPLACE le motif
+// en cours (buzz, render.ts) : les motifs longs ne survivent que parce
+// qu'aucun tick de lettre ne peut les suivre immédiatement (refus et victoire
+// vident ou figent le tracé).
+export const BUZZ_LETTER_MS = 8; // tick d'une lettre du tracé
+export const BUZZ_ROUND_START_MS = 20; // grille distribuée, la manche commence
+export const BUZZ_REJECT = [15, 60, 40]; // deux coups, le second appuyé
+export const BUZZ_WIN = [20, 60, 20, 60, 20]; // trois coups
+
 // --- Géométrie du monde Pixi (unités « monde », échelle 1) -----------------
 // Taille d'une case et espace inter-cases. La grille est rendue à cette
 // échelle puis cadrée par la caméra ; aucune valeur écran n'est figée ici.

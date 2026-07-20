@@ -9,7 +9,11 @@
 // difficulté (la difficulté est une propriété de la section).
 
 import { playSound } from "../audio/audio.ts";
-import { REJECT_DISPLAY_MS, WORD_STAMP_MS } from "../game/config.ts";
+import {
+  BUZZ_LETTER_MS,
+  REJECT_DISPLAY_MS,
+  WORD_STAMP_MS,
+} from "../game/config.ts";
 import { isDefi, levelLabel, type LevelId } from "@traceword/core";
 import { MAX_STARS, type NextChoice, type StarReward } from "../game/progress.ts";
 import { local, wordCheckContext } from "../client/local-state.ts";
@@ -281,9 +285,10 @@ export function renderCounter() {
 // La sélection, le tracé, les fantômes, les cases consommées et les feedbacks
 // (deal, pop, flash, shake, stamp) sont désormais rendus par render/scene.ts.
 
-// Retour haptique discret (mobile) quand une lettre rejoint le tracé.
-export function buzz() {
-  if (navigator.vibrate) navigator.vibrate(8);
+// Retour haptique (mobile) : tick discret par défaut (lettre du tracé), motif
+// dédié sinon (refus, victoire, départ de manche — game/config.ts § Haptique).
+export function buzz(pattern: number | number[] = BUZZ_LETTER_MS) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
 }
 
 // --- États de partie --------------------------------------------------------

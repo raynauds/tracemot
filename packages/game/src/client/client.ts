@@ -38,7 +38,12 @@ import {
   type ModeId,
 } from "@traceword/core";
 import { initAudio, playSound } from "../audio/audio.ts";
-import { WIN_DELAY_MS } from "../game/config.ts";
+import {
+  BUZZ_REJECT,
+  BUZZ_ROUND_START_MS,
+  BUZZ_WIN,
+  WIN_DELAY_MS,
+} from "../game/config.ts";
 import {
   nextChoices,
   type ModeProgress,
@@ -262,6 +267,7 @@ function handleWon(game: Game): void {
   local.winTimer = window.setTimeout(() => {
     local.winTimer = null;
     playSound("level-win");
+    buzz(BUZZ_WIN);
     renderWin(opts);
   }, WIN_DELAY_MS);
 }
@@ -284,6 +290,7 @@ function commitWord(): void {
     flashPath(traced);
     shakeGrid();
     playSound("word-reject");
+    buzz(BUZZ_REJECT);
     showReject(word, rejectLabel(code));
     return;
   }
@@ -493,6 +500,10 @@ async function boot(): Promise<void> {
 
       if (isRoundStart(game, previousGame)) {
         enterGameScreen(game);
+        // Ici et pas dans enterGameScreen : la reconstruction (stateSync)
+        // passe par le même chemin et doit rester silencieuse — le joueur qui
+        // se reconnecte n'a pas à « revivre » un départ de manche.
+        buzz(BUZZ_ROUND_START_MS);
         return;
       }
       if (isRoundEnd(game, previousGame)) {
