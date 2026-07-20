@@ -73,10 +73,12 @@ body {
   flex: none;
 }
 
-/* Désactiver le double-tap zoom natif sur les éléments DOM (iOS Safari).
-   touch-action: none est réservé au canvas (Pixi). */
+/* Désactiver le double-tap zoom natif et le surlignage de tap (flash bleu)
+   sur les éléments DOM (mobile). touch-action: none est réservé au canvas
+   (Pixi). */
 button {
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Étoile gagnée : pleine. Restant à gagner, elle garde le seul contour du
