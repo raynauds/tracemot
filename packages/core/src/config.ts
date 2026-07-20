@@ -4,6 +4,12 @@
 // au DOM ou à Pixi — la présentation (couleurs, métriques caméra) vit côté
 // jeu (packages/game/src/game/config.ts).
 
+// Mode debug (testeurs) : tout est déverrouillé et les tracés-solution sont
+// dessinés sur la grille. DOIT rester à false en production — les harnais
+// tools/progress-check.mjs et tools/shared-progress-check.mjs échouent
+// volontairement quand il est à true.
+export const DEBUG_MODE = false as boolean;
+
 export type GameMode = {
   rows: number;
   cols: number;

@@ -26,7 +26,12 @@
 // Les étoiles sont fongibles : peu importe de quelle section elles viennent.
 // C'est ce qui laisse le joueur plonger en difficulté sans être taxé.
 
-import { MODE_ORDER, type ModeId, type Section } from "@traceword/core";
+import {
+  DEBUG_MODE,
+  MODE_ORDER,
+  type ModeId,
+  type Section,
+} from "@traceword/core";
 import {
   DEFI_KEYS,
   LEVELS_PER_SECTION,
@@ -109,6 +114,7 @@ export function starCount(p: ModeProgress): number {
 }
 
 export function sectionUnlocked(p: ModeProgress, s: Section): boolean {
+  if (DEBUG_MODE) return true;
   return starCount(p) >= STARS_FOR_SECTION[s];
 }
 
@@ -166,6 +172,7 @@ function predecessorOf(id: LevelId): LevelId | null {
 // suffit — c'est aussi ce qui garantit qu'un état « disabled » se calcule sans
 // risque de récursion mutuelle avec cellState().
 function isUnlocked(p: ModeProgress, id: LevelId): boolean {
+  if (DEBUG_MODE) return true;
   if (!sectionUnlocked(p, sectionOf(id))) return false;
   const pred = predecessorOf(id);
   return pred === null || pred in p.validated;
@@ -328,6 +335,7 @@ export function modeStars(progress: ProgressByMode, modeId: ModeId): number {
 // visibleModes(), qui suppose que les débloqués forment un PRÉFIXE de
 // MODE_ORDER, les listerait dans le désordre. L'invariant est ici, structurel.
 export function isModeUnlocked(progress: ProgressByMode, modeId: ModeId): boolean {
+  if (DEBUG_MODE) return true;
   const index = MODE_ORDER.indexOf(modeId);
   if (index < 0) return false; // mode inconnu
   for (let i = 0; i < index; i++) {

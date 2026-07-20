@@ -67,6 +67,9 @@ export interface LocalState {
   mode: GameMode;
   geometry: Geometry;
   solution: string[];
+  /** Tracés-solution du niveau, alignés sur `solution` — dessinés uniquement
+   *  en DEBUG_MODE (render/scene.ts § renderDebugPaths). */
+  solutionPaths: number[][];
   letters: string[];
   /** Mots trouvés, en clair — dérivé de `game.found`. */
   found: string[];
@@ -106,6 +109,7 @@ export const local: LocalState = {
   mode: defaultMode,
   geometry: createGeometry(defaultMode.rows, defaultMode.cols),
   solution: [],
+  solutionPaths: [],
   letters: [],
   found: [],
   foundPaths: [],
@@ -185,6 +189,7 @@ export function syncFromGame(game: RuneGameState): void {
   local.mode = levelMode(game.modeId, level.id);
   local.geometry = createGeometry(local.mode.rows, local.mode.cols);
   local.solution = level.words;
+  local.solutionPaths = level.paths;
   local.letters = [...level.letters];
 }
 

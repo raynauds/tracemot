@@ -6,6 +6,7 @@
 
 import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
 import type { PointData, TextStyle, Ticker } from "pixi.js";
+import { DEBUG_MODE } from "@traceword/core";
 import { playSound } from "../audio/audio.ts";
 import { Camera } from "./camera.ts";
 import {
@@ -109,6 +110,8 @@ let camera: Camera;
 let cellsLayer: Container;
 let traceLayer: Container;
 let lettersLayer: Container;
+/** Tracés-solution (DEBUG_MODE uniquement), tout en bas de la pile de traces. */
+let debugTrace: Graphics;
 /** Tracés fantômes des mots trouvés (sous le tracé actif). */
 let ghostTrace: Graphics;
 /** Tracés des autres joueurs, entre les fantômes et le mien (doc 05) : mon
@@ -343,6 +346,7 @@ function relayout(): void {
   layoutCells();
   renderTrace();
   renderFoundTraces();
+  renderDebugPaths();
 }
 
 // --- Tracé (espace monde) --------------------------------------------------
@@ -394,6 +398,17 @@ function drawFoundTraces(lastAlpha: number): void {
 // tons des cases désactivées, pour relire les mots sur la grille.
 export function renderFoundTraces(): void {
   drawFoundTraces(1);
+}
+
+// DEBUG_MODE : dessine le tracé de chaque mot-solution (fil discret sous les
+// fantômes) pour que les testeurs voient où sont les mots. No-op en prod.
+function renderDebugPaths(): void {
+  if (!debugTrace) return;
+  debugTrace.clear();
+  if (!DEBUG_MODE) return;
+  for (const path of local.solutionPaths) {
+    strokePath(debugTrace, path, VERMILION, 0.3);
+  }
 }
 
 // --- Tracés distants (doc 05/06) --------------------------------------------
@@ -776,10 +791,11 @@ export async function initScene(): Promise<void> {
   // Fantômes, tracés distants puis tracé actif, dans cet ordre (doc 05) : mon
   // geste garde toujours la priorité visuelle, les tracés distants passent
   // sous lui mais au-dessus des mots déjà trouvés.
+  debugTrace = new Graphics();
   ghostTrace = new Graphics();
   remoteLayer = new Container();
   activeTrace = new Graphics();
-  traceLayer.addChild(ghostTrace, remoteLayer, activeTrace);
+  traceLayer.addChild(debugTrace, ghostTrace, remoteLayer, activeTrace);
 
   // Le stage reçoit les events fédérés (tracé) sur tout l'écran.
   app.stage.eventMode = "static";
@@ -843,6 +859,7 @@ export function rebuildGrid(): void {
   for (const t of cellTexts) t.destroy();
   cellBgs.length = 0;
   cellTexts.length = 0;
+  debugTrace.clear();
   ghostTrace.clear();
   activeTrace.clear();
   // Tracés distants de l'ancienne grille : sans objet une fois la géométrie
@@ -866,6 +883,7 @@ export function renderSceneGrid(): void {
   repaintCells();
   renderTrace(); // local.path vide → efface le tracé actif
   renderFoundTraces(); // local.foundPaths vide → efface les fantômes
+  renderDebugPaths(); // DEBUG_MODE : fils-solution sous les fantômes
   dealCells(); // distribution en cascade des cases (fondu + tassement)
   // Nouvelle partie : on revient au cadrage « tout voir ».
   if (camera) camera.fit();
