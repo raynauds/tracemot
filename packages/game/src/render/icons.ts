@@ -13,13 +13,12 @@
 // fill="none") — cf. src/theme/base.css. Le fichier reste donc modifiable sans
 // que le code ait à suivre.
 
-import arrowLeftSvg from "../assets/icons/arrow-left.svg?raw";
 import checkSvg from "../assets/icons/check.svg?raw";
 import chevronRightSvg from "../assets/icons/chevron-right.svg?raw";
-import infoSvg from "../assets/icons/info.svg?raw";
 import maximizeSvg from "../assets/icons/maximize.svg?raw";
 import minusSvg from "../assets/icons/minus.svg?raw";
 import plusSvg from "../assets/icons/plus.svg?raw";
+import settingsSvg from "../assets/icons/settings.svg?raw";
 import starSvg from "../assets/icons/star.svg?raw";
 import xSvg from "../assets/icons/x.svg?raw";
 
@@ -37,10 +36,9 @@ function template(source: string, className: string): SVGSVGElement {
 
 const STAR = template(starSvg, "icon-star");
 const CHECK = template(checkSvg, "icon-check");
-const ARROW_LEFT = template(arrowLeftSvg, "icon-arrow-left");
 const CLOSE = template(xSvg, "icon-close");
 const CHEVRON = template(chevronRightSvg, "icon-chevron");
-const INFO = template(infoSvg, "icon-info");
+const SETTINGS = template(settingsSvg, "icon-settings");
 const PLUS = template(plusSvg, "icon-plus");
 const MINUS = template(minusSvg, "icon-minus");
 const MAXIMIZE = template(maximizeSvg, "icon-maximize");
@@ -57,12 +55,7 @@ export function checkIcon(): SVGSVGElement {
   return CHECK.cloneNode(true) as SVGSVGElement;
 }
 
-// Retour à la carte, dans le header de partie.
-export function arrowLeftIcon(): SVGSVGElement {
-  return ARROW_LEFT.cloneNode(true) as SVGSVGElement;
-}
-
-// Fermeture des panneaux (règle du jeu, décompte des étoiles).
+// Fermeture des panneaux et des écrans (menu, crédits, comment jouer).
 export function closeIcon(): SVGSVGElement {
   return CLOSE.cloneNode(true) as SVGSVGElement;
 }
@@ -73,9 +66,9 @@ export function chevronIcon(): SVGSVGElement {
   return CHEVRON.cloneNode(true) as SVGSVGElement;
 }
 
-// Règle du jeu : le bouton qui l'ouvre, dans le header de partie.
-export function infoIcon(): SVGSVGElement {
-  return INFO.cloneNode(true) as SVGSVGElement;
+// Menu du jeu : les rouages des headers de carte et de partie (render/menu.ts).
+export function settingsIcon(): SVGSVGElement {
+  return SETTINGS.cloneNode(true) as SVGSVGElement;
 }
 
 // Les trois boutons de la caméra (src/render/scene.ts).

@@ -1,11 +1,11 @@
 /* Voile + panneau : composant partagé (popover desktop, feuille mobile).
-   Hérité du sélecteur de difficulté disparu — d'où les classes .diff-* ; la
-   règle du jeu s'en sert (src/render/rule.css). */
+   Hérité du sélecteur de difficulté disparu — d'où les classes .diff-* ; le
+   menu (src/render/menu.css) et les panneaux de la carte s'en servent. */
 
 
-/* Hérité du sélecteur de difficulté disparu ; seule la règle du jeu l'emploie
-   encore (popover desktop, feuille mobile). Les classes gardent leur nom :
-   elles restent le composant « panneau du header ». */
+/* Hérité du sélecteur de difficulté disparu ; le menu et les panneaux de la
+   carte l'emploient (popover desktop, feuille mobile). Les classes gardent
+   leur nom : elles restent le composant « panneau du header ». */
 .diff-overlay {
   position: fixed;
   inset: 0;

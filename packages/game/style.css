@@ -26,10 +26,12 @@
 /* Socle : reset, page, boot. */
 @import "./src/theme/base.css";
 
-/* Chrome de partie (src/render/render.ts, scene.ts). */
+/* Chrome de partie (src/render/render.ts, scene.ts). Le menu (rouage des deux
+   headers) est chargé après panel.css : son calage haut-droit surcharge
+   l'ancrage du composant panneau partagé. */
 @import "./src/render/header.css";
 @import "./src/render/panel.css";
-@import "./src/render/rule.css";
+@import "./src/render/menu.css";
 @import "./src/render/ledger.css";
 @import "./src/render/win.css";
 @import "./src/render/zoom.css";
@@ -39,12 +41,14 @@
 @import "./src/render/lobby.css";
 @import "./src/render/snackbar.css";
 
-/* Écrans, du plus haut au plus bas dans l'empilement : l'aide (46) couvre la
-   carte (40), qui couvre le chrome de partie. La carte est le PREMIER écran
-   du jeu (doc 08 § Q21a — l'accueil, le panneau audio et les crédits ont
-   disparu avec leurs feuilles). L'aide est chargée après panel.css : ses
-   ancrages de popover doivent gagner la cascade. */
+/* Écrans, du plus haut au plus bas dans l'empilement : l'aide et les crédits
+   (46) couvrent la carte (40), qui couvre le chrome de partie. La carte est
+   le PREMIER écran du jeu (doc 08 § Q21a — l'accueil et le panneau audio ont
+   disparu avec leurs feuilles ; les crédits sont revenus par le menu, en
+   texte nu). L'aide est chargée après panel.css : ses ancrages de popover
+   doivent gagner la cascade. */
 @import "./src/render/screen.css";
 @import "./src/render/help.css";
+@import "./src/render/credits.css";
 @import "./src/render/map.css";
 

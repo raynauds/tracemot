@@ -53,6 +53,15 @@
         "en": {
           "Fermer les règles": "Close the rules",
           "Fermer": "Close",
+          "Menu": "Menu",
+          "MENU": "MENU",
+          "Crédits": "Credits",
+          "CRÉDITS": "CREDITS",
+          "Bruitages d'interface": "Interface sound effects",
+          "Tampon des mots trouvés": "Found-word stamp",
+          "Son de victoire": "Victory sound",
+          "Musique": "Music",
+          "Caractères": "Typefaces",
           "Comment jouer": "How to play",
           "Tracer": "Trace",
           "Reliez des lettres voisines, sur une même ligne ou une même colonne, puis relâchez : le mot se soumet tout seul.": "Connect neighboring letters, on the same row or column, then release: the word submits itself.",
@@ -170,6 +179,15 @@
         "es": {
           "Fermer les règles": "Cerrar las reglas",
           "Fermer": "Cerrar",
+          "Menu": "Menú",
+          "MENU": "MENÚ",
+          "Crédits": "Créditos",
+          "CRÉDITS": "CRÉDITOS",
+          "Bruitages d'interface": "Efectos de sonido de la interfaz",
+          "Tampon des mots trouvés": "Sello de las palabras encontradas",
+          "Son de victoire": "Sonido de victoria",
+          "Musique": "Música",
+          "Caractères": "Tipografías",
           "Comment jouer": "Cómo jugar",
           "Tracer": "Trazar",
           "Reliez des lettres voisines, sur une même ligne ou une même colonne, puis relâchez : le mot se soumet tout seul.": "Une letras vecinas, en la misma fila o columna, y suelte: la palabra se valida sola.",
@@ -297,6 +315,15 @@
         "pt": {
           "Fermer les règles": "Fechar as regras",
           "Fermer": "Fechar",
+          "Menu": "Menu",
+          "MENU": "MENU",
+          "Crédits": "Créditos",
+          "CRÉDITS": "CRÉDITOS",
+          "Bruitages d'interface": "Efeitos sonoros da interface",
+          "Tampon des mots trouvés": "Carimbo das palavras encontradas",
+          "Son de victoire": "Som de vitória",
+          "Musique": "Música",
+          "Caractères": "Tipos de letra",
           "Comment jouer": "Como jogar",
           "Tracer": "Traçar",
           "Reliez des lettres voisines, sur une même ligne ou une même colonne, puis relâchez : le mot se soumet tout seul.": "Ligue letras vizinhas, na mesma linha ou coluna, e solte: a palavra é enviada sozinha.",
@@ -424,6 +451,15 @@
         "ru": {
           "Fermer les règles": "Закрыть правила",
           "Fermer": "Закрыть",
+          "Menu": "Меню",
+          "MENU": "МЕНЮ",
+          "Crédits": "Авторы",
+          "CRÉDITS": "АВТОРЫ",
+          "Bruitages d'interface": "Звуки интерфейса",
+          "Tampon des mots trouvés": "Штамп найденных слов",
+          "Son de victoire": "Звук победы",
+          "Musique": "Музыка",
+          "Caractères": "Шрифты",
           "Comment jouer": "Как играть",
           "Tracer": "Прокладывать",
           "Reliez des lettres voisines, sur une même ligne ou une même colonne, puis relâchez : le mot se soumet tout seul.": "Соедините соседние буквы в одной строке или столбце и отпустите — слово отправится само.",
@@ -739,6 +775,25 @@
       </div>
     </div>
 
+    <!-- Crédits : attributions des sons et des caractères, ouvertes par le
+         menu (rouage). L'écran avait été retiré du build Rune (doc 08 § Q21c,
+         « pas de branding/liens ») ; il revient en TEXTE NU — aucun lien,
+         aucune URL : certaines licences (CC BY 4.0) demandent une attribution
+         visible dans le produit même, la best practice ne proscrit que les
+         liens sortants. docs/ATTRIBUTIONS.md reste la référence contractuelle
+         (Dev Dashboard compris). Squelette partagé avec « Comment jouer »
+         (src/render/screen.css) ; contenu posé par src/render/credits.ts via
+         Rune.t() : rien de traduisible en dur ici. -->
+    <div class="screen credits" id="credits" hidden>
+      <header class="screen-head">
+        <button type="button" class="screen-close" id="credits-close"></button>
+      </header>
+      <div class="screen-body">
+        <h2 class="screen-title" id="credits-title"></h2>
+        <dl class="credits-list" id="credits-list"></dl>
+      </div>
+    </div>
+
     <!-- Carte de progression : le PREMIER écran du jeu (doc 08 § Q21a — plus
          d'accueil, « pas de menu »), plein écran, au-dessus du chrome de
          partie. Son contenu est entièrement généré par src/render/map.ts ;
@@ -748,53 +803,58 @@
 
     <header class="header">
       <div class="header-left">
-        <!-- Retour à la carte : sortie de partie, toujours disponible. Une
-             flèche nue (icône SVG posée par src/render/render.ts) : le mot
-             « CARTE » et son cadre disaient deux fois la même chose. En
-             cours de partie (pas gagné), c'est une PROPOSITION d'abandon
-             (doc 02/04) — l'issue dépend des autres joueurs de la room. -->
-        <!-- aria-label/title posés par src/render/render.ts via Rune.t(). -->
-        <button type="button" class="back-map" id="back-map"></button>
-        <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts. -->
+        <!-- Niveau en cours (« 5×5 · 1-12 »), écrit par src/render/render.ts :
+             le seul repère du joueur une fois la carte masquée. L'ancienne
+             flèche « retour » a rejoint le menu sous son vrai nom — QUITTER LA
+             PARTIE : quitter est une proposition d'abandon soumise au vote de
+             la room (doc 02/04), pas une navigation gratuite ; une flèche le
+             taisait. -->
         <span class="level-id" id="level-id"></span>
       </div>
-      <!-- Bord droit du header : la règle du jeu — seule aide qui reste ici,
-           le panneau audio a disparu (doc 08 § Q21b, Rune fournit ses propres
-           contrôles). -->
+      <!-- Bord droit du header : le rouage du menu — seul bouton restant ici,
+           l'ex-« i » de la règle est couvert par l'entrée COMMENT JOUER du
+           menu, le panneau audio a disparu (doc 08 § Q21b, Rune fournit ses
+           propres contrôles). -->
       <div class="header-right">
-        <!-- Règle du jeu : icône « info » nue (posée par src/render/render.ts).
-           Elle ouvre le composant voile + panneau (popover desktop, feuille
-           mobile) hérité du sélecteur de difficulté disparu - les classes
-           .diff-overlay / .diff-panel lui survivent et restent partagées. -->
-        <!-- Libellés/aria-labels posés par src/render/render.ts via Rune.t()
-             (doc 08 § i18n). -->
-        <div class="rule" id="rule">
-          <button
-            type="button"
-            class="rule-chip"
-            id="rule-chip"
-            aria-haspopup="dialog"
-            aria-expanded="false"
-          ></button>
-          <div class="diff-overlay" id="rule-overlay" hidden></div>
-          <div class="diff-panel rule-panel" id="rule-panel" role="dialog" hidden>
-            <div class="diff-panel-head">
-              <span class="diff-panel-title" id="rule-panel-title"></span>
-              <!-- La croix est une icône SVG posée par src/render/render.ts. -->
-              <button type="button" class="diff-close" id="rule-close"></button>
-            </div>
-            <p class="panel-line" id="rule-panel-line"></p>
-            <!-- Nombres pré-remplis (mode par défaut) pour éviter un shift ;
-                 src/render/render.ts réécrit selon le niveau lancé. -->
-            <p class="panel-spec" id="rule-spec"></p>
-            <!-- Ce résumé n'est qu'un rappel : le tutoriel complet
-                 (src/render/help.ts) reste à un clic, sans sortir deux fois
-                 de l'écran pour le retrouver. -->
-            <button type="button" class="panel-link" id="rule-help-link"></button>
-          </div>
-        </div>
+        <!-- Icône rouage nue (posée par src/render/menu.ts, comme les
+             libellés via Rune.t). Son homologue de la carte est reconstruit à
+             chaque rendu (src/render/map.ts) ; le panneau, lui, est unique et
+             vit au niveau du body, plus bas. -->
+        <button
+          type="button"
+          class="menu-chip"
+          id="menu-chip-game"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+        ></button>
       </div>
     </header>
+
+    <!-- Menu du jeu (rouage) : COMMENT JOUER, CRÉDITS et — en partie
+         seulement — QUITTER LA PARTIE. Un seul panneau (voile + popover
+         desktop, feuille mobile : le composant partagé de src/render/panel.css)
+         pour ses deux déclencheurs, le rouage du header de partie ci-dessus et
+         celui du header de la carte. Posé au niveau du body : ancré dans un
+         header, il resterait sous la carte (z-index 40 contre 25). Contenu et
+         événements : src/render/menu.ts. -->
+    <div class="diff-overlay menu-overlay" id="menu-overlay" hidden></div>
+    <div class="diff-panel menu-panel" id="menu-panel" role="dialog" hidden>
+      <div class="diff-panel-head">
+        <span class="diff-panel-title" id="menu-title"></span>
+        <!-- La croix est une icône SVG posée par src/render/menu.ts. -->
+        <button type="button" class="diff-close" id="menu-close"></button>
+      </div>
+      <button type="button" class="menu-item" id="menu-help"></button>
+      <button type="button" class="menu-item" id="menu-credits"></button>
+      <!-- Masqué sur la carte (rien à quitter : proposer un niveau EST le
+           geste de départ) ; src/render/menu.ts tranche à chaque ouverture. -->
+      <button
+        type="button"
+        class="menu-item menu-item-quit"
+        id="menu-quit"
+        hidden
+      ></button>
+    </div>
 
     <!-- Registre « Mots trouvés » : panneau flottant repliable ancré à droite.
          Ouvert par défaut sur desktop, replié en pastille (n / N) sur mobile

@@ -35,6 +35,7 @@ import {
 import { playSound } from "../audio/audio.ts";
 import type { ColorSlot, PlayerId } from "../logic/types.ts";
 import { checkIcon, closeIcon, starIcon } from "./icons.ts";
+import { buildMenuChip, toggleMenu } from "./menu.ts";
 import { countParam, difficultyDesc, difficultyName } from "./i18n.ts";
 import {
   cellState,
@@ -432,7 +433,9 @@ function buildRoster(): HTMLElement | null {
 // Sans marque : le jeu ne se nomme nulle part sur la carte (src/theme/
 // DESIGN.md — un logo n'a rien à faire dans le premier écran d'un jeu Rune).
 // Les onglets ouvrent le header — ce qu'on regarde —, les joueurs de la room
-// et le compteur d'étoiles le ferment.
+// et le compteur d'étoiles le ferment. Le rouage du menu tient le bord droit,
+// au même coin que son homologue du header de partie : un seul geste à
+// apprendre, quel que soit l'écran (render/menu.ts).
 function buildHeader(p: ModeProgress): HTMLElement {
   const head = el("header", "map-header");
   head.appendChild(buildTabs());
@@ -441,6 +444,7 @@ function buildHeader(p: ModeProgress): HTMLElement {
   if (roster) head.appendChild(roster);
   const stars = buildStars(p);
   if (stars) head.appendChild(stars);
+  head.appendChild(buildMenuChip());
   return head;
 }
 
@@ -976,6 +980,13 @@ export function bindMap(
     // geste qui engage une partie — sonne en principal. Les éléments inertes
     // (cases verrouillées, défis grisés) ne passent par aucune branche : ils
     // restent muets, comme ils sont muets à l'écran.
+    // Le rouage du menu d'abord : son panneau vit hors de la carte
+    // (render/menu.ts, niveau body) et sonne lui-même l'ouverture/fermeture.
+    if (target.closest(".map-menu-chip")) {
+      toggleMenu();
+      return;
+    }
+
     const trigger = target.closest<HTMLElement>("[data-panel]");
     if (trigger) {
       const key = trigger.dataset.panel as string;

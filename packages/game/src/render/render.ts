@@ -1,5 +1,6 @@
-// Chrome DOM en surimpression : header de partie (niveau, retour carte),
-// registre repliable des mots trouvés, consigne et victoire.
+// Chrome DOM en surimpression : header de partie (identité du niveau — le
+// rouage du menu appartient à render/menu.ts), registre repliable des mots
+// trouvés, consigne et victoire.
 // La grille, le tracé et leurs animations sont rendus par PixiJS
 // (render/scene.ts) ; la carte de progression par render/map.ts.
 //
@@ -14,15 +15,8 @@ import { MAX_STARS, type NextChoice, type StarReward } from "../game/progress.ts
 import { local, wordCheckContext } from "../client/local-state.ts";
 import type { FoundWord, PlayerId, WinSummary } from "../logic/types.ts";
 import { wordRejectReason, type WordRejectCode } from "../game/rules.ts";
-import { showHelp } from "./help.ts";
 import { countParam, difficultyName } from "./i18n.ts";
-import {
-  arrowLeftIcon,
-  chevronIcon,
-  closeIcon,
-  infoIcon,
-  starIcon,
-} from "./icons.ts";
+import { chevronIcon, starIcon } from "./icons.ts";
 
 // Ligne vide du registre : un point par lettre attendue (mode actif).
 function wordDots() {
@@ -45,47 +39,29 @@ const winStarUnlockEl = byId("win-star-unlock");
 const winNextEl = byId("win-next");
 const winDefiEl = byId("win-defi");
 const winMapEl = byId("win-map");
-const backMapEl = byId("back-map");
 const levelIdEl = byId("level-id");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
-const ruleSpecEl = byId("rule-spec");
 const ledgerLabelEl = byId("ledger-label");
-const rulePanelTitleEl = byId("rule-panel-title");
-const rulePanelLineEl = byId("rule-panel-line");
 
 // --- Textes statiques (doc 08 § i18n) ---------------------------------------
 // Posés une fois au chargement, comme les icônes ci-dessous : ce module ne
 // re-rend jamais ces libellés hors mise à jour de données (contrairement à
 // help.ts, dont les textes sont recalculés à chaque ouverture) — limite
 // assumée pour ce premier passage i18n (doc 08, v1 recommandée).
-backMapEl.setAttribute("aria-label", Rune.t("Retour à la carte"));
-backMapEl.title = Rune.t("Retour à la carte");
 ledgerLabelEl.textContent = Rune.t("MOTS TROUVÉS");
 winTitleTextEl.textContent = Rune.t("Gagné");
 winMapEl.textContent = Rune.t("RETOUR À LA CARTE");
 
 const listRows: HTMLElement[] = []; // les wordCount lignes du registre
 
-// --- Utilitaires --------------------------------------------------------
-
-// Bande « specs » du panneau règle : dimensions du puzzle, tirées du mode
-// actif (mises en capitales par le CSS). La phrase serif au-dessus est
-// générique (sans nombres) et vit dans le HTML.
-function renderRuleSpec() {
-  const { wordCount, wordLength } = local.mode;
-  ruleSpecEl.textContent = Rune.t("{{count}} mots · {{length}} lettres", {
-    count: countParam(wordCount),
-    length: String(wordLength),
-  });
-}
-
 // --- Header de partie -------------------------------------------------------
 
-// Deux boutons muets dans le HTML (leur sens tient dans l'aria-label) : la
-// flèche du retour et le « i » de la règle sont des icônes, elles viennent
-// d'ici (cf. ./icons.ts).
-backMapEl.appendChild(arrowLeftIcon());
+// Le header ne porte plus que l'identité du niveau et le rouage du menu
+// (render/menu.ts) : l'ancienne flèche « retour » vit désormais dans le menu
+// sous son vrai nom — QUITTER LA PARTIE, une proposition d'abandon soumise au
+// vote (doc 02/04) —, et le « i » de la règle est couvert par son entrée
+// COMMENT JOUER.
 
 // Identité du niveau en cours (« 5×5 · 1-12 ») : le seul repère du joueur une
 // fois la carte masquée.
@@ -97,21 +73,15 @@ export function renderLevelHeader() {
 
 // Retour à la carte : DEUX sorties distinctes depuis Rune (doc 02 § Machine de
 // phase), qui ne se confondent plus comme avant le portage.
-//   - La flèche du header (mi-partie, pas gagné) quitte une partie EN COURS
-//     pour les autres aussi : c'est une proposition d'abandon, soumise au même
-//     vote qu'un niveau (doc 02/04) — `onAbandon` dispatche l'action logic.
+//   - QUITTER LA PARTIE, dans le menu (render/menu.ts, mi-partie, pas gagné) :
+//     quitte une partie EN COURS pour les autres aussi — une proposition
+//     d'abandon, soumise au même vote qu'un niveau (doc 02/04), câblée par
+//     client.ts (bindMenu § onQuit).
 //   - Le bouton de l'écran de victoire (et Échap pendant qu'il est affiché)
 //     ferme un overlay purement LOCAL : la partie reste en place pour la room
 //     tant qu'aucune proposition n'est acceptée (« Après victoire, le retour
 //     carte est local », doc 02) — `onCloseWin` ne dispatche rien.
-export function bindMapReturn(handlers: {
-  onAbandon: () => void;
-  onCloseWin: () => void;
-}) {
-  backMapEl.addEventListener("click", () => {
-    playSound("ui-close");
-    handlers.onAbandon();
-  });
+export function bindWinClose(handlers: { onCloseWin: () => void }) {
   const closeWin = () => {
     playSound("ui-close");
     handlers.onCloseWin();
@@ -146,65 +116,6 @@ ledgerToggleEl.addEventListener("click", () => {
 });
 // État initial : replié sur mobile (pastille), déplié sur desktop.
 setLedgerCollapsed(window.matchMedia("(max-width: 860px)").matches);
-
-// --- Règle du jeu (bouton « info » du header) ------------------------------
-
-// La règle vit dans un panneau ouvert par le bouton « info » — sur demande
-// seulement : l'accueil appartient à l'écran « Comment jouer »
-// (src/render/help.ts), qui s'ouvre d'office au tout premier lancement du jeu
-// (persisted.helpSeen, doc 02/08 — plus de drapeau localStorage).
-const ruleChipEl = byId("rule-chip");
-ruleChipEl.appendChild(infoIcon());
-ruleChipEl.setAttribute("aria-label", Rune.t("Règle du jeu"));
-ruleChipEl.title = Rune.t("Règle du jeu");
-const rulePanelEl = byId("rule-panel");
-rulePanelEl.setAttribute("aria-label", Rune.t("Règle du jeu"));
-rulePanelTitleEl.textContent = Rune.t("RÈGLE");
-rulePanelLineEl.textContent = Rune.t(
-  "Reliez des lettres voisines pour tracer les mots. Chaque lettre ne sert qu'une fois.",
-);
-const ruleOverlayEl = byId("rule-overlay");
-const ruleCloseEl = byId("rule-close");
-ruleCloseEl.appendChild(closeIcon());
-ruleCloseEl.setAttribute("aria-label", Rune.t("Fermer"));
-const ruleHelpLinkEl = byId("rule-help-link");
-ruleHelpLinkEl.textContent = Rune.t("COMMENT JOUER");
-
-function setRulePanelOpen(open: boolean) {
-  rulePanelEl.hidden = !open;
-  ruleOverlayEl.hidden = !open;
-  ruleChipEl.classList.toggle("open", open);
-  ruleChipEl.setAttribute("aria-expanded", String(open));
-}
-
-// hidden est typé string | boolean (« until-found ») mais on n'y écrit que
-// des booléens.
-ruleChipEl.addEventListener("click", () => {
-  playSound(rulePanelEl.hidden ? "ui-secondary" : "ui-close");
-  setRulePanelOpen(rulePanelEl.hidden as boolean);
-});
-ruleCloseEl.addEventListener("click", () => {
-  playSound("ui-close");
-  setRulePanelOpen(false);
-});
-ruleOverlayEl.addEventListener("click", () => {
-  playSound("ui-close");
-  setRulePanelOpen(false);
-});
-// Le panneau ne montre qu'un résumé (rule-spec) ; ce lien mène au tutoriel
-// entier sans repasser par l'accueil — sinon le revoir en partie coûte deux
-// sorties d'écran (retour carte, puis retour accueil).
-ruleHelpLinkEl.addEventListener("click", () => {
-  playSound("ui-secondary");
-  setRulePanelOpen(false);
-  showHelp();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !rulePanelEl.hidden) {
-    playSound("ui-close");
-    setRulePanelOpen(false);
-  }
-});
 
 // --- Registre : adoption des lignes pré-rendues ----------------------------
 
@@ -388,7 +299,6 @@ export function renderNewGame() {
   listRows.forEach(resetListRow);
   renderCounter();
   counterEl.classList.remove("full");
-  renderRuleSpec();
   hideWin();
 }
 

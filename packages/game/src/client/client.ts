@@ -50,9 +50,11 @@ import {
   cancelAllGestures,
   clearPath,
 } from "../input/input.ts";
-import { bindHelp, showHelpOnFirstPlay } from "../render/help.ts";
+import { bindCredits, showCredits } from "../render/credits.ts";
+import { bindHelp, showHelp, showHelpOnFirstPlay } from "../render/help.ts";
 import { bindLobby, renderLobby } from "../render/lobby.ts";
 import { bindMap, hideMap, showMap } from "../render/map.ts";
+import { bindMenu } from "../render/menu.ts";
 import {
   flashPath,
   initScene,
@@ -64,7 +66,7 @@ import {
   stampWord,
 } from "../render/scene.ts";
 import {
-  bindMapReturn,
+  bindWinClose,
   bindWinNext,
   buildBoard,
   buzz,
@@ -399,8 +401,7 @@ async function boot(): Promise<void> {
       trackAction("setLastMode");
     },
   });
-  bindMapReturn({
-    onAbandon: proposeAbandon,
+  bindWinClose({
     onCloseWin: () => {
       // Après victoire, le retour carte est LOCAL (doc 02 § Machine de
       // phase) : aucune action, la partie reste en place pour la room tant
@@ -408,6 +409,16 @@ async function boot(): Promise<void> {
       if (lastGame) enterMapScreen(lastGame);
     },
   });
+  // Menu (rouage des deux headers, render/menu.ts) : « Comment jouer » passe
+  // par showHelp — donc marque l'aide vue (onSeen, cf. bindHelp ci-dessous) ;
+  // QUITTER LA PARTIE reprend l'ancienne flèche du header — la proposition
+  // d'abandon soumise au vote (doc 02/04), désormais nommée.
+  bindMenu({
+    onHelp: () => showHelp(),
+    onCredits: showCredits,
+    onQuit: proposeAbandon,
+  });
+  bindCredits();
   // Lobby de proposition/vote (doc 04 § chantier 3) : les trois réponses
   // possibles à une proposition en cours — accepter, refuser, ou l'annuler
   // (réservé au proposeur, cf. render/lobby.ts qui n'affiche ANNULER qu'à

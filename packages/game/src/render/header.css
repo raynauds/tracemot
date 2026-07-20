@@ -1,13 +1,14 @@
-/* Header (overlay haut) : titre, retour à la carte, identifiant du niveau.
-   Écrit par src/render/render.ts. */
+/* Header (overlay haut) : identifiant du niveau à gauche, rouage du menu à
+   droite. Écrit par src/render/render.ts (niveau) et src/render/menu.ts
+   (rouage — son style vit dans menu.css, partagé avec le header de carte). */
 
 
 /* Barre en surimpression au-dessus du canvas. Le conteneur laisse passer les
    events de tracé (pointer-events: none) ; seuls ses boutons les réactivent.
    Le dégradé fond le bord haut de la grille, qui passe dessous au zoom.
 
-   Deux pôles : à gauche la navigation (d'où l'on sort, où l'on est), à droite
-   la règle — une aide, qui n'a rien à faire dans cette paire. */
+   Deux pôles : à gauche où l'on est (le niveau), à droite le menu — l'ancienne
+   flèche « retour » vit dedans, sous son vrai nom (QUITTER LA PARTIE). */
 .header {
   position: fixed;
   top: 0;
@@ -35,55 +36,19 @@
   );
 }
 
-/* Flèche + niveau : une même phrase (« retour, depuis ici »), donc serrés.
-   L'écart aux aides est celui du header (24px + tout l'espace restant). */
+/* Le pôle gauche ne porte plus que l'étiquette du niveau ; le flex reste, prêt
+   à accueillir un voisin. */
 .header-left {
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
-/* Les aides du bord droit : le son, puis la règle. Plus serrées que les deux
-   pôles du header, plus lâches que la paire de navigation — deux voisines, pas
-   une phrase. */
+/* Le bord droit : le rouage du menu, seul (cf. src/render/menu.css). */
 .header-right {
   display: flex;
   align-items: center;
   gap: 18px;
-}
-
-/* Sortie de partie : une flèche nue (icône, cf. src/render/icons.ts). Le cadre
-   et le mot « CARTE » pesaient leur poids de chrome pour une action que la
-   flèche seule dit déjà. Elle garde l'encre pleine — c'est l'action la plus
-   structurante du header, elle prime sur le « i » de la règle (estompé).
-
-   Le padding n'est là que pour la cible du doigt (44px de haut avec l'icône) ;
-   la marge négative le reprend pour que la flèche s'aligne quand même sur le
-   bord du header. */
-.back-map {
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  padding: 10px;
-  margin: -10px;
-  background: none;
-  border: none;
-  color: var(--ink);
-  font-size: 24px; /* règle l'icône : .icon tient 1em de côté */
-  cursor: pointer;
-}
-
-/* Survol réservé à la souris : au doigt, le navigateur simule un :hover au tap
-   et le laisse collé jusqu'au tap suivant — la flèche resterait vermillon après
-   le relâchement. L'appui, lui (:active), se relâche partout. */
-@media (hover: hover) {
-  .back-map:hover {
-    color: var(--vermilion);
-  }
-}
-
-.back-map:active {
-  color: var(--vermilion);
 }
 
 /* Étiquette du niveau en cours : information, pas commande — mono estompé. */
@@ -105,9 +70,6 @@
   }
   .header-left {
     gap: 10px;
-  }
-  .back-map {
-    font-size: 22px;
   }
   .level-id {
     font-size: 12px;

@@ -18,10 +18,11 @@
    un plancher, l'encoche ou la barre home peut la pousser, jamais la réduire. */
 :root {
   --edge: 24px;
-  /* Hauteur du header de partie : la marge haute, la flèche (24px — l'item le
-     plus haut), son retrait bas (src/render/header.css). Le registre s'y
-     accroche au lieu de la deviner ; ce calc et le padding du header doivent
-     bouger ensemble. */
+  /* Hauteur du header de partie : la marge haute, la ligne de contenu (24px —
+     l'ex-hauteur de la flèche, gardée pour ne pas faire bouger le registre),
+     son retrait bas (src/render/header.css). Le registre s'y accroche au lieu
+     de la deviner — et le panneau du menu s'y cale (src/render/menu.css) ; ce
+     calc et le padding du header doivent bouger ensemble. */
   --header-h: calc(var(--edge) + 24px + 20px);
   /* Graisse commune du profil « label-caps » (DESIGN.md § Typography) : tout
      libellé mono capitalé — registre, panneaux, crédits, réglages sonores —

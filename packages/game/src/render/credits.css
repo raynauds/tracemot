@@ -1,0 +1,43 @@
+/* Crédits : le contenu propre de l'écran (le squelette — fond, croix, titre,
+   colonne — vient de src/render/screen.css). Écrit par src/render/credits.ts. */
+
+
+/* Une définition par attribution : le rôle en mono capitale (ce que ça fait
+   dans le jeu), l'œuvre et l'auteur en serif dessous — le même couple
+   étiquette/prose que les panneaux du header. */
+.credits-list {
+  margin: 26px 0 0;
+}
+
+.credits-role {
+  margin-top: 22px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: var(--label-caps-weight);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.credits-role:first-of-type {
+  margin-top: 0;
+}
+
+.credits-note {
+  margin: 6px 0 0;
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  .credits-list {
+    margin-top: 22px;
+  }
+  .credits-note {
+    font-size: 14.5px;
+  }
+}

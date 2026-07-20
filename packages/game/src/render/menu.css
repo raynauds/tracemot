@@ -1,0 +1,118 @@
+/* Menu du jeu (rouage) : chip des deux headers (partie et carte) et panneau
+   unique au niveau du body. Écrit par src/render/menu.ts, sur le composant
+   voile + panneau partagé (src/render/panel.css). */
+
+
+/* Icône rouage nue : ni cadre ni fond, comme l'étaient la flèche du retour et
+   le « i » de la règle qu'elle remplace. Estompée au repos — c'est une aide,
+   pas l'action de l'écran. Le padding n'est là que pour la cible du doigt
+   (44px), la marge négative le reprend pour l'aligner sur le cadre. */
+.menu-chip {
+  pointer-events: auto; /* le header de partie (overlay) les laisse passer */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  margin: -10px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px; /* règle l'icône : .icon tient 1em de côté */
+  cursor: pointer;
+}
+
+/* Le vermillon dit « le pointeur est dessus », comme sur toutes les icônes
+   nues. Survol réservé à la souris : au doigt, le navigateur simule un :hover
+   au tap et le laisse collé jusqu'au tap suivant — le rouage resterait allumé
+   après la fermeture du panneau. L'appui (:active), lui, se relâche. */
+@media (hover: hover) {
+  .menu-chip:hover {
+    color: var(--vermilion);
+  }
+}
+
+.menu-chip:active {
+  color: var(--vermilion);
+}
+
+/* Panneau ouvert : un état, pas un survol — il vaut donc partout. */
+.menu-chip.open {
+  color: var(--ink);
+}
+
+/* Voile et panneau vivent au niveau du body (cf. index.html) : au-dessus de la
+   carte (40) — le rouage de la carte doit pouvoir l'ouvrir —, sous le lobby
+   (42) : une proposition de vote prime sur un menu resté ouvert. */
+.menu-overlay {
+  z-index: 41;
+}
+
+/* Le composant l'ancre en absolu sous sa chip ; ici il n'a pas d'ancre — deux
+   déclencheurs, deux headers — et se cale donc sur le coin haut-droit de
+   l'écran, où les deux rouages se posent : sous la ligne de header, au bord
+   du cadre. */
+.menu-panel {
+  position: fixed;
+  z-index: 41;
+  top: var(--header-h);
+  left: auto;
+  right: max(var(--edge), env(safe-area-inset-right));
+  width: 300px;
+}
+
+/* Items du menu : des lignes, pas des boutons encadrés — le panneau est une
+   liste d'actions, le filet fin les sépare comme il sépare les mots du
+   registre. Mono capitale (label-caps) : ce sont des commandes. */
+.menu-item {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px 0 0;
+  border: none;
+  border-top: var(--rule-hairline);
+  background: none;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: var(--label-caps-weight);
+  letter-spacing: 1.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .menu-item:hover {
+    color: var(--vermilion);
+  }
+}
+
+.menu-item:active {
+  color: var(--vermilion);
+}
+
+/* Quitter : la seule action à conséquence collective du menu (proposition
+   d'abandon soumise au vote, doc 02/04) — vermillon d'office, elle n'attend
+   pas le survol pour se distinguer des entrées de consultation. */
+.menu-item-quit {
+  color: var(--vermilion);
+}
+
+
+/* --- Mobile (maquette 390x844) --- */
+
+@media (max-width: 860px) {
+  /* Rouage resserré, à l'échelle des icônes du header mobile. */
+  .menu-chip {
+    font-size: 18px;
+  }
+  /* Le panneau redevient la feuille pleine largeur du composant partagé : le
+     calage haut-droit du popover desktop, déclaré plus bas dans la cascade
+     que src/render/panel.css, l'écraserait sans ce rappel. */
+  .menu-panel {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+  }
+}
