@@ -27,8 +27,7 @@
   /* Gouttière commune au registre et au zoom (--edge, src/theme/base.css) : les
      trois se posent sur le même bord droit. Le retrait bas, lui, n'appartient
      qu'au header — mais --header-h le rejoue pour poser le registre dessous. */
-  padding: max(var(--edge), env(safe-area-inset-top))
-    max(var(--edge), env(safe-area-inset-right)) 20px
+  padding: var(--edge) max(var(--edge), env(safe-area-inset-right)) 20px
     max(var(--edge), env(safe-area-inset-left));
   background: linear-gradient(
     var(--paper) 55%,

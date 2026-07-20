@@ -23,8 +23,7 @@
 .screen-head {
   display: flex;
   justify-content: flex-end;
-  padding: max(var(--edge), env(safe-area-inset-top))
-    max(var(--edge), env(safe-area-inset-right)) 0
+  padding: var(--edge) max(var(--edge), env(safe-area-inset-right)) 0
     max(var(--edge), env(safe-area-inset-left));
 }
 

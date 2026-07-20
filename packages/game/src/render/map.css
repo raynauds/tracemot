@@ -57,8 +57,7 @@ body.map-open .win {
      droite au même retrait — celui du header de partie, qui prend la relève dès
      qu'on lance un niveau. Seul le retrait bas est libre : il ne sépare pas du
      bord de l'écran, il tient la première section à distance. */
-  padding: max(var(--edge), env(safe-area-inset-top))
-    max(var(--edge), env(safe-area-inset-right)) 18px
+  padding: var(--edge) max(var(--edge), env(safe-area-inset-right)) 18px
     max(var(--edge), env(safe-area-inset-left));
 }
 
