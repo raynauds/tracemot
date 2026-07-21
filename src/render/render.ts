@@ -10,6 +10,7 @@ import {
   REJECT_DISPLAY_MS,
   TOAST_MS,
 } from "../game/config.ts";
+import { preloadDefinition } from "../game/definitions.ts";
 import { state } from "../game/state.ts";
 import { wordRejectReason } from "../game/rules.ts";
 
@@ -29,6 +30,11 @@ const statusEl = byId("status");
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
 const winWordsEl = byId("win-words");
+const winDefEl = byId("win-def");
+const winDefTitleEl = byId("win-def-title");
+const winDefNatureEl = byId("win-def-nature");
+const winDefTextEl = byId("win-def-text");
+const winDefSrcEl = byId("win-def-src") as HTMLAnchorElement;
 const chronoEl = byId("chrono");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
@@ -505,12 +511,42 @@ export function renderNewGame() {
   renderRuleSpec();
   winEl.hidden = true;
   winWordsEl.replaceChildren();
+  winDefEl.hidden = true;
+  winSelectedWord = null;
 }
 
 // Délai d'apparition du premier mot de la liste de victoire (durée du pop
 // de l'overlay, voir win-pop dans style.css), puis cascade mot à mot.
 const WIN_WORD_BASE_DELAY_MS = 450;
 const WIN_WORD_STAGGER_MS = 40;
+
+// Fiche lexicale : mot dont la définition est affichée (garde-fou contre les
+// réponses tardives si l'utilisateur clique un autre mot entre-temps).
+let winSelectedWord: string | null = null;
+
+// Remplit la fiche lexicale avec la définition (préchargée à la validation
+// du mot, voir main.ts — l'attente est donc en pratique instantanée).
+async function showWinDef(word: string, button: HTMLElement) {
+  winSelectedWord = word;
+  for (const b of winWordsEl.querySelectorAll(".win-word button")) {
+    b.setAttribute("aria-pressed", String(b === button));
+  }
+  winDefTitleEl.textContent = word.toLowerCase();
+  winDefNatureEl.textContent = "";
+  winDefTextEl.textContent = "…";
+  winDefSrcEl.hidden = true;
+  const def = await preloadDefinition(word);
+  if (winSelectedWord !== word) return;
+  if (def) {
+    winDefTitleEl.textContent = def.title;
+    winDefNatureEl.textContent = def.nature;
+    winDefTextEl.textContent = def.text;
+    winDefSrcEl.href = def.url;
+    winDefSrcEl.hidden = false;
+  } else {
+    winDefTextEl.textContent = "Définition introuvable sur le Wiktionnaire.";
+  }
+}
 
 export function renderWin() {
   const time = formatTime(Date.now() - state.startTime);
@@ -519,32 +555,35 @@ export function renderWin() {
   counterEl.classList.add("full");
   const { wordCount } = state.mode;
   winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} EN ${time}`;
-  // Liste des mots trouvés (ordre de découverte), chacun lié à sa définition.
-  // Les mots de la grille sont sans accents : le lien est approximatif pour
-  // les mots accentués (assumé, voir portail-lexical).
+  // Liste des mots trouvés (ordre de découverte) : cliquer un mot remplit la
+  // fiche lexicale sous la liste. Le premier mot est sélectionné d'office
+  // pour que la fiche n'apparaisse jamais vide.
   winWordsEl.replaceChildren();
   winEl.style.setProperty("--win-cols", wordCount > 8 ? "2" : "1");
+  let firstButton: HTMLElement | null = null;
   state.found.forEach((word, i) => {
     const li = document.createElement("li");
     li.className = "win-word";
     li.style.animationDelay = `${WIN_WORD_BASE_DELAY_MS + i * WIN_WORD_STAGGER_MS}ms`;
-    const link = document.createElement("a");
-    link.href = `https://www.portail-lexical.fr/definition/${word.toLowerCase()}`;
-    link.target = "_blank";
-    link.rel = "noopener";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-pressed", "false");
     const num = document.createElement("span");
     num.className = "win-word-num";
     num.textContent = String(i + 1).padStart(2, "0");
     const text = document.createElement("span");
     text.className = "win-word-text";
     text.textContent = word;
-    const ext = document.createElement("span");
-    ext.className = "win-word-ext";
-    ext.textContent = "↗";
-    link.append(num, text, ext);
-    li.appendChild(link);
+    button.append(num, text);
+    button.addEventListener("click", () => showWinDef(word, button));
+    li.appendChild(button);
     winWordsEl.appendChild(li);
+    if (!firstButton) firstButton = button;
   });
+  // La fiche apparaît après la cascade des mots (délai aligné dessus).
+  winDefEl.style.animationDelay = `${WIN_WORD_BASE_DELAY_MS + state.found.length * WIN_WORD_STAGGER_MS + 80}ms`;
+  winDefEl.hidden = false;
+  if (firstButton) showWinDef(state.found[0], firstButton);
   winEl.hidden = false;
 }
 

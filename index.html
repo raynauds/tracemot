@@ -232,8 +232,24 @@
       <span class="confetti c6"></span>
       <div class="win-title">Gagné<span class="dot">.</span></div>
       <div class="win-sub" id="win-sub"></div>
-      <!-- Mots trouvés : chaque mot est un lien vers sa définition. -->
+      <!-- Mots trouvés : cliquer un mot affiche sa définition dans la fiche. -->
       <ol class="win-words" id="win-words"></ol>
+      <!-- Fiche lexicale : définition du mot sélectionné (Wiktionnaire). -->
+      <div class="win-def" id="win-def" hidden>
+        <p class="win-def-entry">
+          <span class="win-def-title" id="win-def-title"></span>
+          <span class="win-def-nature" id="win-def-nature"></span>
+        </p>
+        <p class="win-def-text" id="win-def-text"></p>
+        <a
+          class="win-def-src"
+          id="win-def-src"
+          target="_blank"
+          rel="noopener"
+          hidden
+          >Wiktionnaire ↗</a
+        >
+      </div>
       <button type="button" class="win-replay" id="replay">REJOUER</button>
     </div>
 

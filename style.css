@@ -457,7 +457,7 @@ body {
   color: var(--ghost);
 }
 
-/* Mots trouvés : chaque mot est un lien vers sa définition (portail-lexical).
+/* Mots trouvés : cliquer un mot remplit la fiche lexicale (.win-def).
    1 colonne (classique, longs), 2 en maxi (--win-cols posé par render.ts) ;
    scroll interne au-delà de 42vh pour garder REJOUER visible. */
 .win-words {
@@ -468,7 +468,7 @@ body {
   grid-template-columns: repeat(var(--win-cols, 1), auto);
   justify-content: center;
   gap: 4px 36px;
-  max-height: 42vh;
+  max-height: 34vh; /* laisse la place à la fiche lexicale + REJOUER */
   overflow-y: auto;
   width: min(680px, 100%);
 }
@@ -488,47 +488,105 @@ body {
   }
 }
 
-.win-word a {
+.win-word button {
   display: flex;
   align-items: baseline;
   gap: 12px;
   padding: 6px 10px;
+  background: none;
+  border: none;
   font-family: var(--mono);
   font-size: 15px;
   letter-spacing: 2px;
   color: var(--ghost);
-  text-decoration: none;
+  cursor: pointer;
 }
 
-.win-word a:hover,
-.win-word a:focus-visible {
+.win-word button:hover,
+.win-word button:focus-visible {
   color: var(--paper);
 }
 
-.win-word a:focus-visible {
+.win-word button:focus-visible {
   outline: 2px solid var(--paper);
   outline-offset: 2px;
+}
+
+/* Mot dont la définition est affichée dans la fiche. */
+.win-word button[aria-pressed="true"] {
+  color: var(--paper);
+}
+
+.win-word button[aria-pressed="true"] .win-word-num {
+  color: var(--vermilion);
+  opacity: 1;
 }
 
 .win-word-num {
   opacity: 0.55;
 }
 
-.win-word-ext {
-  font-size: 12px;
+/* Fiche lexicale : entrée de dictionnaire du mot sélectionné, entre filets.
+   min-height fixe pour que le layout ne saute pas d'un mot à l'autre. */
+.win-def {
+  position: relative;
+  width: min(560px, 100%);
+  min-height: 108px;
+  padding: 14px 4px 16px;
+  border-top: 1px solid rgba(185, 175, 156, 0.45); /* --ghost à 45 % */
+  border-bottom: 1px solid rgba(185, 175, 156, 0.45);
+  animation: win-word-in 0.3s both;
 }
 
-/* Au pointeur, la flèche n'apparaît qu'au survol/focus ; au tactile (pas de
-   hover) elle reste visible en permanence. */
-@media (hover: hover) {
-  .win-word-ext {
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-  .win-word a:hover .win-word-ext,
-  .win-word a:focus-visible .win-word-ext {
-    opacity: 1;
-  }
+.win-def-entry {
+  margin: 0 0 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.win-def-title {
+  font-size: 24px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--paper);
+}
+
+.win-def-nature {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--ghost);
+}
+
+.win-def-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--paper);
+}
+
+/* Attribution CC BY-SA : lien discret vers la page Wiktionnaire du mot. */
+.win-def-src {
+  position: absolute;
+  top: 16px;
+  right: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--ghost);
+  text-decoration: none;
+}
+
+.win-def-src:hover,
+.win-def-src:focus-visible {
+  color: var(--paper);
+  text-decoration: underline;
+}
+
+.win-def-src:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
 }
 
 .win-replay {
@@ -916,6 +974,13 @@ body {
   color: var(--muted);
 }
 
+/* Ligne de test : mot + définition Wiktionnaire */
+.debug-def {
+  flex-basis: 100%;
+  color: var(--ink);
+  font-style: italic;
+}
+
 .debug-word {
   color: var(--ink);
   cursor: default;
@@ -1021,12 +1086,26 @@ body {
   }
   .win-words {
     gap: 2px 20px;
-    max-height: 38vh;
+    max-height: 30vh;
   }
-  .win-word a {
+  .win-word button {
     font-size: 13px;
     letter-spacing: 1.5px;
     gap: 10px;
+  }
+  .win-def {
+    min-height: 96px;
+    padding: 12px 2px 14px;
+  }
+  .win-def-title {
+    font-size: 20px;
+  }
+  .win-def-text {
+    font-size: 14px;
+  }
+  .win-def-src {
+    top: 14px;
+    right: 2px;
   }
   .win-replay {
     margin-top: 14px;
@@ -1154,6 +1233,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .win,
   .win-word,
+  .win-def,
   .confetti {
     animation: none;
   }

@@ -9,6 +9,7 @@ import {
   ENABLED_MODES,
   GAME_MODES,
 } from "./game/config.ts";
+import { preloadDefinition } from "./game/definitions.ts";
 import { applyMode, state } from "./game/state.ts";
 import { buildLengthSets, loadDictionaries } from "./game/dictionary.ts";
 import { createGridGenerator } from "./game/solver.ts";
@@ -112,6 +113,9 @@ function commitPath() {
   }
 
   state.found.push(word);
+  // Précharge la définition dès la validation : à la victoire, la fiche
+  // lexicale de l'écran de fin s'affiche sans latence réseau.
+  preloadDefinition(word);
   fillListRow(state.found.length - 1, word, true);
   // Chaque lettre sert à exactement un mot : les cases du tracé validé
   // sont retirées du jeu.
