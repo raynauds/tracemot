@@ -527,11 +527,14 @@ body {
 }
 
 /* Fiche lexicale : entrée de dictionnaire du mot sélectionné, entre filets.
-   min-height fixe pour que le layout ne saute pas d'un mot à l'autre. */
+   Le texte est clampé à 3 lignes (ellipse + bouton PLUS pour déplier) ; le
+   min-height couvre le cas clampé le plus haut (entrée + 3 lignes + PLUS)
+   pour que le layout ne saute pas d'un mot à l'autre. Seul le clic sur PLUS
+   — geste volontaire — fait grandir la fiche. */
 .win-def {
   position: relative;
   width: min(560px, 100%);
-  min-height: 108px;
+  min-height: 162px;
   padding: 14px 4px 16px;
   border-top: 1px solid rgba(185, 175, 156, 0.45); /* --ghost à 45 % */
   border-bottom: 1px solid rgba(185, 175, 156, 0.45);
@@ -564,6 +567,41 @@ body {
   font-size: 16px;
   line-height: 1.55;
   color: var(--paper);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.win-def.expanded .win-def-text {
+  display: block;
+  overflow: visible;
+}
+
+/* Déplie la définition ; masqué si le texte tient en 3 lignes (mesure
+   scrollHeight dans render.ts) ou une fois déplié. */
+.win-def-more {
+  display: block;
+  margin: 4px 0 0 auto;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--ghost);
+  cursor: pointer;
+}
+
+.win-def-more:hover,
+.win-def-more:focus-visible {
+  color: var(--paper);
+  text-decoration: underline;
+}
+
+.win-def-more:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
 }
 
 /* Attribution CC BY-SA : lien discret vers la page Wiktionnaire du mot. */
@@ -1094,7 +1132,7 @@ body {
     gap: 10px;
   }
   .win-def {
-    min-height: 96px;
+    min-height: 142px;
     padding: 12px 2px 14px;
   }
   .win-def-title {

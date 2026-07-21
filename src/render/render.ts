@@ -35,6 +35,13 @@ const winDefTitleEl = byId("win-def-title");
 const winDefNatureEl = byId("win-def-nature");
 const winDefTextEl = byId("win-def-text");
 const winDefSrcEl = byId("win-def-src") as HTMLAnchorElement;
+const winDefMoreEl = byId("win-def-more");
+
+// PLUS : lève le clamp à 3 lignes de la définition (repli au prochain mot).
+winDefMoreEl.addEventListener("click", () => {
+  winDefEl.classList.add("expanded");
+  winDefMoreEl.hidden = true;
+});
 const chronoEl = byId("chrono");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
@@ -531,6 +538,8 @@ async function showWinDef(word: string, button: HTMLElement) {
   for (const b of winWordsEl.querySelectorAll(".win-word button")) {
     b.setAttribute("aria-pressed", String(b === button));
   }
+  winDefEl.classList.remove("expanded");
+  winDefMoreEl.hidden = true;
   winDefTitleEl.textContent = word.toLowerCase();
   winDefNatureEl.textContent = "";
   winDefTextEl.textContent = "…";
@@ -543,6 +552,13 @@ async function showWinDef(word: string, button: HTMLElement) {
     winDefTextEl.textContent = def.text;
     winDefSrcEl.href = def.url;
     winDefSrcEl.hidden = false;
+    // PLUS n'apparaît que si le clamp tronque réellement le texte : mesure
+    // après rendu (le clamp borne clientHeight, scrollHeight reste entier).
+    requestAnimationFrame(() => {
+      if (winSelectedWord !== word) return;
+      winDefMoreEl.hidden =
+        winDefTextEl.scrollHeight <= winDefTextEl.clientHeight + 1;
+    });
   } else {
     winDefTextEl.textContent = "Définition introuvable sur le Wiktionnaire.";
   }
