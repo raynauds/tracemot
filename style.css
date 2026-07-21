@@ -457,6 +457,77 @@ body {
   color: var(--ghost);
 }
 
+/* Mots trouvés : chaque mot est un lien vers sa définition (portail-lexical).
+   1 colonne (classique, longs), 2 en maxi (--win-cols posé par render.ts) ;
+   scroll interne au-delà de 42vh pour garder REJOUER visible. */
+.win-words {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--win-cols, 1), auto);
+  justify-content: center;
+  gap: 4px 36px;
+  max-height: 42vh;
+  overflow-y: auto;
+  width: min(680px, 100%);
+}
+
+/* Cascade d'apparition après le pop de l'overlay (délai inline par mot). */
+.win-word {
+  animation: win-word-in 0.3s both;
+}
+
+@keyframes win-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.win-word a {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--ghost);
+  text-decoration: none;
+}
+
+.win-word a:hover,
+.win-word a:focus-visible {
+  color: var(--paper);
+}
+
+.win-word a:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+
+.win-word-num {
+  opacity: 0.55;
+}
+
+.win-word-ext {
+  font-size: 12px;
+}
+
+/* Au pointeur, la flèche n'apparaît qu'au survol/focus ; au tactile (pas de
+   hover) elle reste visible en permanence. */
+@media (hover: hover) {
+  .win-word-ext {
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .win-word a:hover .win-word-ext,
+  .win-word a:focus-visible .win-word-ext {
+    opacity: 1;
+  }
+}
+
 .win-replay {
   align-self: center;
   width: min(360px, 100%);
@@ -945,6 +1016,15 @@ body {
     font-size: 13px;
     letter-spacing: 2px;
   }
+  .win-words {
+    gap: 2px 20px;
+    max-height: 38vh;
+  }
+  .win-word a {
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    gap: 10px;
+  }
   .win-replay {
     margin-top: 14px;
     height: 56px;
@@ -1065,5 +1145,13 @@ body {
 @media (pointer: coarse) {
   .zoom-btn--step {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .win,
+  .win-word,
+  .confetti {
+    animation: none;
   }
 }

@@ -28,6 +28,7 @@ export const replayEl = byId("replay");
 const statusEl = byId("status");
 const winEl = byId("win");
 const winSubEl = byId("win-sub");
+const winWordsEl = byId("win-words");
 const chronoEl = byId("chrono");
 const counterEl = byId("counter");
 const wordListEl = byId("word-list");
@@ -503,7 +504,13 @@ export function renderNewGame() {
   chronoEl.classList.remove("won");
   renderRuleSpec();
   winEl.hidden = true;
+  winWordsEl.replaceChildren();
 }
+
+// Délai d'apparition du premier mot de la liste de victoire (durée du pop
+// de l'overlay, voir win-pop dans style.css), puis cascade mot à mot.
+const WIN_WORD_BASE_DELAY_MS = 450;
+const WIN_WORD_STAGGER_MS = 40;
 
 export function renderWin() {
   const time = formatTime(Date.now() - state.startTime);
@@ -512,6 +519,32 @@ export function renderWin() {
   counterEl.classList.add("full");
   const { wordCount } = state.mode;
   winSubEl.textContent = `${wordCount} MOT${wordCount > 1 ? "S" : ""} EN ${time}`;
+  // Liste des mots trouvés (ordre de découverte), chacun lié à sa définition.
+  // Les mots de la grille sont sans accents : le lien est approximatif pour
+  // les mots accentués (assumé, voir portail-lexical).
+  winWordsEl.replaceChildren();
+  winEl.style.setProperty("--win-cols", wordCount > 8 ? "2" : "1");
+  state.found.forEach((word, i) => {
+    const li = document.createElement("li");
+    li.className = "win-word";
+    li.style.animationDelay = `${WIN_WORD_BASE_DELAY_MS + i * WIN_WORD_STAGGER_MS}ms`;
+    const link = document.createElement("a");
+    link.href = `https://www.portail-lexical.fr/definition/${word.toLowerCase()}`;
+    link.target = "_blank";
+    link.rel = "noopener";
+    const num = document.createElement("span");
+    num.className = "win-word-num";
+    num.textContent = String(i + 1).padStart(2, "0");
+    const text = document.createElement("span");
+    text.className = "win-word-text";
+    text.textContent = word;
+    const ext = document.createElement("span");
+    ext.className = "win-word-ext";
+    ext.textContent = "↗";
+    link.append(num, text, ext);
+    li.appendChild(link);
+    winWordsEl.appendChild(li);
+  });
   winEl.hidden = false;
 }
 
