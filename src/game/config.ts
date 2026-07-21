@@ -15,8 +15,10 @@ export type GameMode = {
 // mode actif.
 export const GAME_MODES: Record<string, GameMode> = {
   classique: { rows: 5, cols: 5, wordLength: 5, wordCount: 5 },
-  maxi: { rows: 10, cols: 10, wordLength: 5, wordCount: 20 },
+  moyens: { rows: 6, cols: 6, wordLength: 6, wordCount: 6 },
+  grands: { rows: 7, cols: 7, wordLength: 7, wordCount: 7 },
   longs: { rows: 8, cols: 8, wordLength: 8, wordCount: 8 },
+  maxi: { rows: 10, cols: 10, wordLength: 5, wordCount: 20 },
 };
 
 for (const [id, m] of Object.entries(GAME_MODES)) {
@@ -35,8 +37,10 @@ export const DEFAULT_MODE: keyof typeof GAME_MODES = "classique";
 // (chip du header) disparaît entièrement.
 export const ENABLED_MODES: (keyof typeof GAME_MODES)[] = [
   "classique",
-  "maxi",
+  "moyens",
+  "grands",
   "longs",
+  "maxi",
 ];
 
 // Nom et description de chaque mode : chip du header, lignes de la feuille
@@ -48,8 +52,10 @@ export const MODE_LABELS: Record<
   { name: string; desc: string }
 > = {
   classique: { name: "5×5", desc: "5 mots de 5 lettres" },
-  maxi: { name: "20×5", desc: "20 mots de 5 lettres" },
+  moyens: { name: "6×6", desc: "6 mots de 6 lettres" },
+  grands: { name: "7×7", desc: "7 mots de 7 lettres" },
   longs: { name: "8×8", desc: "8 mots de 8 lettres" },
+  maxi: { name: "20×5", desc: "20 mots de 5 lettres" },
 };
 
 // Mode debug : affiche en bas de l'écran tous les mots trouvables dans la
