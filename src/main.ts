@@ -208,15 +208,18 @@ async function init() {
     const maxCellCount = Math.max(
       ...ENABLED_MODES.map((m) => GAME_MODES[m].rows * GAME_MODES[m].cols),
     );
-    const { full, tiers } = await loadDictionaries(DEBUG ? maxCellCount : 0);
+    // Longueurs de mots effectivement jouées : seuls leurs fichiers « _NN »
+    // sont chargés (le mode peut changer à chaud sans recharger).
+    const lengths = [
+      ...new Set(ENABLED_MODES.map((m) => GAME_MODES[m].wordLength)),
+    ];
+    const { full, tiers } = await loadDictionaries(
+      DEBUG ? maxCellCount : 0,
+      lengths,
+    );
     state.words = full.words;
     state.fullPrefixes = full.prefixes;
-    state.tierWords = {
-      enfant: tiers.enfant.words,
-      ado: tiers.ado.words,
-      adulte: tiers.adulte.words,
-      inconnu: tiers.inconnu.words,
-    };
+    state.tierWords = tiers;
   } catch (err) {
     console.error("Tracemot : échec du chargement des dictionnaires", err);
     renderLoadError(

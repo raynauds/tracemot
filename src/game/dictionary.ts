@@ -16,6 +16,16 @@ export const TIER_FILES: Record<Tier, string> = {
 export const FULL_DICT_FILE = "dictionnaires/dictionnaire.txt";
 export const TIER_NAMES = Object.keys(TIER_FILES) as Tier[];
 
+/**
+ * Variante d'un fichier dictionnaire restreinte aux mots de `length`
+ * lettres : suffixe « _NN » zéro-paddé avant l'extension. Ces fichiers
+ * sont produits par `node tools/split-dicts.mjs` — à relancer si les
+ * dictionnaires source ou les longueurs des GAME_MODES changent.
+ */
+export function lengthFile(file: string, length: number): string {
+  return file.replace(/\.txt$/, `_${String(length).padStart(2, "0")}.txt`);
+}
+
 async function fetchWordFile(url: string): Promise<string> {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status} sur ${url}`);
@@ -80,20 +90,41 @@ export function buildLengthSets(
 
 /**
  * Charge le dictionnaire complet (validation des tracés) et les quatre
- * paliers de vocabulaire (choix des mots cachés selon la difficulté).
- * Les préfixes du dictionnaire complet ne servent qu'au mode debug :
- * `maxPrefixLen` = 0 évite de les construire pour rien (sinon passer le
- * nombre de cases de la grille, longueur maximale d'un tracé). Aucun
- * palier n'a besoin de ses préfixes.
+ * paliers de vocabulaire (choix des mots cachés selon la difficulté),
+ * restreints aux longueurs jouées (`lengths`, wordLength des modes actifs)
+ * via les fichiers « _NN » — voir `lengthFile`. Un tracé devant faire
+ * exactement wordLength lettres, les autres longueurs ne servent à rien.
+ * Exception : `maxPrefixLen` > 0 (mode debug) charge le dictionnaire
+ * complet entier — findAllWords cherche toutes les longueurs — et
+ * construit ses préfixes (passer le nombre de cases de la grille,
+ * longueur maximale d'un tracé). Aucun palier n'a besoin de ses préfixes.
  */
-export async function loadDictionaries(maxPrefixLen: number) {
-  const [fullText, ...tierTexts] = await Promise.all([
-    fetchWordFile(FULL_DICT_FILE),
-    ...TIER_NAMES.map((tier) => fetchWordFile(TIER_FILES[tier])),
-  ]);
-  const tiers = {} as Record<Tier, ReturnType<typeof parseWordList>>;
+export async function loadDictionaries(maxPrefixLen: number, lengths: number[]) {
+  const fullFiles =
+    maxPrefixLen > 0
+      ? [FULL_DICT_FILE]
+      : lengths.map((len) => lengthFile(FULL_DICT_FILE, len));
+  const [fullTexts, ...tierTexts] = await Promise.all(
+    [fullFiles, ...TIER_NAMES.map((tier) => lengths.map((len) => lengthFile(TIER_FILES[tier], len)))].map(
+      (files) => Promise.all(files.map(fetchWordFile)),
+    ),
+  );
+
+  // Chaque fichier est trié, leur concaténation ne l'est pas : on parse
+  // fichier par fichier (les préfixes s'appuient sur le tri) puis on unit.
+  const full = { words: new Set<string>(), prefixes: new Set<string>() };
+  for (const text of fullTexts) {
+    const part = parseWordList(text, maxPrefixLen);
+    for (const w of part.words) full.words.add(w);
+    for (const p of part.prefixes) full.prefixes.add(p);
+  }
+  const tiers = {} as Record<Tier, Set<string>>;
   TIER_NAMES.forEach((tier, i) => {
-    tiers[tier] = parseWordList(tierTexts[i]);
+    const words = new Set<string>();
+    for (const text of tierTexts[i]) {
+      for (const w of parseWordList(text).words) words.add(w);
+    }
+    tiers[tier] = words;
   });
-  return { full: parseWordList(fullText, maxPrefixLen), tiers };
+  return { full, tiers };
 }
