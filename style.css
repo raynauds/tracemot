@@ -478,10 +478,13 @@ body {
   animation: win-word-in 0.3s both;
 }
 
+/* Départ vers le haut (-6px) : un débordement au-dessus du conteneur n'est
+   pas scrollable, contrairement au bas — sinon la scrollbar de .win-words
+   clignote pendant la cascade. */
 @keyframes win-word-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(-6px);
   }
 }
 
