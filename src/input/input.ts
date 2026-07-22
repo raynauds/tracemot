@@ -12,14 +12,8 @@
 //               pan par delta du milieu.
 // Le zoom molette et les boutons +/− vivent dans scene.ts (Phase 2), intacts.
 // Flèches et ZQSD/WASD → pan clavier via une boucle app.ticker.
-// Auto-pan : en mode "trace", approcher un bord du viewport translate la
-// caméra (boucle app.ticker) pour continuer le mot hors de la vue courante.
 
-import {
-  EDGE_PAN_MARGIN,
-  EDGE_PAN_MAX_SPEED,
-  KEY_PAN_SPEED,
-} from "../game/config.ts";
+import { KEY_PAN_SPEED } from "../game/config.ts";
 import { state } from "../game/state.ts";
 import { buzz, renderPendingWord, replayEl } from "../render/render.ts";
 import {
@@ -68,16 +62,11 @@ function isOrthAdjacent(a: number, b: number) {
   return state.geometry.neighbors[a].includes(b);
 }
 
-// Dernière position écran du pointeur de tracé (event ou auto-pan), lue par la
-// boucle d'auto-pan pour tester la proximité des bords et réévaluer la case.
-let traceScreen = { x: 0, y: 0 };
-
 // Démarre un tracé sur la case idx avec le pointeur courant.
 function beginTrace(e: FederatedPointerEvent, idx: number) {
   mode = "trace";
   state.pointerId = e.pointerId;
   state.path = [idx];
-  traceScreen = { x: e.global.x, y: e.global.y };
   buzz();
   updateSelection();
   renderTrace();
@@ -85,9 +74,7 @@ function beginTrace(e: FederatedPointerEvent, idx: number) {
 }
 
 // Étend le tracé vers la case idx selon les règles (adjacence orthogonale,
-// backtrack, cases consommées inertes). Source unique partagée par le déplacement
-// du pointeur (traceMove) et la réévaluation post auto-pan. Retourne true si le
-// tracé a changé.
+// backtrack, cases consommées inertes).
 function extendTraceTo(idx: number | null) {
   if (idx === null) return false;
   if (state.usedCells.has(idx)) return false; // case consommée par un mot trouvé
@@ -119,7 +106,6 @@ function traceMove(e: FederatedPointerEvent) {
     clearPath();
     return;
   }
-  traceScreen = { x: e.global.x, y: e.global.y };
   extendTraceTo(cellAtGlobal(e.global));
 }
 
@@ -338,53 +324,6 @@ function keyPan(ticker: Ticker) {
   cam.set(cam.scale, cam.x + dx, cam.y + dy);
 }
 
-// --- Auto-pan au bord (pendant le tracé) -----------------------------------
-
-// Vitesse d'auto-pan sur un axe selon la position écran du pointeur : nulle
-// hors de la bande EDGE_PAN_MARGIN, sinon ∝ pénétration (plafonnée à 1). Signe
-// choisi pour révéler le contenu vers lequel le pointeur tend (près du bord
-// droit → caméra vers la gauche).
-/**
- * @param pos   position écran sur l'axe (px)
- * @param size  taille écran de l'axe (px)
- * @returns facteur dans [-1, 1]
- */
-function edgeVelocity(pos: number, size: number): number {
-  if (pos < EDGE_PAN_MARGIN) {
-    return Math.min(1, (EDGE_PAN_MARGIN - pos) / EDGE_PAN_MARGIN);
-  }
-  if (pos > size - EDGE_PAN_MARGIN) {
-    return -Math.min(1, (pos - (size - EDGE_PAN_MARGIN)) / EDGE_PAN_MARGIN);
-  }
-  return 0;
-}
-
-// Boucle Ticker : active uniquement en mode "trace". Si le pointeur est dans la
-// bande de bord, translate la caméra (px/s, indépendant du framerate via
-// deltaMS), puis réévalue la case sous le pointeur pour continuer le mot hors de
-// la vue courante. Le clamp caméra arrête l'auto-pan aux limites de la grille.
-function edgePan(ticker: Ticker) {
-  if (mode !== "trace") return;
-  const { width, height } = getApp().screen;
-  const vx = edgeVelocity(traceScreen.x, width);
-  const vy = edgeVelocity(traceScreen.y, height);
-  if (vx === 0 && vy === 0) return;
-
-  const dt = ticker.deltaMS / 1000;
-  const cam = getCamera();
-  const x0 = cam.x;
-  const y0 = cam.y;
-  cam.set(
-    cam.scale,
-    cam.x + vx * EDGE_PAN_MAX_SPEED * dt,
-    cam.y + vy * EDGE_PAN_MAX_SPEED * dt,
-  );
-  // Caméra bloquée par le clamp (bord de grille atteint) : rien de neuf à voir.
-  if (cam.x === x0 && cam.y === y0) return;
-  // La vue a bougé sous un pointeur immobile : réévalue la case pour étendre.
-  extendTraceTo(cellAtGlobal(traceScreen));
-}
-
 // --- Câblage ---------------------------------------------------------------
 
 export function attachInputHandlers(handlers: {
@@ -418,9 +357,6 @@ export function attachInputHandlers(handlers: {
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
   app.ticker.add(keyPan);
-
-  // Auto-pan au bord pendant le tracé (inerte hors du mode "trace").
-  app.ticker.add(edgePan);
 
   // Perte de focus : annule un geste armé et vide les touches enfoncées, pour
   // ne rien laisser actif au retour.

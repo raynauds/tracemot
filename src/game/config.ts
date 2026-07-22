@@ -180,10 +180,6 @@ export const ZOOM_MAX_CELLS = 3;
 export const ZOOM_STEP = 1.25;
 // Pan clavier (flèches / ZQSD-WASD), en px/s.
 export const KEY_PAN_SPEED = 900;
-// Auto-pan pendant le tracé : bande de bord déclenchante (px) et vitesse
-// maximale atteinte au ras du bord (px/s).
-export const EDGE_PAN_MARGIN = 64;
-export const EDGE_PAN_MAX_SPEED = 700;
 
 // --- Palette numérique (0xRRGGBB) pour Pixi -------------------------------
 // Portée depuis style.css : Pixi attend des couleurs numériques.
